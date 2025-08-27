@@ -1,0 +1,27 @@
+{
+  "name": "fortify-db",
+  "version": "1.0.0",
+  "description": "Database schema and migration tools for Fortify AI Security Scanning Platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npx prisma studio",
+    "migrate": "npx prisma migrate dev",
+    "reset": "npx prisma migrate reset"
+  },
+  "keywords": [
+    "fortify",
+    "security",
+    "ai",
+    "scanning",
+    "vulnerability"
+  ],
+  "author": "Fortify Team",
+  "license": "ISC",
+  "devDependencies": {
+    "prisma": "5.17.0"
+  },
+  "dependencies": {
+    "@prisma/client": "5.17.0"
+  }
+}
