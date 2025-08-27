@@ -1,0 +1,79 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Get user with GitHub access token from database
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { githubAccessToken: true, githubUsername: true },
+    });
+
+    if (!user?.githubAccessToken) {
+      return NextResponse.json(
+        {
+          error:
+            "GitHub access token not found. Please reconnect your GitHub account.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Fetch public repositories from GitHub API
+    const response = await fetch(
+      "https://api.github.com/user/repos?type=public&sort=updated&per_page=50",
+      {
+        headers: {
+          Authorization: `Bearer ${user.githubAccessToken}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "Fortify-AI",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("GitHub API error:", response.status, errorData);
+      return NextResponse.json(
+        { error: "Failed to fetch repositories from GitHub" },
+        { status: 500 }
+      );
+    }
+
+    const repos = await response.json();
+
+    // Filter and format repository data
+    const formattedRepos = repos.map((repo: any) => ({
+      id: repo.id,
+      name: repo.name,
+      full_name: repo.full_name,
+      description: repo.description,
+      language: repo.language,
+      stars: repo.stargazers_count,
+      forks: repo.forks_count,
+      updated_at: repo.updated_at,
+      html_url: repo.html_url,
+      clone_url: repo.clone_url,
+      size: repo.size,
+      default_branch: repo.default_branch,
+      visibility: repo.visibility,
+      topics: repo.topics || [],
+    }));
+
+    return NextResponse.json({ repositories: formattedRepos });
+  } catch (error) {
+    console.error("Error fetching GitHub repositories:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

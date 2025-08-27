@@ -64,6 +64,11 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          scope: "read:user user:email public_repo",
+        },
+      },
     }),
   ],
   session: {
@@ -92,6 +97,7 @@ export const authOptions: NextAuthOptions = {
                 avatarUrl: user.image || profile.avatar_url,
                 emailVerified: new Date(),
                 lastLoginAt: new Date(),
+                githubAccessToken: account.access_token,
               },
             });
           } else {
@@ -108,6 +114,7 @@ export const authOptions: NextAuthOptions = {
                   user.image || profile.avatar_url || existingUser.avatarUrl,
                 displayName:
                   user.name || profile.name || existingUser.displayName,
+                githubAccessToken: account.access_token,
               },
             });
           }

@@ -25,10 +25,11 @@ model User {
         updatedAt      DateTime @updatedAt
 
         // Authentication
-        password      String?
-        emailVerified DateTime?
-        lastLoginAt   DateTime?
-        isActive      Boolean   @default(true)
+        password          String?
+        emailVerified     DateTime?
+        lastLoginAt       DateTime?
+        isActive          Boolean   @default(true)
+        githubAccessToken String?
 
         // User preferences
         preferences Json?

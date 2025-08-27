@@ -27,11 +27,36 @@ export default async function DashboardPage() {
             You are signed in as: {session.user?.email}
           </p>
 
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h3 className="text-xl font-semibold mb-4">Your Dashboard</h3>
-            <p className="text-gray-300">
-              This is your secure dashboard. You can add more features and content here.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Repository Scanner</h3>
+              <p className="text-gray-300 mb-6">
+                Scan your GitHub repositories for security vulnerabilities and get AI-powered fixes.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/repositories">View Repositories</Link>
+              </Button>
+            </div>
+            
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Recent Scans</h3>
+              <p className="text-gray-300 mb-6">
+                View your latest security scans and their results.
+              </p>
+              <Button variant="outline" className="w-full" disabled>
+                Coming Soon
+              </Button>
+            </div>
+            
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Security Reports</h3>
+              <p className="text-gray-300 mb-6">
+                Generate comprehensive security reports for your projects.
+              </p>
+              <Button variant="outline" className="w-full" disabled>
+                Coming Soon
+              </Button>
+            </div>
           </div>
         </div>
       </div>
