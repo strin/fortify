@@ -9,7 +9,7 @@ export default function App() {
       <div className="container mx-auto px-4 py-16">
         <nav className="flex justify-between items-center mb-16">
           <h1 className="text-2xl font-bold">Fortify</h1>
-          <Button asChild variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+          <Button asChild variant="outline">
             <Link href="/login">Login</Link>
           </Button>
         </nav>
@@ -23,10 +23,10 @@ export default function App() {
           </p>
 
           <div className="flex gap-4 justify-center">
-            <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700">
+            <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
               <Link href="/signup">Get Started</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+            <Button asChild size="lg" variant="outline">
               <Link href="/login">Sign In</Link>
             </Button>
           </div>

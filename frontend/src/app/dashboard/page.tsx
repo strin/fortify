@@ -16,7 +16,7 @@ export default async function DashboardPage() {
       <div className="container mx-auto px-4 py-16">
         <nav className="flex justify-between items-center mb-16">
           <h1 className="text-2xl font-bold">Fortify Dashboard</h1>
-          <Button asChild variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+          <Button asChild variant="outline">
             <Link href="/api/auth/signout">Sign Out</Link>
           </Button>
         </nav>
