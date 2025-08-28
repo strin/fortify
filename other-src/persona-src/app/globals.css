@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 215 33% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 33% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 33% 12%;
+    --primary: 8 100% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 358 84% 61%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 14% 85%;
+    --muted-foreground: 215 33% 12%;
+    --accent: 358 84% 61%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 14% 85%;
+    --input: 220 14% 85%;
+    --ring: 8 100% 63%;
+    --radius: 1.5rem;
+    --chart-1: 8 100% 63%;
+    --chart-2: 358 84% 61%;
+    --chart-3: 215 33% 12%;
+    --chart-4: 0 0% 100%;
+    --chart-5: 220 14% 85%;
+  }
+
+  .dark {
+    --background: 215 33% 12%;
+    --foreground: 0 0% 100%;
+    --card: 215 33% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 215 33% 12%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 8 100% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 358 84% 61%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 220 14% 85%;
+    --accent: 358 84% 61%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 8 100% 63%;
+    --chart-1: 8 100% 63%;
+    --chart-2: 358 84% 61%;
+    --chart-3: 215 33% 12%;
+    --chart-4: 0 0% 100%;
+    --chart-5: 220 14% 85%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+* {
+  touch-action: pan-y, pan-x;
+}
+
+body {
+  touch-action: pan-y, pan-x;
+}
+
+.customShadow {
+  box-shadow: 0px 10px 15px 0px #00000026;
+}
+
+.instaBackGround {
+  background: linear-gradient(
+    90deg,
+    #6553c6 0%,
+    #ac36a4 20.14%,
+    #ef7843 54.07%,
+    #fabf67 100%
+  );
+}
+
+.shareInstaBackGround {
+  background: url("/InstaBG.svg");
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.footerHomeActiveIcon svg path {
+  stroke: #fff;
+}
+.footerMessageActiveIcon svg path {
+  fill: #fff;
+}
+.footerProfileActiveIcon svg circle:nth-child(1),
+.footerProfileActiveIcon svg path {
+  stroke: #fff;
+}
+
+.hideScroll {
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+  scrollbar-width: none; /* Firefox */
+}
+.hideScroll::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+.customOverlay {
+  background: rgb(0 0 0 / 0.4);
+}
+.leftDrawer .bg-muted,
+.bottomDrawer .bg-muted {
+  display: none !important;
+}
+
+.buttonShadow {
+  box-shadow: 0px 4px 4px 0px #00000026;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* New button styles based on the design system */
+.btn-primary {
+  @apply bg-[#FF3950] text-white font-medium py-3 px-6 rounded-full;
+}
+
+.btn-secondary {
+  @apply bg-[#EF4899] text-white font-medium py-3 px-6 rounded-full;
+}
+
+/* Font settings for Roboto as shown in the design system */
+body {
+  font-family: "Roboto", sans-serif;
+}

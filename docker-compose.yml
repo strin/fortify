@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  scan-server:
+    build:
+      context: ./scan-agent
+      dockerfile: Dockerfile
+    container_name: scan-server
+    ports:
+      - "8000:8000" # Expose API port
+    volumes:
+      - ./scan-agent:/scan-agent
+      - ./db:/db
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - app-network
+    command: python src/server.py
+
+  scan-agent:
+    build:
+      context: ./scan-agent
+      dockerfile: Dockerfile
+    container_name: scan-agent
+    volumes:
+      - ./scan-agent:/scan-agent
+      - ./db:/db
+    depends_on:
+      - redis
+      - scan-agent
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - app-network
+    command: python src/workers/scanner.py
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+
+  # Database service (PostgreSQL for Prisma)
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=fortify
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - app-network
+
+volumes:
+  redis-data:
+  postgres-data:
+
+
+networks:
+  app-network:
+    driver: bridge
