@@ -30,7 +30,7 @@ services:
       - ./db:/db
     depends_on:
       - redis
-      - scan-agent
+      - scan-server
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
