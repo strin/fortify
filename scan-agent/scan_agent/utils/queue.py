@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Optional, List, Dict, Any
 from datetime import datetime
-from ..models.job import Job, JobStatus, JobType
+from scan_agent.models.job import Job, JobStatus, JobType
 from .redis_client import redis_connection
 
 class JobQueue:

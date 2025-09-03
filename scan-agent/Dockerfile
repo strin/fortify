@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 8000
 
 # Command to run the application (server)
-CMD ["python", "src/server.py"]
+CMD ["python", "-m", "scan_agent.server"]

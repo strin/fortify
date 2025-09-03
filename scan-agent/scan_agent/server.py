@@ -8,11 +8,10 @@ from pydantic import BaseModel, HttpUrl
 from datetime import datetime
 import uvicorn
 
-# Add src to path for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Package imports
 
-from models.job import JobType, JobStatus, ScanJobData
-from utils.queue import JobQueue
+from scan_agent.models.job import JobType, JobStatus, ScanJobData
+from scan_agent.utils.queue import JobQueue
 
 # Initialize FastAPI app
 app = FastAPI(title="Vulnerability Scan Orchestrator", version="1.0.0")

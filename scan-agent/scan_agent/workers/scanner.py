@@ -10,12 +10,11 @@ import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-# Add src to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Package imports
 
-from models.job import Job, JobStatus, JobType, ScanJobData
-from utils.queue import JobQueue
-from utils.redis_client import redis_connection
+from scan_agent.models.job import Job, JobStatus, JobType, ScanJobData
+from scan_agent.utils.queue import JobQueue
+from scan_agent.utils.redis_client import redis_connection
 
 class ScanWorker:
     """Worker that processes vulnerability scan jobs."""

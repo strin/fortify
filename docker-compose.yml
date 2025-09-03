@@ -18,7 +18,7 @@ services:
       - REDIS_PORT=6379
     networks:
       - app-network
-    command: python src/server.py
+    command: python -m scan_agent.server
 
   scan-agent:
     build:
@@ -36,7 +36,7 @@ services:
       - REDIS_PORT=6379
     networks:
       - app-network
-    command: python src/workers/scanner.py
+    command: python -m scan_agent.workers.scanner
 
   redis:
     image: redis:alpine
