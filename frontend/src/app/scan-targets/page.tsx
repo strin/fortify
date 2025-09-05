@@ -274,7 +274,7 @@ export default function ScanTargetsPage() {
         {/* Search Bar */}
         <div className="mb-8">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search projects..."
               value={searchTerm}
@@ -287,16 +287,16 @@ export default function ScanTargetsPage() {
         {/* Scan Targets Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {scanTargets.map((target) => (
-            <Card
-              key={target.id}
-              className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors"
-            >
+                         <Card
+               key={target.id}
+               className="hover:bg-accent/50 transition-colors"
+             >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Shield className="h-4 w-4 text-blue-400" />
-                      <CardTitle className="text-lg text-white truncate">
+                      <Shield className="h-4 w-4 text-primary" />
+                      <CardTitle className="text-lg truncate">
                         {target.name}
                       </CardTitle>
                       {!target.isActive && (
@@ -305,10 +305,10 @@ export default function ScanTargetsPage() {
                         </Badge>
                       )}
                     </div>
-                    <CardDescription className="text-sm text-gray-400 mb-2">
+                    <CardDescription className="text-sm mb-2">
                       {target.owner}/{target.repo}
                     </CardDescription>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <GitBranch className="h-3 w-3" />
                         {target.branch}
@@ -349,7 +349,7 @@ export default function ScanTargetsPage() {
                 <div className="space-y-4">
                   {/* Description */}
                   {target.description && (
-                    <p className="text-sm text-gray-300 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {target.description}
                     </p>
                   )}
@@ -357,7 +357,7 @@ export default function ScanTargetsPage() {
                   {/* Last Scan Status */}
                   {target.lastScan && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-400">Last scan:</span>
+                      <span className="text-sm text-muted-foreground">Last scan:</span>
                       {getStatusBadge(target.lastScan.status)}
                     </div>
                   )}
@@ -396,7 +396,7 @@ export default function ScanTargetsPage() {
                   </div>
 
                   {/* Stats */}
-                  <div className="text-xs text-gray-500 pt-2 border-t border-gray-700">
+                  <div className="text-xs text-muted-foreground pt-2 border-t border-border">
                     Total scans: {target.totalScans} • Created{" "}
                     {formatDate(target.createdAt)}
                   </div>
@@ -409,9 +409,9 @@ export default function ScanTargetsPage() {
         {/* Empty State */}
         {scanTargets.length === 0 && !loading && (
           <div className="text-center py-16">
-            <Shield className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+            <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-xl font-semibold mb-2">No Scan Targets Yet</h3>
-            <p className="text-gray-400 mb-6 max-w-md mx-auto">
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
               Get started by creating your first scan target. Connect a
               repository and configure security scanning for your codebase.
             </p>

@@ -22,16 +22,17 @@ import { Input } from "@/components/ui/input";
 interface Repository {
   id: number;
   name: string;
-  full_name: string;
+  fullName: string;
   description: string;
   language: string;
   stars: number;
   forks: number;
-  updated_at: string;
-  html_url: string;
-  clone_url: string;
+  updatedAt: string;
+  htmlUrl: string;
+  cloneUrl: string;
   size: number;
-  default_branch: string;
+  defaultBranch: string;
+  private: boolean;
   visibility: string;
   topics: string[];
 }
@@ -178,14 +179,14 @@ export default function RepositoriesPage() {
                   <div className="flex-1">
                     <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
                       {repo.name}
-                      {repo.visibility === "private" && <Badge variant="outline">Private</Badge>}
+                      {repo.private && <Badge variant="outline">Private</Badge>}
                     </CardTitle>
                     <CardDescription className="text-gray-300 text-sm">
                       {repo.description || "No description available"}
                     </CardDescription>
                   </div>
                   <Button asChild variant="ghost" size="sm">
-                    <a href={repo.html_url} target="_blank" rel="noopener noreferrer">
+                    <a href={repo.htmlUrl} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="h-4 w-4" />
                     </a>
                   </Button>
@@ -222,7 +223,7 @@ export default function RepositoriesPage() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      {formatDate(repo.updated_at)}
+                      {formatDate(repo.updatedAt)}
                     </div>
                   </div>
 
@@ -243,7 +244,7 @@ export default function RepositoriesPage() {
                       variant="outline"
                       className="w-full"
                     >
-                      <Link href={`/scans/${repo.full_name.split('/')[0]}/${repo.full_name.split('/')[1]}`}>
+                      <Link href={`/scans/${repo.fullName.split('/')[0]}/${repo.fullName.split('/')[1]}`}>
                         View Scan History
                       </Link>
                     </Button>

@@ -47,6 +47,12 @@ interface Repository {
   private: boolean;
   cloneUrl: string;
   htmlUrl: string;
+  stars?: number;
+  forks?: number;
+  updatedAt?: string;
+  size?: number;
+  visibility?: string;
+  topics?: string[];
   owner: {
     login: string;
     avatarUrl: string;
@@ -136,6 +142,12 @@ export function CreateScanTargetDialog({
 
   // Handle repository selection
   const handleSelectRepository = async (repo: Repository) => {
+    // Defensive check to ensure owner data exists
+    if (!repo.owner || !repo.owner.login) {
+      setError("Repository owner information is missing. Please try refreshing the repository list.");
+      return;
+    }
+
     setSelectedRepo(repo);
     setFormData((prev) => ({
       ...prev,
@@ -214,12 +226,12 @@ export function CreateScanTargetDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white">
+          <DialogTitle>
             {step === "select" ? "Select Repository" : "Configure Scan Target"}
           </DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription>
             {step === "select"
               ? "Choose a repository to create a new scan target"
               : "Configure your scan target settings"}
@@ -227,9 +239,9 @@ export function CreateScanTargetDialog({
         </DialogHeader>
 
         {error && (
-          <div className="flex items-center gap-2 p-3 bg-red-900/50 border border-red-700 rounded-md">
-            <AlertCircle className="h-4 w-4 text-red-400" />
-            <span className="text-red-200 text-sm">{error}</span>
+          <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <span className="text-destructive text-sm">{error}</span>
           </div>
         )}
 
@@ -241,15 +253,14 @@ export function CreateScanTargetDialog({
                 placeholder="Search repositories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
               />
             </div>
 
             {/* Repository List */}
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <RefreshCw className="h-6 w-6 animate-spin text-blue-400" />
-                <span className="ml-2 text-gray-400">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+                <span className="ml-2 text-muted-foreground">
                   Loading repositories...
                 </span>
               </div>
@@ -258,18 +269,18 @@ export function CreateScanTargetDialog({
                 {filteredRepositories.map((repo) => (
                   <Card
                     key={repo.id}
-                    className="bg-gray-800 border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
+                    className="hover:bg-accent/50 cursor-pointer transition-colors"
                     onClick={() => handleSelectRepository(repo)}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
-                          <Github className="h-5 w-5 text-gray-400" />
+                          <Github className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <CardTitle className="text-base text-white">
+                            <CardTitle className="text-base">
                               {repo.name}
                             </CardTitle>
-                            <CardDescription className="text-sm text-gray-400">
+                            <CardDescription className="text-sm">
                               {repo.fullName}
                             </CardDescription>
                           </div>
@@ -286,7 +297,7 @@ export function CreateScanTargetDialog({
                     </CardHeader>
                     {repo.description && (
                       <CardContent className="pt-0">
-                        <p className="text-sm text-gray-300 line-clamp-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {repo.description}
                         </p>
                       </CardContent>
@@ -298,7 +309,7 @@ export function CreateScanTargetDialog({
 
             {!loading && filteredRepositories.length === 0 && (
               <div className="text-center py-8">
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   {repositories.length === 0
                     ? "No repositories found. Make sure you have repositories in your GitHub account."
                     : "No repositories match your search."}
@@ -311,16 +322,16 @@ export function CreateScanTargetDialog({
         {step === "configure" && selectedRepo && (
           <div className="space-y-6">
             {/* Selected Repository Info */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <Github className="h-5 w-5 text-gray-400" />
+                    <Github className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <CardTitle className="text-base text-white">
+                      <CardTitle className="text-base">
                         {selectedRepo.name}
                       </CardTitle>
-                      <CardDescription className="text-sm text-gray-400">
+                      <CardDescription className="text-sm">
                         {selectedRepo.fullName}
                       </CardDescription>
                     </div>
@@ -339,7 +350,7 @@ export function CreateScanTargetDialog({
             {/* Configuration Form */}
             <div className="grid gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="name" className="text-white">
+                <Label htmlFor="name">
                   Scan Target Name
                 </Label>
                 <Input
@@ -348,13 +359,12 @@ export function CreateScanTargetDialog({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="bg-gray-800 border-gray-700 text-white"
                   placeholder="Enter a descriptive name"
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="description" className="text-white">
+                <Label htmlFor="description">
                   Description (Optional)
                 </Label>
                 <Textarea
@@ -366,7 +376,6 @@ export function CreateScanTargetDialog({
                       description: e.target.value,
                     }))
                   }
-                  className="bg-gray-800 border-gray-700 text-white"
                   placeholder="Describe what this scan target covers"
                   rows={3}
                 />
@@ -374,7 +383,7 @@ export function CreateScanTargetDialog({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="branch" className="text-white">
+                  <Label htmlFor="branch">
                     Branch
                   </Label>
                   <Select
@@ -383,7 +392,7 @@ export function CreateScanTargetDialog({
                       setFormData((prev) => ({ ...prev, branch: value }))
                     }
                   >
-                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger>
                       <SelectValue placeholder="Select branch" />
                     </SelectTrigger>
                     <SelectContent>
@@ -405,7 +414,7 @@ export function CreateScanTargetDialog({
                 </div>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="subPath" className="text-white">
+                  <Label htmlFor="subPath">
                     Sub-path (Optional)
                   </Label>
                   <Input
@@ -417,7 +426,6 @@ export function CreateScanTargetDialog({
                         subPath: e.target.value,
                       }))
                     }
-                    className="bg-gray-800 border-gray-700 text-white"
                     placeholder="e.g., /src/app"
                   />
                 </div>

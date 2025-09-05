@@ -15,6 +15,10 @@ interface GitHubRepository {
   default_branch: string;
   visibility: string;
   topics: string[];
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
 }
 
 interface SessionUser {
@@ -78,18 +82,23 @@ export async function GET() {
     const formattedRepos = repos.map((repo: GitHubRepository) => ({
       id: repo.id,
       name: repo.name,
-      full_name: repo.full_name,
+      fullName: repo.full_name,
       description: repo.description,
       language: repo.language,
       stars: repo.stargazers_count,
       forks: repo.forks_count,
-      updated_at: repo.updated_at,
-      html_url: repo.html_url,
-      clone_url: repo.clone_url,
+      updatedAt: repo.updated_at,
+      htmlUrl: repo.html_url,
+      cloneUrl: repo.clone_url,
       size: repo.size,
-      default_branch: repo.default_branch,
+      defaultBranch: repo.default_branch,
+      private: repo.visibility === "private",
       visibility: repo.visibility,
       topics: repo.topics || [],
+      owner: {
+        login: repo.owner.login,
+        avatarUrl: repo.owner.avatar_url,
+      },
     }));
 
     return NextResponse.json({ repositories: formattedRepos });
