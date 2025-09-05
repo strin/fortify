@@ -174,7 +174,6 @@ export default function VulnerabilitiesPage({
   };
 
   useEffect(() => {
-    console.log("useEffect", scanId, selectedSeverity, selectedCategory, selectedFile, session);
     if (session) {
       fetchVulnerabilities(1);
     }
