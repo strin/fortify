@@ -143,14 +143,14 @@ class ScanWorker:
                 cwd=repo_path,
                 allowed_tools=["Read", "Write", "Bash"],
                 permission_mode="acceptEdits",
-                model="claude-3-haiku-20240307",
+                model="claude-sonnet-4-20250514",
             )
 
             logger.debug(f"Claude SDK options: max_turns=3, cwd={repo_path}")
             logger.debug(f"Security audit prompt: {prompt[:200]}...")
             print(f"📝 Running Claude SDK with security audit prompt...")
             print(
-                f"⚙️ Options: max_turns=3, model=claude-3-haiku-20240307, cwd={repo_path}"
+                f"⚙️ Options: max_turns=3, model=claude-sonnet-4-20250514, cwd={repo_path}"
             )
 
             # Run the Claude Code SDK query
@@ -194,8 +194,23 @@ class ScanWorker:
             for i, message in enumerate(result_messages):
                 logger.info(f"=== CLAUDE SDK MESSAGE {i+1} ===")
                 if isinstance(message, AssistantMessage):
-                    logger.info(message.content)
-                    full_response += message.content + "\n\n"
+                    # Handle both string and list content
+                    if isinstance(message.content, list):
+                        # Extract text from content blocks
+                        content_text = ""
+                        for block in message.content:
+                            if hasattr(block, "text"):
+                                content_text += block.text
+                            elif isinstance(block, dict) and "text" in block:
+                                content_text += block["text"]
+                            elif isinstance(block, str):
+                                content_text += block
+                        logger.info(content_text)
+                        full_response += content_text + "\n\n"
+                    else:
+                        # Handle string content
+                        logger.info(message.content)
+                        full_response += message.content + "\n\n"
                 elif isinstance(message, SystemMessage):
                     logger.info(f"System message data: {message.data}")
                     full_response += f"System: {str(message.data)}\n\n"
