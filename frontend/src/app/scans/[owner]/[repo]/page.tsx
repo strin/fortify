@@ -113,7 +113,7 @@ export default function RepositoryScansPage({
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/scans/${owner}/${repo}`);
+      const response = await fetch(`/api/scans/by-repo/${owner}/${repo}`);
       const data = await response.json();
 
       if (!response.ok) {
