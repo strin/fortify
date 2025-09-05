@@ -35,6 +35,7 @@ export async function getServerSession(): Promise<AuthSession | null> {
         email: session.user.email,
         name: session.user.name,
         image: session.user.image,
+        githubAccessToken: session.user.githubAccessToken,
       },
       expires: session.expires,
     };

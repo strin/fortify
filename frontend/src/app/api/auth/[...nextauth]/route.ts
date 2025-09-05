@@ -149,6 +149,7 @@ export const authOptions = {
               session.user.name = dbUser.displayName;
               session.user.email = dbUser.email;
               session.user.image = dbUser.avatarUrl;
+              session.user.githubAccessToken = dbUser.githubAccessToken;
             }
           } catch (error) {
             console.error("Error fetching user data:", error);

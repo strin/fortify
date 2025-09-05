@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
@@ -8,9 +9,25 @@ export async function GET(
   try {
     const session = await getServerSession();
 
-    if (!session?.user?.githubAccessToken) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "GitHub access token not found" },
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    // Fetch GitHub access token directly from database
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { githubAccessToken: true },
+    });
+
+    if (!user?.githubAccessToken) {
+      return NextResponse.json(
+        {
+          error:
+            "GitHub access token not found. Please reconnect your GitHub account.",
+        },
         { status: 401 }
       );
     }
@@ -21,7 +38,7 @@ export async function GET(
       `https://api.github.com/repos/${owner}/${repo}/branches`,
       {
         headers: {
-          Authorization: `token ${session.user.githubAccessToken}`,
+          Authorization: `token ${user.githubAccessToken}`,
           Accept: "application/vnd.github.v3+json",
         },
       }
