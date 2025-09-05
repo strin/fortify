@@ -124,6 +124,31 @@ async def test_write_vulnerabilities_to_db():
         await init_database()
         print("✅ Database connection established")
 
+        # Create the test ScanJob record first
+        print(f"📝 Creating test ScanJob with ID: {TEST_JOB_ID}")
+        db = await get_db()
+        
+        # Check if the job already exists, if so delete it first
+        existing_job = await db.scanjob.find_unique(where={"id": TEST_JOB_ID})
+        if existing_job:
+            print("🗑️ Deleting existing test job...")
+            await db.scanjob.delete(where={"id": TEST_JOB_ID})
+        
+        # Create the test scan job
+        test_job = await db.scanjob.create(
+            data={
+                "id": TEST_JOB_ID,
+                "repoUrl": "https://github.com/test/sample-repo",
+                "repoOwner": "test",
+                "repoName": "sample-repo", 
+                "branch": "main",
+                "type": "SCAN_REPO",
+                "status": "COMPLETED",
+                "data": json.dumps({"test": "sample scan job for testing"}),
+            }
+        )
+        print(f"✅ Created test ScanJob: {test_job.id}")
+
         # Create ScanWorker instance
         worker = ScanWorker()
 
@@ -178,6 +203,29 @@ async def test_edge_cases():
     try:
         await init_database()
         worker = ScanWorker()
+        db = await get_db()
+
+        # Create test scan jobs for edge cases
+        edge_case_jobs = ["test_empty", "test_missing", "test_invalid"]
+        for job_id in edge_case_jobs:
+            # Check if job exists, delete if so
+            existing = await db.scanjob.find_unique(where={"id": job_id})
+            if existing:
+                await db.scanjob.delete(where={"id": job_id})
+            
+            # Create the test job
+            await db.scanjob.create(
+                data={
+                    "id": job_id,
+                    "repoUrl": f"https://github.com/test/{job_id}",
+                    "repoOwner": "test",
+                    "repoName": job_id,
+                    "branch": "main",
+                    "type": "SCAN_REPO",
+                    "status": "COMPLETED",
+                    "data": json.dumps({"test": f"edge case job {job_id}"}),
+                }
+            )
 
         # Test 1: Empty vulnerabilities
         print("\n📝 Test 1: Empty vulnerabilities list")

@@ -527,10 +527,20 @@ Please begin the security audit now."""
                         vuln.get("category", "").upper(), "OTHER"
                     )
 
-                    # Create vulnerability record
+                    # Prepare metadata as JSON string
+                    import json
+                    metadata_dict = {
+                        "cwe": vuln.get("cwe"),
+                        "owasp": vuln.get("owasp"),
+                        "confidence": vuln.get("confidence"),
+                        "original_category": vuln.get("category"),
+                        "original_severity": vuln.get("severity"),
+                    }
+                    
+                    # Create vulnerability record with proper scanJob relationship
                     await db.codevulnerability.create(
                         data={
-                            "scanJobId": job_id,
+                            "scanJob": {"connect": {"id": job_id}},
                             "title": vuln.get("title", "Security Issue")[
                                 :255
                             ],  # Limit length
@@ -548,13 +558,7 @@ Please begin the security audit now."""
                             "recommendation": vuln.get("recommendation", "")[
                                 :1000
                             ],  # Limit length
-                            "metadata": {
-                                "cwe": vuln.get("cwe"),
-                                "owasp": vuln.get("owasp"),
-                                "confidence": vuln.get("confidence"),
-                                "original_category": vuln.get("category"),
-                                "original_severity": vuln.get("severity"),
-                            },
+                            "metadata": json.dumps(metadata_dict),
                         }
                     )
                     stored_count += 1

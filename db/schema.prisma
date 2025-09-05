@@ -55,48 +55,28 @@ model ScanJob {
         id     String  @id @default(cuid())
         userId String? // Optional for now to match current implementation
 
-        // Core job information (matching job.py)
+        // Core job information (exactly matching job.py)
         type   JobType   @default(SCAN_REPO)
         status JobStatus @default(PENDING)
         data   Json // Stores ScanJobData as JSON
         result Json? // Stores scan results
         error  String? // Error message if failed
 
-        // Repository information (extracted from data for indexing)
-        repoUrl   String
-        repoOwner String?
-        repoName  String?
-        branch    String  @default("main")
-        commitSha String?
-
-        // Execution details
-        workerId       String?
-        redisMessageId String?
-
         // Timing (matching job.py structure)
-        createdAt  DateTime  @default(now())
-        updatedAt  DateTime  @updatedAt
+        createdAt DateTime @default(now()) @map("created_at")
+        updatedAt DateTime @updatedAt @map("updated_at")
+
+        // Execution details (optional)
         startedAt  DateTime?
         finishedAt DateTime?
 
-        // Additional fields for enhanced tracking
-        llmModel  String? @default("claude-3-5-sonnet-20241022")
-        llmConfig Json?
-
-        // External integration
-        webhookUrl String?
-        requestId  String?
-
-        // Metrics
-        sourceBytes          BigInt?
-        filesScanned         Int?
-        vulnerabilitiesFound Int     @default(0)
+        // Metrics (optional)
+        vulnerabilitiesFound Int @default(0)
 
         // Relations
         user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
         vulnerabilities CodeVulnerability[]
 
-        @@unique([repoUrl, commitSha, requestId])
         @@index([status, createdAt])
         @@index([userId, finishedAt])
         @@map("scan_jobs")
