@@ -206,6 +206,16 @@ Please begin the security audit now."""
                             f"Received system message with data: {str(message.data)[:100]}..."
                         )
                         print(f"📨 Received system message from Claude")
+                    elif isinstance(message, UserMessage):
+                        logger.debug(
+                            f"Received user message: {str(message.content)[:100]}..."
+                        )
+                        print(f"📨 Received user message from Claude")
+                    elif isinstance(message, ResultMessage):
+                        logger.debug(
+                            f"Received result message: {str(message.result)[:100]}..."
+                        )
+                        print(f"📨 Received result message from Claude")
                     else:
                         logger.debug(
                             f"Received message of unknown type: {type(message)}"
