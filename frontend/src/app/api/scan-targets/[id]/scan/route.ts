@@ -77,6 +77,13 @@ export async function POST(
       const workerResponse = await response.json();
       console.log("Scan worker response:", workerResponse);
 
+      // After triggering the scan worker, create a scanJob record linked to this scan target
+      // Update the scanJob record in the database to link it to this scan target
+      await prisma.scanJob.update({
+        where: { id: workerResponse.job_id },
+        data: { scanTargetId: scanTarget.id },
+      });
+
       return NextResponse.json({
         scanJobId: workerResponse.job_id,
         status: workerResponse.status,
