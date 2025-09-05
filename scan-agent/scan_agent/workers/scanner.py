@@ -121,20 +121,46 @@ class ScanWorker:
             print(f"🔍 DEBUG: claude_cli_args = {claude_cli_args}")
 
             # Define the security audit prompt
-            prompt = """Audit my project for security issues: public Supabase endpoints, unsecured API routes, weak or missing access control, and improperly configured auth rules. Specifically: 
-            1. Check if Supabase tables or RPC functions are publicly accessible without proper Row Level Security (RLS) or role-based permissions. 
-            2. Confirm that users can't upgrade their own account privileges or delete/edit other users' data. 
-            3. Ensure all write operations (POST, PUT, PATCH, DELETE) are protected by server-side auth and validation, not just client checks. 
-            4. Identify any hardcoded secrets, misconfigured environment variables, or sensitive data leaks. 
-            5. Generate a security checklist based on my current stack and suggest immediate high-priority fixes.
-            
-            Assume I want to go from a vibe-coded prototype to a real production-ready app. Refactor anything risky, and explain what you're doing as you go.
-            
-            Please provide your analysis in a structured format that includes:
-            - A summary of findings
-            - Specific vulnerabilities found with file locations
-            - Risk level assessment (high/medium/low)
-            - Recommended fixes for each issue"""
+            prompt = """Audit this codebase for security vulnerabilities. Focus on real, exploitable issues that could lead to security breaches.
+
+**IMPORTANT: Your response must end with a JSON array of vulnerabilities in this exact format:**
+
+```json
+[
+  {
+    "title": "Brief vulnerability title",
+    "description": "Detailed description of the vulnerability and why it's a security risk",
+    "severity": "CRITICAL|HIGH|MEDIUM|LOW|INFO",
+    "category": "INJECTION|AUTHENTICATION|AUTHORIZATION|CRYPTOGRAPHY|DATA_EXPOSURE|BUSINESS_LOGIC|CONFIGURATION|DEPENDENCY|INPUT_VALIDATION|OUTPUT_ENCODING|SESSION_MANAGEMENT|OTHER",
+    "filePath": "relative/path/to/file.js",
+    "startLine": 42,
+    "endLine": 45,
+    "codeSnippet": "const query = `SELECT * FROM users WHERE id = ${userId}`;",
+    "recommendation": "Use parameterized queries to prevent SQL injection: const query = 'SELECT * FROM users WHERE id = ?'; db.query(query, [userId]);"
+  }
+]
+```
+
+**Analysis Guidelines:**
+1. **Focus on exploitable vulnerabilities**: SQL injection, XSS, authentication bypasses, etc.
+2. **Include exact file paths and line numbers** where vulnerabilities exist
+3. **Provide actionable remediation** for each issue
+4. **Use appropriate severity levels**: CRITICAL for RCE/data breaches, HIGH for privilege escalation, MEDIUM for info disclosure, LOW for best practices
+5. **Categorize correctly**: Use the most specific category that fits the vulnerability type
+
+**Common vulnerability patterns to look for:**
+- SQL injection (unsanitized database queries)
+- Cross-site scripting (XSS) in web applications
+- Authentication/authorization bypasses
+- Hardcoded secrets or credentials
+- Insecure cryptographic practices
+- Path traversal vulnerabilities
+- Command injection
+- Insecure deserialization
+- Missing input validation
+- Insecure direct object references
+
+Provide a brief analysis first, then end your response with the JSON array of vulnerabilities."""
 
             # Configure Claude Code SDK options
             options = ClaudeCodeOptions(
@@ -263,106 +289,72 @@ class ScanWorker:
             print(full_response)
             print("=" * 60 + "\n")
 
-            # Process the response to extract meaningful security analysis
+            # Process the response to extract vulnerability JSON array
             try:
-                # Try to extract structured information from the response
                 analysis_content = full_response.strip()
-
-                # Look for JSON blocks in the response (between ```json and ```)
-                json_blocks = []
+                
+                # Look for JSON array in the response (between ```json and ```)
                 import re
-
-                json_pattern = r"```json\s*\n(.*?)\n```"
+                json_pattern = r"```json\s*\n(\[.*?\])\s*\n```"
                 json_matches = re.findall(json_pattern, analysis_content, re.DOTALL)
-
-                for json_match in json_matches:
-                    try:
-                        parsed_json = json.loads(json_match.strip())
-                        json_blocks.append(parsed_json)
-                        logger.info(
-                            "Successfully parsed JSON block from Claude response"
-                        )
-                    except json.JSONDecodeError:
-                        continue
-
-                # If we found valid JSON blocks, use the first one
-                if json_blocks:
-                    result = json_blocks[0]
-                    result["raw_output"] = analysis_content
-                    logger.info("Using parsed JSON structure from Claude response")
-                    print("✅ Successfully parsed structured output from Claude")
-                    return result
-
-                # Try to find JSON anywhere in the response (fallback)
-                start_idx = analysis_content.find("{")
-                end_idx = analysis_content.rfind("}") + 1
-                if start_idx != -1 and end_idx > start_idx:
-                    json_str = analysis_content[start_idx:end_idx]
-                    try:
-                        parsed_json = json.loads(json_str)
-                        parsed_json["raw_output"] = analysis_content
-                        logger.info("Successfully parsed JSON from response")
-                        print("✅ Successfully parsed JSON structure")
-                        return parsed_json
-                    except json.JSONDecodeError as json_error:
-                        logger.debug(f"JSON parsing failed: {json_error}")
-
-                # Extract basic information from text analysis
+                
                 vulnerabilities = []
-                recommendations = []
-                risk_level = "medium"  # default
-
-                # Simple text parsing for common security terms
-                analysis_lower = analysis_content.lower()
-                if any(
-                    term in analysis_lower
-                    for term in ["critical", "high risk", "severe", "dangerous"]
-                ):
-                    risk_level = "high"
-                elif any(
-                    term in analysis_lower
-                    for term in ["low risk", "minor", "informational"]
-                ):
-                    risk_level = "low"
-
-                # Look for vulnerability mentions
-                vuln_keywords = [
-                    "vulnerability",
-                    "security issue",
-                    "exploit",
-                    "injection",
-                    "xss",
-                    "csrf",
-                    "authentication",
-                    "authorization",
-                ]
-                for keyword in vuln_keywords:
-                    if keyword in analysis_lower:
-                        vulnerabilities.append(f"Potential {keyword} issue detected")
-
-                # Return structured response with extracted analysis
-                logger.info("Returning structured response with text analysis")
-                print("📋 Returning structured response with extracted analysis")
+                
+                if json_matches:
+                    try:
+                        # Parse the JSON array of vulnerabilities
+                        vulnerabilities = json.loads(json_matches[-1].strip())  # Use the last match
+                        logger.info(f"Successfully parsed {len(vulnerabilities)} vulnerabilities from Claude response")
+                        print(f"✅ Successfully parsed {len(vulnerabilities)} vulnerabilities from Claude")
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse vulnerability JSON: {e}")
+                        print(f"⚠️ Failed to parse vulnerability JSON: {e}")
+                
+                # If no JSON found, try to find array anywhere in response
+                if not vulnerabilities:
+                    array_start = analysis_content.find("[")
+                    array_end = analysis_content.rfind("]") + 1
+                    if array_start != -1 and array_end > array_start:
+                        try:
+                            json_str = analysis_content[array_start:array_end]
+                            vulnerabilities = json.loads(json_str)
+                            logger.info(f"Found vulnerability array in response: {len(vulnerabilities)} items")
+                            print(f"✅ Found vulnerability array: {len(vulnerabilities)} vulnerabilities")
+                        except json.JSONDecodeError:
+                            logger.debug("No valid JSON array found in response")
+                
+                # Validate vulnerability structure
+                valid_vulnerabilities = []
+                for vuln in vulnerabilities:
+                    if isinstance(vuln, dict) and all(key in vuln for key in ['title', 'description', 'severity', 'category', 'filePath', 'startLine', 'recommendation']):
+                        valid_vulnerabilities.append(vuln)
+                    else:
+                        logger.warning(f"Invalid vulnerability structure: {vuln}")
+                
+                # Calculate summary stats
+                severity_counts = {}
+                for vuln in valid_vulnerabilities:
+                    severity = vuln.get('severity', 'UNKNOWN')
+                    severity_counts[severity] = severity_counts.get(severity, 0) + 1
+                
                 return {
-                    "analysis": analysis_content,
-                    "summary": "Security audit completed using Claude Code SDK",
-                    "risk_level": risk_level,
-                    "vulnerabilities": vulnerabilities,
-                    "recommendations": recommendations,
-                    "raw_output": analysis_content,
+                    "summary": f"Found {len(valid_vulnerabilities)} vulnerabilities",
+                    "vulnerabilities": valid_vulnerabilities,
+                    "vulnerability_count": len(valid_vulnerabilities),
+                    "severity_breakdown": severity_counts,
+                    "raw_analysis": analysis_content
                 }
 
             except Exception as parse_error:
-                logger.warning(f"Response processing failed: {parse_error}")
-                print(f"⚠️ Response processing failed: {parse_error}")
+                logger.error(f"Response processing failed: {parse_error}", exc_info=True)
+                print(f"❌ Response processing failed: {parse_error}")
                 return {
-                    "analysis": full_response,
-                    "summary": "Security audit completed using Claude Code SDK (processing failed)",
-                    "risk_level": "unknown",
+                    "summary": "Security audit completed but failed to parse vulnerabilities",
                     "vulnerabilities": [],
-                    "recommendations": [],
-                    "raw_output": full_response,
-                    "error": str(parse_error),
+                    "vulnerability_count": 0,
+                    "severity_breakdown": {},
+                    "raw_analysis": full_response,
+                    "error": str(parse_error)
                 }
 
         except Exception as e:
