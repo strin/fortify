@@ -136,6 +136,7 @@ export default function VulnerabilitiesPage({
   }, [status]);
 
   const fetchVulnerabilities = async (page = 1) => {
+    console.log("fetchVulnerabilities", scanId);
     try {
       setLoading(true);
       setError(null);
@@ -173,6 +174,7 @@ export default function VulnerabilitiesPage({
   };
 
   useEffect(() => {
+    console.log("useEffect", scanId, selectedSeverity, selectedCategory, selectedFile, session);
     if (session) {
       fetchVulnerabilities(1);
     }

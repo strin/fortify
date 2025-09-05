@@ -335,7 +335,7 @@ export default function RepositoryScansPage({
                     </div>
                     {scan.status === 'COMPLETED' && (
                       <Button asChild>
-                        <Link href={`/scans/vulnerabilities/${scan.id}`}>
+                        <Link href={`/vulnerabilities/${scan.id}`}>
                           View Vulnerabilities
                         </Link>
                       </Button>
