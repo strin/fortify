@@ -99,7 +99,7 @@ class ScanAgentE2ETest:
             "claude_cli_args": "--max-tokens 1000",
             "scan_options": {"deep_scan": False, "include_tests": True},
         }
-        
+
         logger.debug(f"Scan request payload: {json.dumps(scan_request, indent=2)}")
         print(f"📝 Request payload: {json.dumps(scan_request, indent=2)}")
 
@@ -108,11 +108,11 @@ class ScanAgentE2ETest:
             response = await client.post(
                 f"{self.base_url}/scan/repo", json=scan_request
             )
-            
+
             logger.debug(f"Response status: {response.status_code}")
             logger.debug(f"Response headers: {dict(response.headers)}")
             logger.debug(f"Response content: {response.text}")
-            
+
             print(f"📡 Response status: {response.status_code}")
             print(f"📡 Response content: {response.text}")
 
@@ -131,7 +131,7 @@ class ScanAgentE2ETest:
 
             # Track job for cleanup
             self.test_jobs.append(job_id)
-            
+
             logger.info(f"Job created with ID: {job_id}")
             print(f"✅ Job created successfully with ID: {job_id}")
             return job_id

@@ -33,23 +33,23 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     """Handle validation errors with detailed logging."""
     logger.error(f"Validation error for {request.method} {request.url}")
     logger.error(f"Validation errors: {exc.errors()}")
-    
+
     # Try to get request body for debugging (may fail if already consumed)
     try:
         body = await request.body()
         logger.error(f"Request body: {body}")
-        body_str = body.decode('utf-8') if body else "Empty body"
+        body_str = body.decode("utf-8") if body else "Empty body"
     except Exception as e:
         logger.error(f"Could not read request body: {e}")
         body_str = "Could not read body"
-    
+
     return JSONResponse(
         status_code=422,
         content={
             "detail": exc.errors(),
             "message": "Request validation failed",
             "url": str(request.url),
-            "method": request.method
+            "method": request.method,
         },
     )
 
