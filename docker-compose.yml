@@ -17,6 +17,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
     networks:
       - app-network
     command: python -m scan_agent.server
@@ -36,6 +37,7 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
     networks:
       - app-network
     command: python -m scan_agent.workers.scanner

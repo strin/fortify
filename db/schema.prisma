@@ -4,6 +4,13 @@ generator javascript {
         binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
 }
 
+generator python {
+        provider             = "prisma-client-py"
+        interface            = "sync"
+        recursive_type_depth = 5
+        output               = "../scan-agent/generated/prisma_client"
+}
+
 datasource db {
         provider  = "postgresql"
         url       = env("POSTGRES_PRISMA_URL")
