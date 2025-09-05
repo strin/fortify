@@ -7,6 +7,7 @@ export interface SessionUser {
   email?: string | null;
   name?: string | null;
   image?: string | null;
+  githubAccessToken?: string | null;
 }
 
 export interface AuthSession {

@@ -29,6 +29,16 @@ export default async function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-gray-800 rounded-lg p-6">
+              <h3 className="text-xl font-semibold mb-4">Scan Targets</h3>
+              <p className="text-gray-300 mb-6">
+                Manage your security scanning projects and configure automated scans for your repositories.
+              </p>
+              <Button asChild className="w-full">
+                <Link href="/scan-targets">Manage Scan Targets</Link>
+              </Button>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-xl font-semibold mb-4">Repository Scanner</h3>
               <p className="text-gray-300 mb-6">
                 Scan your GitHub repositories for security vulnerabilities and
