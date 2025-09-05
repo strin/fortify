@@ -37,6 +37,7 @@ except ImportError as e:
 from scan_agent.models.job import Job, JobStatus, JobType, ScanJobData
 from scan_agent.utils.queue import JobQueue
 from scan_agent.utils.redis_client import redis_connection
+from scan_agent.utils.database import get_db
 
 
 class ScanWorker:
@@ -460,6 +461,134 @@ Please begin the security audit now."""
             logger.debug(f"Failed to extract conversation summary: {e}")
             return "Security audit completed"
 
+    async def _write_vulnerabilities_to_db(
+        self, job_id: str, scan_results: Dict[str, Any]
+    ) -> int:
+        """
+        Write vulnerabilities from scan results to the database.
+
+        Args:
+            job_id: The job ID to associate vulnerabilities with
+            scan_results: The scan results containing vulnerabilities
+
+        Returns:
+            int: Number of vulnerabilities written to database
+        """
+        try:
+            # Get database client
+            db = await get_db()
+
+            # Extract vulnerabilities from scan results
+            vulnerabilities = []
+            if isinstance(scan_results, dict) and "vulnerabilities" in scan_results:
+                vulnerabilities = scan_results["vulnerabilities"]
+
+            if not vulnerabilities:
+                logger.info("No vulnerabilities found in scan results")
+                print("ℹ️  No vulnerabilities to store in database")
+                return 0
+
+            stored_count = 0
+
+            # Map severity levels to database enum values
+            severity_mapping = {
+                "INFO": "INFO",
+                "LOW": "LOW",
+                "MEDIUM": "MEDIUM",
+                "HIGH": "HIGH",
+                "CRITICAL": "CRITICAL",
+            }
+
+            # Map category types to database enum values
+            category_mapping = {
+                "INJECTION": "INJECTION",
+                "AUTHENTICATION": "AUTHENTICATION",
+                "AUTHORIZATION": "AUTHORIZATION",
+                "CRYPTOGRAPHY": "CRYPTOGRAPHY",
+                "DATA_EXPOSURE": "DATA_EXPOSURE",
+                "BUSINESS_LOGIC": "BUSINESS_LOGIC",
+                "CONFIGURATION": "CONFIGURATION",
+                "DEPENDENCY": "DEPENDENCY",
+                "INPUT_VALIDATION": "INPUT_VALIDATION",
+                "OUTPUT_ENCODING": "OUTPUT_ENCODING",
+                "SESSION_MANAGEMENT": "SESSION_MANAGEMENT",
+                "OTHER": "OTHER",
+            }
+
+            for vuln in vulnerabilities:
+                try:
+                    # Map severity with fallback
+                    severity = severity_mapping.get(
+                        vuln.get("severity", "").upper(), "MEDIUM"
+                    )
+
+                    # Map category with fallback
+                    category = category_mapping.get(
+                        vuln.get("category", "").upper(), "OTHER"
+                    )
+
+                    # Create vulnerability record
+                    await db.codevulnerability.create(
+                        data={
+                            "scanJobId": job_id,
+                            "title": vuln.get("title", "Security Issue")[
+                                :255
+                            ],  # Limit length
+                            "description": vuln.get("description", "")[
+                                :1000
+                            ],  # Limit length
+                            "severity": severity,
+                            "category": category,
+                            "filePath": vuln.get("file", "")[:500],  # Limit length
+                            "startLine": int(vuln.get("line", 0)),
+                            "endLine": int(vuln.get("endLine", vuln.get("line", 0))),
+                            "codeSnippet": vuln.get("code_snippet", "")[
+                                :2000
+                            ],  # Limit length
+                            "recommendation": vuln.get("recommendation", "")[
+                                :1000
+                            ],  # Limit length
+                            "metadata": {
+                                "cwe": vuln.get("cwe"),
+                                "owasp": vuln.get("owasp"),
+                                "confidence": vuln.get("confidence"),
+                                "original_category": vuln.get("category"),
+                                "original_severity": vuln.get("severity"),
+                            },
+                        }
+                    )
+                    stored_count += 1
+
+                except Exception as vuln_error:
+                    logger.error(f"Failed to store vulnerability: {vuln_error}")
+                    logger.debug(f"Vulnerability data: {vuln}")
+                    continue
+
+            # Update scan job with vulnerability count
+            try:
+                await db.scanjob.update(
+                    where={"id": job_id}, data={"vulnerabilitiesFound": stored_count}
+                )
+                logger.info(
+                    f"Updated scan job {job_id} with {stored_count} vulnerabilities"
+                )
+            except Exception as update_error:
+                logger.error(
+                    f"Failed to update scan job vulnerability count: {update_error}"
+                )
+
+            logger.info(
+                f"Successfully stored {stored_count} vulnerabilities to database"
+            )
+            print(f"✅ Stored {stored_count} vulnerabilities to database")
+
+            return stored_count
+
+        except Exception as e:
+            logger.error(f"Failed to write vulnerabilities to database: {e}")
+            print(f"❌ Failed to store vulnerabilities: {e}")
+            return 0
+
     def _process_scan_job(self, job: Job) -> Dict[str, Any]:
         """Process a repository scan job."""
         logger.info(f"=== ENTERING _process_scan_job METHOD ===")
@@ -572,6 +701,17 @@ Please begin the security audit now."""
             else:
                 print(f"Results: {scan_results}")
             print("=" * 80 + "\n")
+
+            # Step 4: Write vulnerabilities to database
+            logger.info("Step 4: Writing vulnerabilities to database")
+            print("💾 Step 4: Writing vulnerabilities to database...")
+
+            vulnerability_count = await self._write_vulnerabilities_to_db(
+                job.id, scan_results
+            )
+
+            # Update result with database info
+            result["vulnerabilities_stored"] = vulnerability_count
 
             logger.info(f"Scan completed successfully for job {job.id}")
             logger.debug(f"Final result keys: {list(result.keys())}")
