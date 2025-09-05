@@ -94,9 +94,9 @@ class ScanAgentE2ETest:
 
         # Test payload
         scan_request = {
-            "repo_url": "https://github.com/ishepard/pydriller.git",
-            "branch": "master",
-            "claude_cli_args": "--max-tokens 1000",
+            "repo_url": "https://github.com/google-gemini/gemini-cli",
+            "branch": "main",
+            "claude_cli_args": "--max-tokens 32000",
             "scan_options": {"deep_scan": False, "include_tests": True},
         }
 
@@ -189,7 +189,7 @@ class ScanAgentE2ETest:
 
         job_dict = json.loads(job_data)
         assert job_dict["id"] == job_id
-        assert job_dict["type"] == "scan_repo"
+        assert job_dict["type"] == "SCAN_REPO"
 
         print(f"✅ Job {job_id} verified in Redis")
         return job_dict
@@ -250,8 +250,8 @@ class ScanAgentE2ETest:
         job_dict["updated_at"] = datetime.now().isoformat()
         job_dict["result"] = {
             "scan_completed_at": datetime.now().isoformat(),
-            "repository": "https://github.com/ishepard/pydriller.git",
-            "branch": "master",
+            "repository": "https://github.com/google-gemini/gemini-cli",
+            "branch": "main",
             "results": {
                 "vulnerabilities": [],
                 "summary": "No vulnerabilities found in test simulation",
