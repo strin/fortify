@@ -101,7 +101,7 @@ class ScanWorker:
             logger.error(f"Failed to clone repository: {str(e)}")
             raise Exception(f"Failed to clone repository: {str(e)}")
 
-    def _run_claude_scan(
+    async def _run_claude_scan(
         self, repo_path: str, claude_cli_args: Optional[str] = None
     ) -> Dict[str, Any]:
         """Run Claude Code SDK scan on the repository."""
@@ -225,7 +225,7 @@ Please begin the security audit now."""
                 return messages
 
             # Run the async query
-            result_messages = anyio.run(run_query)
+            result_messages = await run_query()
 
             logger.info(f"Claude SDK completed with {len(result_messages)} messages")
             print(f"📊 Claude SDK completed with {len(result_messages)} messages")
@@ -686,7 +686,7 @@ Please begin the security audit now."""
                 logger.info("About to call _run_claude_scan method")
                 print("🔍 DEBUG: About to call _run_claude_scan method")
 
-                scan_results = self._run_claude_scan(
+                scan_results = await self._run_claude_scan(
                     repo_path, scan_data.claude_cli_args
                 )
 
