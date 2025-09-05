@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
         const severityCounts = lastScan.vulnerabilities.reduce(
           (acc, vuln) => {
             const severity = vuln.severity.toLowerCase() as keyof typeof acc;
-            if (severity in acc && severity !== 'total') {
+            if (severity in acc && severity !== "total") {
               acc[severity]++;
             }
             acc.total++;
@@ -137,15 +137,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize subPath: empty string or undefined becomes null
+    const normalizedSubPath =
+      subPath && subPath.trim() !== "" ? subPath.trim() : null;
+
     // Check if scan target already exists for this user
-    const existingScanTarget = await prisma.scanTarget.findUnique({
+    const existingScanTarget = await prisma.scanTarget.findFirst({
       where: {
-        userId_repoUrl_branch_subPath: {
-          userId: session.user.id,
-          repoUrl,
-          branch,
-          subPath: subPath || null,
-        },
+        userId: session.user.id,
+        repoUrl,
+        branch,
+        subPath: normalizedSubPath,
       },
     });
 
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
         description,
         repoUrl,
         branch,
-        subPath,
+        subPath: normalizedSubPath,
       },
     });
 
