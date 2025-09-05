@@ -529,6 +529,7 @@ Please begin the security audit now."""
 
                     # Prepare metadata as JSON string
                     import json
+
                     metadata_dict = {
                         "cwe": vuln.get("cwe"),
                         "owasp": vuln.get("owasp"),
@@ -536,11 +537,11 @@ Please begin the security audit now."""
                         "original_category": vuln.get("category"),
                         "original_severity": vuln.get("severity"),
                     }
-                    
-                    # Create vulnerability record with proper scanJob relationship
+
+                    # Create vulnerability record (matching test_db_fix.py approach)
                     await db.codevulnerability.create(
                         data={
-                            "scanJob": {"connect": {"id": job_id}},
+                            "scanJobId": job_id,
                             "title": vuln.get("title", "Security Issue")[
                                 :255
                             ],  # Limit length
@@ -549,10 +550,16 @@ Please begin the security audit now."""
                             ],  # Limit length
                             "severity": severity,
                             "category": category,
-                            "filePath": vuln.get("filePath", vuln.get("file", ""))[:500],  # Limit length
-                            "startLine": int(vuln.get("startLine", vuln.get("line", 0))),
+                            "filePath": vuln.get("filePath", vuln.get("file", ""))[
+                                :500
+                            ],  # Limit length
+                            "startLine": int(
+                                vuln.get("startLine", vuln.get("line", 0))
+                            ),
                             "endLine": int(vuln.get("endLine", vuln.get("line", 0))),
-                            "codeSnippet": vuln.get("codeSnippet", vuln.get("code_snippet", ""))[
+                            "codeSnippet": vuln.get(
+                                "codeSnippet", vuln.get("code_snippet", "")
+                            )[
                                 :2000
                             ],  # Limit length
                             "recommendation": vuln.get("recommendation", "")[
@@ -612,6 +619,33 @@ Please begin the security audit now."""
         try:
             logger.info(f"Starting to process scan job {job.id}")
             logger.debug(f"Job data: {job.data}")
+
+            # Step 0: Create ScanJob record in database
+            logger.info("Step 0: Creating ScanJob record in database")
+            print("💾 Step 0: Creating ScanJob record in database...")
+
+            try:
+                db = await get_db()
+
+                # Create scan job record matching the test_db_fix.py approach
+                scan_job_record = await db.scanjob.create(
+                    data={
+                        "id": job.id,  # Use the existing job ID
+                        "type": job.type.value,
+                        "status": "IN_PROGRESS",
+                        "data": json.dumps(job.data),
+                    }
+                )
+
+                logger.info(
+                    f"✅ Created ScanJob record in database: {scan_job_record.id}"
+                )
+                print(f"✅ Created ScanJob record in database: {scan_job_record.id}")
+
+            except Exception as db_error:
+                logger.error(f"Failed to create ScanJob record: {db_error}")
+                print(f"❌ Failed to create ScanJob record: {db_error}")
+                # Continue with scan even if DB record creation fails
 
             # Create temporary directory for cloning
             temp_dir = tempfile.mkdtemp(prefix="scan_")
@@ -717,6 +751,26 @@ Please begin the security audit now."""
             # Update result with database info
             result["vulnerabilities_stored"] = vulnerability_count
 
+            # Step 5: Update ScanJob status to COMPLETED
+            logger.info("Step 5: Updating ScanJob status to COMPLETED")
+            print("💾 Step 5: Updating ScanJob status to COMPLETED...")
+            
+            try:
+                db = await get_db()
+                await db.scanjob.update(
+                    where={"id": job.id},
+                    data={
+                        "status": "COMPLETED",
+                        "result": result,
+                        "finishedAt": datetime.now(),
+                    }
+                )
+                logger.info(f"✅ Updated ScanJob {job.id} status to COMPLETED")
+                print(f"✅ Updated ScanJob {job.id} status to COMPLETED")
+            except Exception as update_error:
+                logger.error(f"Failed to update ScanJob status: {update_error}")
+                print(f"❌ Failed to update ScanJob status: {update_error}")
+
             logger.info(f"Scan completed successfully for job {job.id}")
             logger.debug(f"Final result keys: {list(result.keys())}")
             logger.info("=== FINAL SCAN RESULT ===")
@@ -778,6 +832,27 @@ Please begin the security audit now."""
             error_msg = str(e)
             logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
             print(f"❌ Job {job.id} failed: {error_msg}")
+            
+            # Update ScanJob status to FAILED in database
+            try:
+                import asyncio
+                async def update_failed_job():
+                    db = await get_db()
+                    await db.scanjob.update(
+                        where={"id": job.id},
+                        data={
+                            "status": "FAILED",
+                            "error": error_msg,
+                            "finishedAt": datetime.now(),
+                        }
+                    )
+                
+                anyio.run(update_failed_job)
+                logger.info(f"Updated ScanJob {job.id} status to FAILED")
+                print(f"💾 Updated ScanJob {job.id} status to FAILED")
+            except Exception as update_error:
+                logger.error(f"Failed to update ScanJob status to FAILED: {update_error}")
+            
             self.job_queue.fail_job(job.id, error_msg)
 
     def run(self):
