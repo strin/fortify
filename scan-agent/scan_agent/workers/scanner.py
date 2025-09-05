@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Claude Code SDK imports
 try:
     from claude_code_sdk import query, ClaudeCodeOptions
-    from claude_code_sdk.types import AssistantMessage, SystemMessage
+    from claude_code_sdk.types import AssistantMessage, SystemMessage, UserMessage
 
     CLAUDE_SDK_AVAILABLE = True
     logger.info("Claude Code SDK imported successfully")
@@ -138,7 +138,7 @@ class ScanWorker:
 
             # Configure Claude Code SDK options
             options = ClaudeCodeOptions(
-                max_turns=3,
+                max_turns=None,
                 system_prompt="You are a security auditor analyzing a code repository for vulnerabilities and security issues. Focus on identifying real security risks and provide actionable recommendations.",
                 cwd=repo_path,
                 allowed_tools=["Read", "Write", "Bash"],
@@ -222,6 +222,13 @@ class ScanWorker:
                         )
                         assistant_messages.append(str(message.content))
                         full_response += str(message.content) + "\n\n"
+                elif isinstance(message, UserMessage):
+                    # Handle UserMessage types
+                    logger.info(
+                        f"User message content: {str(message.content)[:200]}..."
+                    )
+                    # Include user messages in the response for context
+                    full_response += f"USER: {str(message.content)}\n\n"
                 elif isinstance(message, SystemMessage):
                     logger.info(f"System message data: {str(message.data)[:200]}...")
                     # Don't include system messages in the main response
@@ -231,8 +238,21 @@ class ScanWorker:
                         logger.info(f"Result content: {str(message.result)[:200]}...")
                         assistant_messages.append(str(message.result))
                         full_response += str(message.result) + "\n\n"
+
+                    # Log metadata if available
+                    if hasattr(message, "total_cost_usd"):
+                        logger.info(f"Total cost: ${message.total_cost_usd:.4f}")
+                        print(f"💰 Total cost: ${message.total_cost_usd:.4f}")
+                    if hasattr(message, "duration_ms"):
+                        logger.info(f"Duration: {message.duration_ms}ms")
+                        print(f"⏱️ Duration: {message.duration_ms}ms")
                 else:
                     logger.info(f"Unknown message type: {message_type}")
+                    # Log the attributes of unknown message types for debugging
+                    if hasattr(message, "__dict__"):
+                        logger.debug(
+                            f"Message attributes: {list(message.__dict__.keys())}"
+                        )
                     # Skip unknown message types instead of including them
 
             logger.info("=== END CLAUDE SDK OUTPUT ===")
