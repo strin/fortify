@@ -227,16 +227,27 @@ export default function RepositoriesPage() {
                   </div>
 
                   {/* Scan Button */}
-                  <Button 
-                    className="w-full" 
-                    onClick={() => {
-                      // TODO: Implement scan functionality
-                      alert(`Scanning ${repo.name} - This feature will be implemented in the next step!`);
-                    }}
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Scan for Vulnerabilities
-                  </Button>
+                  <div className="space-y-2">
+                    <Button 
+                      className="w-full" 
+                      onClick={() => {
+                        // TODO: Implement scan functionality
+                        alert(`Scanning ${repo.name} - This feature will be implemented in the next step!`);
+                      }}
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Scan for Vulnerabilities
+                    </Button>
+                    <Button 
+                      asChild
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <Link href={`/scans/${repo.full_name.split('/')[0]}/${repo.full_name.split('/')[1]}`}>
+                        View Scan History
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

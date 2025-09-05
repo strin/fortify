@@ -40,12 +40,12 @@ export default async function DashboardPage() {
             </div>
 
             <div className="bg-gray-800 rounded-lg p-6">
-              <h3 className="text-xl font-semibold mb-4">Recent Scans</h3>
+              <h3 className="text-xl font-semibold mb-4">Security Scans</h3>
               <p className="text-gray-300 mb-6">
-                View your latest security scans and their results.
+                View your security scan results and vulnerability reports.
               </p>
-              <Button variant="outline" className="w-full" disabled>
-                Coming Soon
+              <Button asChild className="w-full">
+                <Link href="/scans">View Scan Results</Link>
               </Button>
             </div>
 
