@@ -57,7 +57,7 @@ export default function AuthForm({ type }: AuthFormProps) {
           const data = await res.json()
           setError(data.error || "Failed to create account")
         }
-      } catch (err) {
+      } catch {
         setError("An error occurred. Please try again.")
       } finally {
         setLoading(false)
