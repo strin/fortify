@@ -1,14 +1,14 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { redirect } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession();
 
   if (!session) {
-    redirect("/login")
+    redirect("/login");
   }
 
   return (
@@ -31,13 +31,14 @@ export default async function DashboardPage() {
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-xl font-semibold mb-4">Repository Scanner</h3>
               <p className="text-gray-300 mb-6">
-                Scan your GitHub repositories for security vulnerabilities and get AI-powered fixes.
+                Scan your GitHub repositories for security vulnerabilities and
+                get AI-powered fixes.
               </p>
               <Button asChild className="w-full">
                 <Link href="/repositories">View Repositories</Link>
               </Button>
             </div>
-            
+
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-xl font-semibold mb-4">Recent Scans</h3>
               <p className="text-gray-300 mb-6">
@@ -47,7 +48,7 @@ export default async function DashboardPage() {
                 Coming Soon
               </Button>
             </div>
-            
+
             <div className="bg-gray-800 rounded-lg p-6">
               <h3 className="text-xl font-semibold mb-4">Security Reports</h3>
               <p className="text-gray-300 mb-6">
@@ -61,5 +62,5 @@ export default async function DashboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

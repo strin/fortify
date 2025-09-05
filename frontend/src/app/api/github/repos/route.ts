@@ -1,11 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextResponse } from "next/server";
+
+interface GitHubRepository {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  updated_at: string;
+  html_url: string;
+  clone_url: string;
+  size: number;
+  default_branch: string;
+  visibility: string;
+  topics: string[];
+}
+
+interface SessionUser {
+  user: {
+    id: string;
+  };
+}
+
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getServerSession } from "next-auth/next";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = (await getServerSession(authOptions as any)) as SessionUser;
 
     if (!session || !session.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -51,7 +75,7 @@ export async function GET(request: NextRequest) {
     const repos = await response.json();
 
     // Filter and format repository data
-    const formattedRepos = repos.map((repo: any) => ({
+    const formattedRepos = repos.map((repo: GitHubRepository) => ({
       id: repo.id,
       name: repo.name,
       full_name: repo.full_name,
