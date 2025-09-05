@@ -1,0 +1,422 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { redirect, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { 
+  Shield, 
+  Clock,
+  RefreshCw,
+  AlertCircle,
+  GitBranch,
+  Bug,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  ArrowLeft,
+  Play,
+  Pause,
+  Calendar,
+  BarChart3
+} from "lucide-react";
+
+interface ScanJobSummary {
+  id: string;
+  type: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  vulnerabilitiesFound: number;
+  error?: string;
+  data: any;
+  vulnerabilityCounts: {
+    CRITICAL: number;
+    HIGH: number;
+    MEDIUM: number;
+    LOW: number;
+    INFO: number;
+  };
+  categoryCounts: Record<string, number>;
+  totalVulnerabilities: number;
+}
+
+interface RepositorySummary {
+  owner: string;
+  repo: string;
+  fullName: string;
+  totalScans: number;
+  totalVulnerabilities: number;
+  severityCounts: {
+    CRITICAL: number;
+    HIGH: number;
+    MEDIUM: number;
+    LOW: number;
+    INFO: number;
+  };
+  completedScans: number;
+  failedScans: number;
+  pendingScans: number;
+  inProgressScans: number;
+  lastScanned?: string;
+}
+
+const statusColors = {
+  PENDING: "bg-yellow-500",
+  IN_PROGRESS: "bg-blue-500",
+  COMPLETED: "bg-green-500",
+  FAILED: "bg-red-500",
+};
+
+const statusIcons = {
+  PENDING: Clock,
+  IN_PROGRESS: Loader2,
+  COMPLETED: CheckCircle,
+  FAILED: XCircle,
+};
+
+const severityColors = {
+  CRITICAL: "text-red-400",
+  HIGH: "text-orange-400",
+  MEDIUM: "text-yellow-400",
+  LOW: "text-blue-400",
+  INFO: "text-gray-400",
+};
+
+export default function RepositoryScansPage({
+  params,
+}: {
+  params: { owner: string; repo: string };
+}) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [summary, setSummary] = useState<RepositorySummary | null>(null);
+  const [scans, setScans] = useState<ScanJobSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const { owner, repo } = params;
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      redirect("/login");
+    }
+  }, [status]);
+
+  const fetchRepositoryScans = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/scans/by-repo/${owner}/${repo}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch repository scans");
+      }
+
+      setSummary(data.summary);
+      setScans(data.scans);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session) {
+      fetchRepositoryScans();
+    }
+  }, [session, owner, repo]);
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatDuration = (startedAt?: string, finishedAt?: string) => {
+    if (!startedAt || !finishedAt) return "N/A";
+    const start = new Date(startedAt);
+    const end = new Date(finishedAt);
+    const diff = end.getTime() - start.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
+  };
+
+  if (status === "loading" || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading repository scans...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <nav className="flex justify-between items-center mb-16">
+            <h1 className="text-2xl font-bold">Repository Scans</h1>
+            <Button asChild variant="outline">
+              <Link href="/scans">Back to Repositories</Link>
+            </Button>
+          </nav>
+
+          <div className="max-w-2xl mx-auto text-center">
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
+            <h2 className="text-2xl font-bold mb-4">Error Loading Scans</h2>
+            <p className="text-gray-300 mb-6">{error}</p>
+            <Button onClick={fetchRepositoryScans} className="mr-4">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="container mx-auto px-4 py-8">
+        {/* Navigation */}
+        <nav className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-4">
+            <Button onClick={() => router.back()} variant="outline" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                <GitBranch className="h-6 w-6" />
+                {summary?.fullName}
+              </h1>
+              <p className="text-gray-400">Security scan history</p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <Button onClick={fetchRepositoryScans} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/scans">All Repositories</Link>
+            </Button>
+          </div>
+        </nav>
+
+        {/* Summary Cards */}
+        {summary && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Total Scans</p>
+                    <p className="text-2xl font-bold">{summary.totalScans}</p>
+                  </div>
+                  <Shield className="h-8 w-8 text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Total Vulnerabilities</p>
+                    <p className="text-2xl font-bold">{summary.totalVulnerabilities}</p>
+                  </div>
+                  <Bug className="h-8 w-8 text-red-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Completed</p>
+                    <p className="text-2xl font-bold text-green-400">{summary.completedScans}</p>
+                  </div>
+                  <CheckCircle className="h-8 w-8 text-green-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-800 border-gray-700">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Critical Issues</p>
+                    <p className="text-2xl font-bold text-red-400">{summary.severityCounts.CRITICAL}</p>
+                  </div>
+                  <AlertCircle className="h-8 w-8 text-red-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Severity Distribution */}
+        {summary && (
+          <Card className="bg-gray-800 border-gray-700 mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Vulnerability Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-5 gap-4">
+                {Object.entries(summary.severityCounts).map(([severity, count]) => (
+                  <div key={severity} className="text-center">
+                    <div className={`text-2xl font-bold ${severityColors[severity as keyof typeof severityColors]}`}>
+                      {count}
+                    </div>
+                    <div className="text-sm text-gray-400 capitalize">
+                      {severity.toLowerCase()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Scans List */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Scan History</h2>
+          {scans.map((scan) => {
+            const StatusIcon = statusIcons[scan.status as keyof typeof statusIcons];
+            return (
+              <Card key={scan.id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
+                        <StatusIcon 
+                          className={`h-5 w-5 ${scan.status === 'IN_PROGRESS' ? 'animate-spin' : ''}`} 
+                        />
+                        Scan #{scan.id.slice(-8)}
+                        <Badge 
+                          variant="outline" 
+                          className={`${scan.status === 'COMPLETED' ? 'text-green-400 border-green-400' : 
+                                      scan.status === 'FAILED' ? 'text-red-400 border-red-400' :
+                                      scan.status === 'IN_PROGRESS' ? 'text-blue-400 border-blue-400' :
+                                      'text-yellow-400 border-yellow-400'} border-current`}
+                        >
+                          {scan.status}
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription className="text-gray-300 text-sm">
+                        <div className="flex items-center gap-4">
+                          <span>Started: {formatDate(scan.createdAt)}</span>
+                          {scan.finishedAt && (
+                            <span>Duration: {formatDuration(scan.startedAt, scan.finishedAt)}</span>
+                          )}
+                        </div>
+                      </CardDescription>
+                    </div>
+                    {scan.status === 'COMPLETED' && (
+                      <Button asChild>
+                        <Link href={`/vulnerabilities/${scan.id}`}>
+                          View Vulnerabilities
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {scan.status === 'COMPLETED' && (
+                    <div className="space-y-4">
+                      {/* Vulnerability counts */}
+                      <div className="flex flex-wrap gap-4">
+                        {Object.entries(scan.vulnerabilityCounts).map(([severity, count]) => (
+                          count > 0 && (
+                            <div key={severity} className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full bg-current ${severityColors[severity as keyof typeof severityColors]}`}></div>
+                              <span className={`text-sm ${severityColors[severity as keyof typeof severityColors]}`}>
+                                {severity}: {count}
+                              </span>
+                            </div>
+                          )
+                        ))}
+                      </div>
+
+                      {/* Top categories */}
+                      {Object.keys(scan.categoryCounts).length > 0 && (
+                        <div>
+                          <p className="text-sm text-gray-400 mb-2">Top Categories:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(scan.categoryCounts)
+                              .sort(([,a], [,b]) => b - a)
+                              .slice(0, 3)
+                              .map(([category, count]) => (
+                                <Badge key={category} variant="outline" className="text-xs">
+                                  {category.replace('_', ' ')}: {count}
+                                </Badge>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {scan.status === 'FAILED' && scan.error && (
+                    <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">
+                      <strong>Error:</strong> {scan.error}
+                    </div>
+                  )}
+
+                  {scan.status === 'IN_PROGRESS' && (
+                    <div className="text-blue-400 text-sm">
+                      Scan in progress... This may take a few minutes.
+                    </div>
+                  )}
+
+                  {scan.status === 'PENDING' && (
+                    <div className="text-yellow-400 text-sm">
+                      Scan is queued and will start shortly.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {scans.length === 0 && !loading && (
+          <div className="text-center py-16">
+            <Shield className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+            <h2 className="text-xl font-semibold mb-2">No Scans Found</h2>
+            <p className="text-gray-400 text-lg mb-6">
+              This repository hasn't been scanned yet.
+            </p>
+            <Button asChild>
+              <Link href="/repositories">
+                <Shield className="h-4 w-4 mr-2" />
+                Start a New Scan
+              </Link>
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
