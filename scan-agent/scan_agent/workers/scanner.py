@@ -189,10 +189,15 @@ class ScanWorker:
             logger.info(f"Claude SDK completed with {len(result_messages)} messages")
             print(f"📊 Claude SDK completed with {len(result_messages)} messages")
 
-            # Combine all message content
+            # Combine all message content, focusing on assistant messages
             full_response = ""
+            assistant_messages = []
+
             for i, message in enumerate(result_messages):
                 logger.info(f"=== CLAUDE SDK MESSAGE {i+1} ===")
+                message_type = type(message).__name__
+                logger.info(f"Message type: {message_type}")
+
                 if isinstance(message, AssistantMessage):
                     # Handle both string and list content
                     if isinstance(message.content, list):
@@ -205,20 +210,30 @@ class ScanWorker:
                                 content_text += block["text"]
                             elif isinstance(block, str):
                                 content_text += block
-                        logger.info(content_text)
+                        logger.info(
+                            f"Assistant message content: {content_text[:200]}..."
+                        )
+                        assistant_messages.append(content_text)
                         full_response += content_text + "\n\n"
                     else:
                         # Handle string content
-                        logger.info(message.content)
-                        full_response += message.content + "\n\n"
+                        logger.info(
+                            f"Assistant message content: {str(message.content)[:200]}..."
+                        )
+                        assistant_messages.append(str(message.content))
+                        full_response += str(message.content) + "\n\n"
                 elif isinstance(message, SystemMessage):
-                    logger.info(f"System message data: {message.data}")
-                    full_response += f"System: {str(message.data)}\n\n"
+                    logger.info(f"System message data: {str(message.data)[:200]}...")
+                    # Don't include system messages in the main response
+                elif message_type == "ResultMessage":
+                    logger.info("Received ResultMessage (final result)")
+                    if hasattr(message, "result"):
+                        logger.info(f"Result content: {str(message.result)[:200]}...")
+                        assistant_messages.append(str(message.result))
+                        full_response += str(message.result) + "\n\n"
                 else:
-                    logger.info(f"Unknown message type: {type(message)}")
-                    full_response += (
-                        f"Unknown message type: {type(message).__name__}\n\n"
-                    )
+                    logger.info(f"Unknown message type: {message_type}")
+                    # Skip unknown message types instead of including them
 
             logger.info("=== END CLAUDE SDK OUTPUT ===")
 
@@ -228,43 +243,106 @@ class ScanWorker:
             print(full_response)
             print("=" * 60 + "\n")
 
-            # Try to parse structured output or return as raw analysis
+            # Process the response to extract meaningful security analysis
             try:
-                # Look for JSON in the response
-                start_idx = full_response.find("{")
-                end_idx = full_response.rfind("}") + 1
-                if start_idx != -1 and end_idx > start_idx:
-                    json_str = full_response[start_idx:end_idx]
-                    logger.debug(f"Found JSON structure, attempting to parse...")
-                    parsed_json = json.loads(json_str)
-                    logger.info("Successfully parsed Claude SDK output as JSON")
-                    print("✅ Successfully parsed Claude SDK output as JSON")
-                    return parsed_json
-                else:
-                    # Return structured response with raw analysis
-                    logger.info(
-                        "No JSON found, returning structured response with raw analysis"
-                    )
-                    print("📋 Returning structured response with raw analysis")
-                    return {
-                        "analysis": full_response,
-                        "summary": "Security audit completed using Claude Code SDK",
-                        "risk_level": "unknown",  # Could be parsed from response
-                        "vulnerabilities": [],  # Could be extracted from text
-                        "recommendations": [],  # Could be extracted from text
-                        "raw_output": full_response,
-                    }
+                # Try to extract structured information from the response
+                analysis_content = full_response.strip()
 
-            except json.JSONDecodeError as json_error:
-                logger.warning(f"JSON parsing failed: {json_error}")
-                print(f"⚠️ JSON parsing failed: {json_error}")
+                # Look for JSON blocks in the response (between ```json and ```)
+                json_blocks = []
+                import re
+
+                json_pattern = r"```json\s*\n(.*?)\n```"
+                json_matches = re.findall(json_pattern, analysis_content, re.DOTALL)
+
+                for json_match in json_matches:
+                    try:
+                        parsed_json = json.loads(json_match.strip())
+                        json_blocks.append(parsed_json)
+                        logger.info(
+                            "Successfully parsed JSON block from Claude response"
+                        )
+                    except json.JSONDecodeError:
+                        continue
+
+                # If we found valid JSON blocks, use the first one
+                if json_blocks:
+                    result = json_blocks[0]
+                    result["raw_output"] = analysis_content
+                    logger.info("Using parsed JSON structure from Claude response")
+                    print("✅ Successfully parsed structured output from Claude")
+                    return result
+
+                # Try to find JSON anywhere in the response (fallback)
+                start_idx = analysis_content.find("{")
+                end_idx = analysis_content.rfind("}") + 1
+                if start_idx != -1 and end_idx > start_idx:
+                    json_str = analysis_content[start_idx:end_idx]
+                    try:
+                        parsed_json = json.loads(json_str)
+                        parsed_json["raw_output"] = analysis_content
+                        logger.info("Successfully parsed JSON from response")
+                        print("✅ Successfully parsed JSON structure")
+                        return parsed_json
+                    except json.JSONDecodeError as json_error:
+                        logger.debug(f"JSON parsing failed: {json_error}")
+
+                # Extract basic information from text analysis
+                vulnerabilities = []
+                recommendations = []
+                risk_level = "medium"  # default
+
+                # Simple text parsing for common security terms
+                analysis_lower = analysis_content.lower()
+                if any(
+                    term in analysis_lower
+                    for term in ["critical", "high risk", "severe", "dangerous"]
+                ):
+                    risk_level = "high"
+                elif any(
+                    term in analysis_lower
+                    for term in ["low risk", "minor", "informational"]
+                ):
+                    risk_level = "low"
+
+                # Look for vulnerability mentions
+                vuln_keywords = [
+                    "vulnerability",
+                    "security issue",
+                    "exploit",
+                    "injection",
+                    "xss",
+                    "csrf",
+                    "authentication",
+                    "authorization",
+                ]
+                for keyword in vuln_keywords:
+                    if keyword in analysis_lower:
+                        vulnerabilities.append(f"Potential {keyword} issue detected")
+
+                # Return structured response with extracted analysis
+                logger.info("Returning structured response with text analysis")
+                print("📋 Returning structured response with extracted analysis")
+                return {
+                    "analysis": analysis_content,
+                    "summary": "Security audit completed using Claude Code SDK",
+                    "risk_level": risk_level,
+                    "vulnerabilities": vulnerabilities,
+                    "recommendations": recommendations,
+                    "raw_output": analysis_content,
+                }
+
+            except Exception as parse_error:
+                logger.warning(f"Response processing failed: {parse_error}")
+                print(f"⚠️ Response processing failed: {parse_error}")
                 return {
                     "analysis": full_response,
-                    "summary": "Security audit completed using Claude Code SDK (JSON parsing failed)",
+                    "summary": "Security audit completed using Claude Code SDK (processing failed)",
                     "risk_level": "unknown",
                     "vulnerabilities": [],
                     "recommendations": [],
                     "raw_output": full_response,
+                    "error": str(parse_error),
                 }
 
         except Exception as e:
