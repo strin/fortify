@@ -120,10 +120,14 @@ class ScanWorker:
             print(f"🔍 DEBUG: repo_path = {repo_path}")
             print(f"🔍 DEBUG: claude_cli_args = {claude_cli_args}")
 
-            # Define the security audit prompt
-            prompt = """Audit this codebase for security vulnerabilities. Focus on real, exploitable issues that could lead to security breaches.
+            # Define the security audit prompt for Claude Code
+            prompt = """I need you to perform a comprehensive security audit of this codebase. Please:
 
-**IMPORTANT: Your response must end with a JSON array of vulnerabilities in this exact format:**
+1. **Explore the codebase** using the available tools to understand the structure and technology stack
+2. **Identify security vulnerabilities** focusing on real, exploitable issues
+3. **Create a vulnerability report** by writing a file called `vulnerability_report.json` with your findings
+
+The vulnerability report should be a JSON array with this exact structure:
 
 ```json
 [
@@ -141,26 +145,26 @@ class ScanWorker:
 ]
 ```
 
-**Analysis Guidelines:**
-1. **Focus on exploitable vulnerabilities**: SQL injection, XSS, authentication bypasses, etc.
-2. **Include exact file paths and line numbers** where vulnerabilities exist
-3. **Provide actionable remediation** for each issue
-4. **Use appropriate severity levels**: CRITICAL for RCE/data breaches, HIGH for privilege escalation, MEDIUM for info disclosure, LOW for best practices
-5. **Categorize correctly**: Use the most specific category that fits the vulnerability type
-
-**Common vulnerability patterns to look for:**
+**Focus on these vulnerability types:**
 - SQL injection (unsanitized database queries)
-- Cross-site scripting (XSS) in web applications
+- Cross-site scripting (XSS) in web applications  
 - Authentication/authorization bypasses
 - Hardcoded secrets or credentials
 - Insecure cryptographic practices
 - Path traversal vulnerabilities
 - Command injection
-- Insecure deserialization
 - Missing input validation
 - Insecure direct object references
 
-Provide a brief analysis first, then end your response with the JSON array of vulnerabilities."""
+**Instructions:**
+1. Start by exploring the codebase structure
+2. Read key files to understand the application
+3. Look for the vulnerability patterns listed above
+4. For each vulnerability found, include exact file paths and line numbers
+5. Write your findings to `vulnerability_report.json` in the root directory
+6. Provide actionable remediation for each issue
+
+Please begin the security audit now."""
 
             # Configure Claude Code SDK options
             options = ClaudeCodeOptions(
@@ -289,72 +293,123 @@ Provide a brief analysis first, then end your response with the JSON array of vu
             print(full_response)
             print("=" * 60 + "\n")
 
-            # Process the response to extract vulnerability JSON array
+            # Process the response by looking for the vulnerability report file
             try:
-                analysis_content = full_response.strip()
-                
-                # Look for JSON array in the response (between ```json and ```)
-                import re
-                json_pattern = r"```json\s*\n(\[.*?\])\s*\n```"
-                json_matches = re.findall(json_pattern, analysis_content, re.DOTALL)
-                
+                logger.info(
+                    "Looking for vulnerability_report.json file created by Claude Code"
+                )
+                print(
+                    "🔍 Looking for vulnerability_report.json file created by Claude Code..."
+                )
+
+                # Check if vulnerability_report.json was created in the repo directory
+                vulnerability_report_path = os.path.join(
+                    repo_path, "vulnerability_report.json"
+                )
                 vulnerabilities = []
-                
-                if json_matches:
+
+                if os.path.exists(vulnerability_report_path):
                     try:
-                        # Parse the JSON array of vulnerabilities
-                        vulnerabilities = json.loads(json_matches[-1].strip())  # Use the last match
-                        logger.info(f"Successfully parsed {len(vulnerabilities)} vulnerabilities from Claude response")
-                        print(f"✅ Successfully parsed {len(vulnerabilities)} vulnerabilities from Claude")
+                        with open(
+                            vulnerability_report_path, "r", encoding="utf-8"
+                        ) as f:
+                            vulnerabilities = json.load(f)
+                        logger.info(
+                            f"Successfully loaded {len(vulnerabilities)} vulnerabilities from report file"
+                        )
+                        print(
+                            f"✅ Successfully loaded {len(vulnerabilities)} vulnerabilities from report file"
+                        )
                     except json.JSONDecodeError as e:
-                        logger.warning(f"Failed to parse vulnerability JSON: {e}")
-                        print(f"⚠️ Failed to parse vulnerability JSON: {e}")
-                
-                # If no JSON found, try to find array anywhere in response
-                if not vulnerabilities:
-                    array_start = analysis_content.find("[")
-                    array_end = analysis_content.rfind("]") + 1
-                    if array_start != -1 and array_end > array_start:
+                        logger.warning(
+                            f"Failed to parse vulnerability report JSON: {e}"
+                        )
+                        print(f"⚠️ Failed to parse vulnerability report JSON: {e}")
+                    except Exception as e:
+                        logger.warning(f"Failed to read vulnerability report file: {e}")
+                        print(f"⚠️ Failed to read vulnerability report file: {e}")
+                else:
+                    logger.info(
+                        "No vulnerability_report.json file found, trying to extract from conversation"
+                    )
+                    print(
+                        "🔍 No vulnerability_report.json file found, trying to extract from conversation..."
+                    )
+
+                    # Fallback: try to extract JSON from the conversation
+                    analysis_content = full_response.strip()
+                    import re
+
+                    # Look for JSON array in the response
+                    json_pattern = r"```json\s*\n(\[.*?\])\s*\n```"
+                    json_matches = re.findall(json_pattern, analysis_content, re.DOTALL)
+
+                    if json_matches:
                         try:
-                            json_str = analysis_content[array_start:array_end]
-                            vulnerabilities = json.loads(json_str)
-                            logger.info(f"Found vulnerability array in response: {len(vulnerabilities)} items")
-                            print(f"✅ Found vulnerability array: {len(vulnerabilities)} vulnerabilities")
-                        except json.JSONDecodeError:
-                            logger.debug("No valid JSON array found in response")
-                
+                            vulnerabilities = json.loads(json_matches[-1].strip())
+                            logger.info(
+                                f"Extracted {len(vulnerabilities)} vulnerabilities from conversation"
+                            )
+                            print(
+                                f"✅ Extracted {len(vulnerabilities)} vulnerabilities from conversation"
+                            )
+                        except json.JSONDecodeError as e:
+                            logger.warning(
+                                f"Failed to parse JSON from conversation: {e}"
+                            )
+
                 # Validate vulnerability structure
                 valid_vulnerabilities = []
                 for vuln in vulnerabilities:
-                    if isinstance(vuln, dict) and all(key in vuln for key in ['title', 'description', 'severity', 'category', 'filePath', 'startLine', 'recommendation']):
+                    if isinstance(vuln, dict) and all(
+                        key in vuln
+                        for key in [
+                            "title",
+                            "description",
+                            "severity",
+                            "category",
+                            "filePath",
+                            "startLine",
+                            "recommendation",
+                        ]
+                    ):
                         valid_vulnerabilities.append(vuln)
                     else:
                         logger.warning(f"Invalid vulnerability structure: {vuln}")
-                
+
                 # Calculate summary stats
                 severity_counts = {}
                 for vuln in valid_vulnerabilities:
-                    severity = vuln.get('severity', 'UNKNOWN')
+                    severity = vuln.get("severity", "UNKNOWN")
                     severity_counts[severity] = severity_counts.get(severity, 0) + 1
-                
+
+                # Include conversation analysis for context
+                conversation_summary = self._extract_conversation_summary(full_response)
+
                 return {
                     "summary": f"Found {len(valid_vulnerabilities)} vulnerabilities",
                     "vulnerabilities": valid_vulnerabilities,
                     "vulnerability_count": len(valid_vulnerabilities),
                     "severity_breakdown": severity_counts,
-                    "raw_analysis": analysis_content
+                    "conversation_summary": conversation_summary,
+                    "report_file_found": os.path.exists(vulnerability_report_path),
+                    "raw_analysis": full_response,
                 }
 
             except Exception as parse_error:
-                logger.error(f"Response processing failed: {parse_error}", exc_info=True)
+                logger.error(
+                    f"Response processing failed: {parse_error}", exc_info=True
+                )
                 print(f"❌ Response processing failed: {parse_error}")
                 return {
-                    "summary": "Security audit completed but failed to parse vulnerabilities",
+                    "summary": "Security audit completed but failed to process results",
                     "vulnerabilities": [],
                     "vulnerability_count": 0,
                     "severity_breakdown": {},
+                    "conversation_summary": "Error processing results",
+                    "report_file_found": False,
                     "raw_analysis": full_response,
-                    "error": str(parse_error)
+                    "error": str(parse_error),
                 }
 
         except Exception as e:
@@ -362,6 +417,38 @@ Provide a brief analysis first, then end your response with the JSON array of vu
             logger.error(error_msg, exc_info=True)
             print(f"❌ {error_msg}")
             raise Exception(error_msg)
+
+    def _extract_conversation_summary(self, full_response: str) -> str:
+        """Extract a brief summary from the Claude Code conversation."""
+        try:
+            # Look for summary-like content in the conversation
+            lines = full_response.split("\n")
+            summary_lines = []
+
+            for line in lines:
+                line = line.strip()
+                if any(
+                    keyword in line.lower()
+                    for keyword in [
+                        "found",
+                        "identified",
+                        "discovered",
+                        "vulnerabilities",
+                        "issues",
+                        "security",
+                    ]
+                ):
+                    if len(line) > 20 and len(line) < 200:  # Reasonable summary length
+                        summary_lines.append(line)
+
+            if summary_lines:
+                return ". ".join(summary_lines[:3])  # Take first 3 relevant lines
+            else:
+                return "Security audit completed via Claude Code interaction"
+
+        except Exception as e:
+            logger.debug(f"Failed to extract conversation summary: {e}")
+            return "Security audit completed"
 
     def _process_scan_job(self, job: Job) -> Dict[str, Any]:
         """Process a repository scan job."""
