@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -70,6 +70,7 @@ interface ScanTarget {
 
 export default function ScanTargetsPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [scanTargets, setScanTargets] = useState<ScanTarget[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -129,7 +130,15 @@ export default function ScanTargetsPage() {
         throw new Error(data.error || "Failed to trigger scan");
       }
 
-      // Refresh the scan targets to show updated status
+      const data = await response.json();
+      
+      // Redirect to the job page if we got a job ID
+      if (data.scanJobId) {
+        router.push(`/jobs/${data.scanJobId}`);
+        return;
+      }
+
+      // Fallback: refresh the scan targets to show updated status
       await fetchScanTargets();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to trigger scan");

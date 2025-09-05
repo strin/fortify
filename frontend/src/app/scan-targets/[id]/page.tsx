@@ -120,7 +120,15 @@ export default function ScanTargetDetailPage({
         throw new Error(data.error || "Failed to trigger scan");
       }
       
-      // Refresh the scan target to show updated status
+      const data = await response.json();
+      
+      // Redirect to the job page if we got a job ID
+      if (data.scanJobId) {
+        router.push(`/jobs/${data.scanJobId}`);
+        return;
+      }
+      
+      // Fallback: refresh the scan target to show updated status
       await fetchScanTarget();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to trigger scan");
@@ -167,7 +175,10 @@ export default function ScanTargetDetailPage({
   const getVulnerabilityStats = (vulnerabilities: Array<{ severity: string }>) => {
     return vulnerabilities.reduce(
       (acc, vuln) => {
-        acc[vuln.severity.toLowerCase()]++;
+        const severity = vuln.severity.toLowerCase() as keyof VulnerabilityStats;
+        if (severity in acc && severity !== 'total') {
+          acc[severity]++;
+        }
         acc.total++;
         return acc;
       },
