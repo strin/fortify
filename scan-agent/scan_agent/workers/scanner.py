@@ -23,7 +23,19 @@ logger = logging.getLogger(__name__)
 # Claude Code SDK imports
 try:
     from claude_code_sdk import query, ClaudeCodeOptions
-    from claude_code_sdk.types import AssistantMessage, SystemMessage, UserMessage
+    from claude_code_sdk.types import (
+        AssistantMessage,
+        SystemMessage,
+        UserMessage,
+        ResultMessage,
+    )
+
+    # Try to import ResultMessage, but handle if it doesn't exist
+    try:
+        from claude_code_sdk.types import ResultMessage
+    except ImportError:
+        ResultMessage = None
+        logger.debug("ResultMessage not available in claude-code-sdk")
 
     CLAUDE_SDK_AVAILABLE = True
     logger.info("Claude Code SDK imported successfully")
@@ -37,7 +49,7 @@ except ImportError as e:
 from scan_agent.models.job import Job, JobStatus, JobType, ScanJobData
 from scan_agent.utils.queue import JobQueue
 from scan_agent.utils.redis_client import redis_connection
-from scan_agent.utils.database import get_db
+from scan_agent.utils.database import get_db, init_database, close_database
 
 
 class ScanWorker:
@@ -191,37 +203,91 @@ Please begin the security audit now."""
             # Use anyio to run the async query function
             messages = []
 
+            def format_claude_message(message, index=None) -> str:
+                """Format Claude messages with creative and consistent styling."""
+                message_type = type(message).__name__
+
+                # Extract content safely from any message type
+                content = ""
+                content_length = 0
+
+                if isinstance(message, AssistantMessage):
+                    if isinstance(message.content, list):
+                        # Handle content blocks
+                        content_parts = []
+                        for block in message.content:
+                            if hasattr(block, "text"):
+                                content_parts.append(block.text)
+                            elif isinstance(block, dict) and "text" in block:
+                                content_parts.append(block["text"])
+                            elif isinstance(block, str):
+                                content_parts.append(block)
+                        content = "".join(content_parts)
+                    else:
+                        content = str(message.content) if message.content else ""
+                    content_length = len(content)
+                elif isinstance(message, UserMessage):
+                    content = (
+                        str(message.content)
+                        if hasattr(message, "content") and message.content
+                        else ""
+                    )
+                    content_length = len(content)
+                elif isinstance(message, SystemMessage):
+                    content = (
+                        str(message.data)
+                        if hasattr(message, "data") and message.data
+                        else ""
+                    )
+                    content_length = len(content)
+                elif (ResultMessage and isinstance(message, ResultMessage)) or hasattr(
+                    message, "result"
+                ):  # ResultMessage or similar
+                    content = str(message.result) if message.result else ""
+                    content_length = len(content)
+                elif hasattr(message, "content"):
+                    content = str(message.content) if message.content else ""
+                    content_length = len(content)
+                else:
+                    content = str(message) if message else ""
+                    content_length = len(content)
+
+                # Create preview (first 150 chars)
+                preview = content[:150] + "..." if len(content) > 150 else content
+                preview = preview.replace("\n", " ").replace("\r", " ").strip()
+
+                # Creative message type indicators
+                type_indicators = {
+                    "AssistantMessage": "🤖 Claude",
+                    "UserMessage": "👤 User",
+                    "SystemMessage": "⚙️ System",
+                    "ResultMessage": "🎯 Result",
+                }
+
+                indicator = type_indicators.get(message_type, f"❓ {message_type}")
+
+                # Format with consistent styling
+                index_str = f"[{index+1:02d}] " if index is not None else ""
+                size_info = (
+                    f"({content_length:,} chars)" if content_length > 0 else "(empty)"
+                )
+
+                formatted_msg = f"{index_str}{indicator} {size_info}"
+                if preview:
+                    formatted_msg += f"\n    ➤ {preview}"
+
+                return formatted_msg
+
             async def run_query():
+                i = 0
                 async for message in query(prompt=prompt, options=options):
                     messages.append(message)
-                    # Handle different message types properly
-                    if isinstance(message, AssistantMessage):
-                        logger.debug(
-                            f"Received assistant message: {message.content[:100]}..."
-                        )
-                        print(
-                            f"📨 Received assistant message from Claude ({len(message.content)} chars)"
-                        )
-                    elif isinstance(message, SystemMessage):
-                        logger.debug(
-                            f"Received system message with data: {str(message.data)[:100]}..."
-                        )
-                        print(f"📨 Received system message from Claude")
-                    elif isinstance(message, UserMessage):
-                        logger.debug(
-                            f"Received user message: {str(message.content)[:100]}..."
-                        )
-                        print(f"📨 Received user message from Claude")
-                    elif isinstance(message, ResultMessage):
-                        logger.debug(
-                            f"Received result message: {str(message.result)[:100]}..."
-                        )
-                        print(f"📨 Received result message from Claude")
-                    else:
-                        logger.debug(
-                            f"Received message of unknown type: {type(message)}"
-                        )
-                        print(f"📨 Received message of type: {type(message).__name__}")
+
+                    # Format and display message with creative styling
+                    formatted_msg = format_claude_message(message, i)
+                    logger.info(f"📬 {formatted_msg}")
+                    i += 1
+
                 return messages
 
             # Run the async query
@@ -230,79 +296,149 @@ Please begin the security audit now."""
             logger.info(f"Claude SDK completed with {len(result_messages)} messages")
             print(f"📊 Claude SDK completed with {len(result_messages)} messages")
 
-            # Combine all message content, focusing on assistant messages
+            # Process and combine all message content with enhanced formatting
+            print("\n" + "🔄 " + "=" * 60)
+            print("📋 PROCESSING CLAUDE SDK MESSAGES")
+            print("=" * 68)
+
             full_response = ""
             assistant_messages = []
+            conversation_stats = {
+                "assistant_msgs": 0,
+                "user_msgs": 0,
+                "system_msgs": 0,
+                "result_msgs": 0,
+                "unknown_msgs": 0,
+                "total_chars": 0,
+            }
 
-            for i, message in enumerate(result_messages):
-                logger.info(f"=== CLAUDE SDK MESSAGE {i+1} ===")
-                message_type = type(message).__name__
-                logger.info(f"Message type: {message_type}")
-
+            def extract_message_content(message) -> str:
+                """Extract content from any message type safely."""
                 if isinstance(message, AssistantMessage):
-                    # Handle both string and list content
                     if isinstance(message.content, list):
-                        # Extract text from content blocks
-                        content_text = ""
+                        content_parts = []
                         for block in message.content:
                             if hasattr(block, "text"):
-                                content_text += block.text
+                                content_parts.append(block.text)
                             elif isinstance(block, dict) and "text" in block:
-                                content_text += block["text"]
+                                content_parts.append(block["text"])
                             elif isinstance(block, str):
-                                content_text += block
-                        logger.info(
-                            f"Assistant message content: {content_text[:200]}..."
-                        )
-                        assistant_messages.append(content_text)
-                        full_response += content_text + "\n\n"
+                                content_parts.append(block)
+                        return "".join(content_parts)
                     else:
-                        # Handle string content
-                        logger.info(
-                            f"Assistant message content: {str(message.content)[:200]}..."
-                        )
-                        assistant_messages.append(str(message.content))
-                        full_response += str(message.content) + "\n\n"
+                        return str(message.content) if message.content else ""
                 elif isinstance(message, UserMessage):
-                    # Handle UserMessage types
-                    logger.info(
-                        f"User message content: {str(message.content)[:200]}..."
+                    return (
+                        str(message.content)
+                        if hasattr(message, "content") and message.content
+                        else ""
                     )
-                    # Include user messages in the response for context
-                    full_response += f"USER: {str(message.content)}\n\n"
                 elif isinstance(message, SystemMessage):
-                    logger.info(f"System message data: {str(message.data)[:200]}...")
-                    # Don't include system messages in the main response
-                elif message_type == "ResultMessage":
-                    logger.info("Received ResultMessage (final result)")
-                    if hasattr(message, "result"):
-                        logger.info(f"Result content: {str(message.result)[:200]}...")
-                        assistant_messages.append(str(message.result))
-                        full_response += str(message.result) + "\n\n"
-
-                    # Log metadata if available
-                    if hasattr(message, "total_cost_usd"):
-                        logger.info(f"Total cost: ${message.total_cost_usd:.4f}")
-                        print(f"💰 Total cost: ${message.total_cost_usd:.4f}")
-                    if hasattr(message, "duration_ms"):
-                        logger.info(f"Duration: {message.duration_ms}ms")
-                        print(f"⏱️ Duration: {message.duration_ms}ms")
+                    return (
+                        str(message.data)
+                        if hasattr(message, "data") and message.data
+                        else ""
+                    )
+                elif (ResultMessage and isinstance(message, ResultMessage)) or hasattr(
+                    message, "result"
+                ):
+                    return str(message.result) if message.result else ""
+                elif hasattr(message, "content"):
+                    return str(message.content) if message.content else ""
                 else:
+                    return str(message) if message else ""
+
+            for i, message in enumerate(result_messages):
+                message_type = type(message).__name__
+                content = extract_message_content(message)
+                content_length = len(content)
+                conversation_stats["total_chars"] += content_length
+
+                # Display formatted message processing
+                formatted_msg = format_claude_message(message, i)
+                logger.info(f"🔍 Processing: {formatted_msg}")
+                print(f"🔍 Processing: {formatted_msg}")
+
+                logger.info(f"=== CLAUDE SDK MESSAGE {i+1} ({message_type}) ===")
+                logger.info(f"Content length: {content_length} chars")
+                logger.info(
+                    f"Content preview: {content[:200]}..." if content else "No content"
+                )
+
+                if isinstance(message, AssistantMessage):
+                    conversation_stats["assistant_msgs"] += 1
+                    if content:
+                        assistant_messages.append(content)
+                        full_response += content + "\n\n"
+
+                elif isinstance(message, UserMessage):
+                    conversation_stats["user_msgs"] += 1
+                    if content:
+                        full_response += f"👤 USER: {content}\n\n"
+
+                elif isinstance(message, SystemMessage):
+                    conversation_stats["system_msgs"] += 1
+                    # System messages don't contribute to main response
+
+                elif (
+                    ResultMessage and isinstance(message, ResultMessage)
+                ) or message_type == "ResultMessage":
+                    conversation_stats["result_msgs"] += 1
+                    if content:
+                        assistant_messages.append(content)
+                        full_response += content + "\n\n"
+
+                    # Display metadata with enhanced formatting
+                    if hasattr(message, "total_cost_usd"):
+                        cost = message.total_cost_usd
+                        print(f"💰 Total Cost: ${cost:.4f}")
+                        logger.info(f"Total cost: ${cost:.4f}")
+                    if hasattr(message, "duration_ms"):
+                        duration = message.duration_ms
+                        duration_sec = duration / 1000
+                        print(f"⏱️  Duration: {duration_sec:.1f}s ({duration:,}ms)")
+                        logger.info(f"Duration: {duration}ms")
+
+                else:
+                    conversation_stats["unknown_msgs"] += 1
                     logger.info(f"Unknown message type: {message_type}")
-                    # Log the attributes of unknown message types for debugging
                     if hasattr(message, "__dict__"):
                         logger.debug(
                             f"Message attributes: {list(message.__dict__.keys())}"
                         )
-                    # Skip unknown message types instead of including them
+
+            # Display conversation statistics
+            print("\n📊 Conversation Statistics:")
+            print(f"   🤖 Assistant messages: {conversation_stats['assistant_msgs']}")
+            print(f"   👤 User messages: {conversation_stats['user_msgs']}")
+            print(f"   ⚙️  System messages: {conversation_stats['system_msgs']}")
+            print(f"   🎯 Result messages: {conversation_stats['result_msgs']}")
+            if conversation_stats["unknown_msgs"] > 0:
+                print(f"   ❓ Unknown messages: {conversation_stats['unknown_msgs']}")
+            print(
+                f"   📝 Total content: {conversation_stats['total_chars']:,} characters"
+            )
+            print("=" * 68)
 
             logger.info("=== END CLAUDE SDK OUTPUT ===")
 
-            print("\n" + "=" * 60)
-            print("🤖 CLAUDE SDK FULL OUTPUT:")
-            print("=" * 60)
-            print(full_response)
-            print("=" * 60 + "\n")
+            # Display full conversation output with enhanced formatting
+            print("\n" + "🤖 " + "=" * 58)
+            print("📄 CLAUDE SDK FULL CONVERSATION OUTPUT")
+            print("=" * 68)
+            if full_response.strip():
+                # Truncate very long responses for readability
+                if len(full_response) > 5000:
+                    truncated_response = (
+                        full_response[:5000]
+                        + f"\n\n... [TRUNCATED - showing first 5,000 of {len(full_response):,} characters] ..."
+                    )
+                    print(truncated_response)
+                else:
+                    print(full_response)
+            else:
+                print("(No conversation content to display)")
+            print("=" * 68 + "\n")
 
             # Process the response by looking for the vulnerability report file
             try:
@@ -617,21 +753,27 @@ Please begin the security audit now."""
         temp_dir = None
 
         try:
-            logger.info(f"Starting to process scan job {job.id}")
+            logger.info(f"Starting to process scan job {job.id}, {job.type.value}")
             logger.debug(f"Job data: {job.data}")
 
             # Step 0: Create ScanJob record in database
             logger.info("Step 0: Creating ScanJob record in database")
             print("💾 Step 0: Creating ScanJob record in database...")
+            # Initialize database connection
+            await init_database()
 
             try:
                 db = await get_db()
+
+                # Get the database URL from the db object if possible, otherwise from environment
+                db_url = getattr(db, "_database_url", None)
+                logger.info(f"Database URL (from db): {db_url}")
 
                 # Create scan job record matching the test_db_fix.py approach
                 scan_job_record = await db.scanjob.create(
                     data={
                         "id": job.id,  # Use the existing job ID
-                        "type": job.type.value,
+                        "type": 'SCAN_REPO',
                         "status": "IN_PROGRESS",
                         "data": json.dumps(job.data),
                     }
@@ -754,7 +896,7 @@ Please begin the security audit now."""
             # Step 5: Update ScanJob status to COMPLETED
             logger.info("Step 5: Updating ScanJob status to COMPLETED")
             print("💾 Step 5: Updating ScanJob status to COMPLETED...")
-            
+
             try:
                 db = await get_db()
                 await db.scanjob.update(
@@ -763,7 +905,7 @@ Please begin the security audit now."""
                         "status": "COMPLETED",
                         "result": result,
                         "finishedAt": datetime.now(),
-                    }
+                    },
                 )
                 logger.info(f"✅ Updated ScanJob {job.id} status to COMPLETED")
                 print(f"✅ Updated ScanJob {job.id} status to COMPLETED")
@@ -777,6 +919,8 @@ Please begin the security audit now."""
             logger.info(json.dumps(result, indent=2, default=str))
             logger.info("=== END FINAL SCAN RESULT ===")
             print(f"✅ Scan completed for job {job.id}")
+            await close_database()
+
             return result
 
         finally:
@@ -832,10 +976,11 @@ Please begin the security audit now."""
             error_msg = str(e)
             logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
             print(f"❌ Job {job.id} failed: {error_msg}")
-            
+
             # Update ScanJob status to FAILED in database
             try:
                 import asyncio
+
                 async def update_failed_job():
                     db = await get_db()
                     await db.scanjob.update(
@@ -844,15 +989,17 @@ Please begin the security audit now."""
                             "status": "FAILED",
                             "error": error_msg,
                             "finishedAt": datetime.now(),
-                        }
+                        },
                     )
-                
+
                 anyio.run(update_failed_job)
                 logger.info(f"Updated ScanJob {job.id} status to FAILED")
                 print(f"💾 Updated ScanJob {job.id} status to FAILED")
             except Exception as update_error:
-                logger.error(f"Failed to update ScanJob status to FAILED: {update_error}")
-            
+                logger.error(
+                    f"Failed to update ScanJob status to FAILED: {update_error}"
+                )
+
             self.job_queue.fail_job(job.id, error_msg)
 
     def run(self):

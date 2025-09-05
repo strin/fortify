@@ -75,8 +75,8 @@
 ```json
 {
   "id": "uuid",
-  "type": "scan_repo",
-  "status": "pending|in_progress|completed|failed",
+  "type": "SCAN_REPO",
+  "status": "PENDING|IN_PROGRESS|COMPLETED|FAILED",
   "data": {
     "repo_url": "https://github.com/owner/repo.git",
     "branch": "main",

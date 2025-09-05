@@ -12,9 +12,9 @@ class JobStatus(Enum):
     FAILED = "failed"
 
 class JobType(Enum):
-    SCAN_REPO = "scan_repo"
-    SCAN_FILE = "scan_file"
-    BATCH_SCAN = "batch_scan"
+    SCAN_REPO = "SCAN_REPO"
+    SCAN_FILE = "SCAN_FILE"
+    BATCH_SCAN = "BATCH_SCAN"
 
 @dataclass
 class ScanJobData:
