@@ -56,7 +56,7 @@ class DatabaseManager:
             )
 
         if self._client is None:
-            self._client = Prisma()
+            self._client = Prisma(auto_register=True)
 
         if not self._client.is_connected():
             logger.info("Connecting to database...")

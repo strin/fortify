@@ -539,10 +539,10 @@ Please begin the security audit now."""
                             ],  # Limit length
                             "severity": severity,
                             "category": category,
-                            "filePath": vuln.get("file", "")[:500],  # Limit length
-                            "startLine": int(vuln.get("line", 0)),
+                            "filePath": vuln.get("filePath", vuln.get("file", ""))[:500],  # Limit length
+                            "startLine": int(vuln.get("startLine", vuln.get("line", 0))),
                             "endLine": int(vuln.get("endLine", vuln.get("line", 0))),
-                            "codeSnippet": vuln.get("code_snippet", "")[
+                            "codeSnippet": vuln.get("codeSnippet", vuln.get("code_snippet", ""))[
                                 :2000
                             ],  # Limit length
                             "recommendation": vuln.get("recommendation", "")[
@@ -589,7 +589,7 @@ Please begin the security audit now."""
             print(f"❌ Failed to store vulnerabilities: {e}")
             return 0
 
-    def _process_scan_job(self, job: Job) -> Dict[str, Any]:
+    async def _process_scan_job(self, job: Job) -> Dict[str, Any]:
         """Process a repository scan job."""
         logger.info(f"=== ENTERING _process_scan_job METHOD ===")
         print(f"🔍 DEBUG: Entering _process_scan_job method for job {job.id}")
@@ -737,7 +737,7 @@ Please begin the security audit now."""
             print(f"🚀 Starting job {job.id} of type {job.type.value}")
 
             if job.type == JobType.SCAN_REPO:
-                result = self._process_scan_job(job)
+                result = anyio.run(self._process_scan_job, job)
 
                 # Mark job as completed and log the result
                 self.job_queue.complete_job(job.id, result)

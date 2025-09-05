@@ -6,7 +6,7 @@ generator javascript {
 
 generator python {
         provider             = "prisma-client-py"
-        interface            = "sync"
+        interface            = "asyncio"
         recursive_type_depth = 5
         output               = "../scan-agent/generated/prisma_client"
 }
