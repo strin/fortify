@@ -1,4 +1,5 @@
 """Background worker for vulnerability scanning."""
+
 import os
 import sys
 import time
@@ -7,8 +8,27 @@ import tempfile
 import shutil
 import subprocess
 import json
+import logging
+import asyncio
+import anyio
 from datetime import datetime
 from typing import Dict, Any, Optional
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# Claude Code SDK imports
+try:
+    from claude_code_sdk import query, ClaudeCodeOptions
+    CLAUDE_SDK_AVAILABLE = True
+    logger.info("Claude Code SDK imported successfully")
+except ImportError as e:
+    CLAUDE_SDK_AVAILABLE = False
+    logger.error(f"Failed to import Claude Code SDK: {e}")
+    logger.error("Please install claude-code-sdk: pip install claude-code-sdk")
 
 # Package imports
 
@@ -16,157 +36,264 @@ from scan_agent.models.job import Job, JobStatus, JobType, ScanJobData
 from scan_agent.utils.queue import JobQueue
 from scan_agent.utils.redis_client import redis_connection
 
+
 class ScanWorker:
     """Worker that processes vulnerability scan jobs."""
-    
+
     def __init__(self):
         self.job_queue = JobQueue()
         self.running = True
         self.current_job: Optional[Job] = None
-        
+
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
         signal.signal(signal.SIGTERM, self._signal_handler)
-    
+
     def _signal_handler(self, signum, frame):
         """Handle shutdown signals."""
         print(f"Received signal {signum}, shutting down gracefully...")
         self.running = False
-    
+
     def _clone_repository(self, repo_url: str, branch: str, target_dir: str) -> bool:
         """Clone a repository to the target directory."""
         try:
+            logger.info(
+                f"Cloning repository {repo_url} (branch: {branch}) to {target_dir}"
+            )
+            print(
+                f"🔄 Cloning repository {repo_url} (branch: {branch}) to {target_dir}"
+            )
+
             # Clone the repository
-            cmd = ["git", "clone", "--depth", "1", "--branch", branch, repo_url, target_dir]
+            cmd = [
+                "git",
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                branch,
+                repo_url,
+                target_dir,
+            ]
+
+            logger.debug(f"Git clone command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            
+
+            logger.debug(f"Git clone return code: {result.returncode}")
+            logger.debug(f"Git clone stdout: {result.stdout}")
+            logger.debug(f"Git clone stderr: {result.stderr}")
+
             if result.returncode != 0:
+                logger.error(f"Git clone failed with return code {result.returncode}")
+                print(f"❌ Git clone failed: {result.stderr}")
                 raise Exception(f"Git clone failed: {result.stderr}")
-            
+
+            logger.info("Repository cloned successfully")
+            print("✅ Repository cloned successfully")
             return True
         except subprocess.TimeoutExpired:
+            logger.error("Git clone timed out after 5 minutes")
             raise Exception("Git clone timed out after 5 minutes")
         except Exception as e:
+            logger.error(f"Failed to clone repository: {str(e)}")
             raise Exception(f"Failed to clone repository: {str(e)}")
-    
-    def _run_claude_scan(self, repo_path: str, claude_cli_args: Optional[str] = None) -> Dict[str, Any]:
-        """Run Claude Code CLI on the repository."""
+
+    def _run_claude_scan(
+        self, repo_path: str, claude_cli_args: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Run Claude Code SDK scan on the repository."""
+        if not CLAUDE_SDK_AVAILABLE:
+            raise Exception("Claude Code SDK is not available. Please install: pip install claude-code-sdk")
+            
         try:
-            # Base command
-            cmd = ["claude-code"]
+            logger.info(f"Starting Claude Code SDK scan on {repo_path}")
+            print(f"🤖 Starting Claude Code SDK scan on {repo_path}")
             
-            # Add custom arguments if provided
-            if claude_cli_args:
-                cmd.extend(claude_cli_args.split())
+            # Define the security audit prompt
+            prompt = """Audit my project for security issues: public Supabase endpoints, unsecured API routes, weak or missing access control, and improperly configured auth rules. Specifically: 
+            1. Check if Supabase tables or RPC functions are publicly accessible without proper Row Level Security (RLS) or role-based permissions. 
+            2. Confirm that users can't upgrade their own account privileges or delete/edit other users' data. 
+            3. Ensure all write operations (POST, PUT, PATCH, DELETE) are protected by server-side auth and validation, not just client checks. 
+            4. Identify any hardcoded secrets, misconfigured environment variables, or sensitive data leaks. 
+            5. Generate a security checklist based on my current stack and suggest immediate high-priority fixes.
             
-            # Add the scan prompt
-            cmd.extend([
-                "--model", "claude-3-haiku-20240307",
-                "--prompt", "Analyze this codebase for security vulnerabilities. Look for common vulnerabilities like SQL injection, XSS, authentication issues, exposed secrets, and other security concerns. Provide a detailed report in JSON format with the structure: {vulnerabilities: [{type: string, severity: high|medium|low, file: string, line: number, description: string, recommendation: string}], summary: string, risk_level: high|medium|low}"
-            ])
+            Assume I want to go from a vibe-coded prototype to a real production-ready app. Refactor anything risky, and explain what you're doing as you go.
             
-            # Run the command in the repository directory
-            result = subprocess.run(
-                cmd,
+            Please provide your analysis in a structured format that includes:
+            - A summary of findings
+            - Specific vulnerabilities found with file locations
+            - Risk level assessment (high/medium/low)
+            - Recommended fixes for each issue"""
+            
+            # Configure Claude Code SDK options
+            options = ClaudeCodeOptions(
+                max_turns=3,
+                system_prompt="You are a security auditor analyzing a code repository for vulnerabilities and security issues. Focus on identifying real security risks and provide actionable recommendations.",
                 cwd=repo_path,
-                capture_output=True,
-                text=True,
-                timeout=1800  # 30 minute timeout
+                allowed_tools=["Read", "Write", "Bash"],
+                permission_mode="acceptEdits",
+                model="claude-3-haiku-20240307"
             )
             
-            if result.returncode != 0:
-                raise Exception(f"Claude CLI failed: {result.stderr}")
+            logger.debug(f"Claude SDK options: max_turns=3, cwd={repo_path}")
+            logger.debug(f"Security audit prompt: {prompt[:200]}...")
+            print(f"📝 Running Claude SDK with security audit prompt...")
+            print(f"⚙️ Options: max_turns=3, model=claude-3-haiku-20240307, cwd={repo_path}")
             
-            # Parse the JSON output
+            # Run the Claude Code SDK query
+            logger.info("Executing Claude SDK query...")
+            print("⏳ Executing Claude SDK query (this may take several minutes)...")
+            
+            # Use anyio to run the async query function
+            messages = []
+            
+            async def run_query():
+                async for message in query(prompt=prompt, options=options):
+                    messages.append(message)
+                    logger.debug(f"Received message: {message.content[:100]}...")
+                    print(f"📨 Received message from Claude ({len(message.content)} chars)")
+                return messages
+            
+            # Run the async query
+            result_messages = anyio.run(run_query)
+            
+            logger.info(f"Claude SDK completed with {len(result_messages)} messages")
+            print(f"📊 Claude SDK completed with {len(result_messages)} messages")
+            
+            # Combine all message content
+            full_response = ""
+            for i, message in enumerate(result_messages):
+                logger.info(f"=== CLAUDE SDK MESSAGE {i+1} ===")
+                logger.info(message.content)
+                full_response += message.content + "\n\n"
+            
+            logger.info("=== END CLAUDE SDK OUTPUT ===")
+            
+            print("\n" + "="*60)
+            print("🤖 CLAUDE SDK FULL OUTPUT:")
+            print("="*60)
+            print(full_response)
+            print("="*60 + "\n")
+            
+            # Try to parse structured output or return as raw analysis
             try:
-                # Extract JSON from the output (Claude might include explanatory text)
-                output = result.stdout
-                # Find JSON content between first { and last }
-                start_idx = output.find('{')
-                end_idx = output.rfind('}') + 1
+                # Look for JSON in the response
+                start_idx = full_response.find("{")
+                end_idx = full_response.rfind("}") + 1
                 if start_idx != -1 and end_idx > start_idx:
-                    json_str = output[start_idx:end_idx]
-                    return json.loads(json_str)
+                    json_str = full_response[start_idx:end_idx]
+                    logger.debug(f"Found JSON structure, attempting to parse...")
+                    parsed_json = json.loads(json_str)
+                    logger.info("Successfully parsed Claude SDK output as JSON")
+                    print("✅ Successfully parsed Claude SDK output as JSON")
+                    return parsed_json
                 else:
-                    # If no JSON found, return raw output
+                    # Return structured response with raw analysis
+                    logger.info("No JSON found, returning structured response with raw analysis")
+                    print("📋 Returning structured response with raw analysis")
                     return {
-                        "raw_output": output,
-                        "summary": "Could not parse JSON from Claude output",
-                        "risk_level": "unknown"
+                        "analysis": full_response,
+                        "summary": "Security audit completed using Claude Code SDK",
+                        "risk_level": "unknown",  # Could be parsed from response
+                        "vulnerabilities": [],  # Could be extracted from text
+                        "recommendations": [],  # Could be extracted from text
+                        "raw_output": full_response
                     }
-            except json.JSONDecodeError:
+                    
+            except json.JSONDecodeError as json_error:
+                logger.warning(f"JSON parsing failed: {json_error}")
+                print(f"⚠️ JSON parsing failed: {json_error}")
                 return {
-                    "raw_output": result.stdout,
-                    "summary": "Failed to parse Claude output as JSON",
-                    "risk_level": "unknown"
+                    "analysis": full_response,
+                    "summary": "Security audit completed using Claude Code SDK (JSON parsing failed)",
+                    "risk_level": "unknown",
+                    "vulnerabilities": [],
+                    "recommendations": [],
+                    "raw_output": full_response
                 }
-                
-        except subprocess.TimeoutExpired:
-            raise Exception("Claude scan timed out after 30 minutes")
+
         except Exception as e:
-            raise Exception(f"Failed to run Claude scan: {str(e)}")
-    
+            error_msg = f"Failed to run Claude SDK scan: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            print(f"❌ {error_msg}")
+            raise Exception(error_msg)
+
     def _process_scan_job(self, job: Job) -> Dict[str, Any]:
         """Process a repository scan job."""
         scan_data = ScanJobData.from_dict(job.data)
         temp_dir = None
-        
+
         try:
+            logger.info(f"Starting to process scan job {job.id}")
+            logger.debug(f"Job data: {job.data}")
+            
             # Create temporary directory for cloning
             temp_dir = tempfile.mkdtemp(prefix="scan_")
             repo_path = os.path.join(temp_dir, "repo")
             
-            print(f"Processing scan job {job.id} for {scan_data.repo_url}")
-            
+            logger.info(f"Created temporary directory: {temp_dir}")
+            print(f"📁 Created temporary directory: {temp_dir}")
+            print(f"🔍 Processing scan job {job.id} for {scan_data.repo_url}")
+
             # Step 1: Clone the repository
-            print(f"Cloning repository to {repo_path}...")
+            logger.info("Step 1: Cloning repository")
+            print(f"📥 Step 1: Cloning repository to {repo_path}...")
             self._clone_repository(scan_data.repo_url, scan_data.branch, repo_path)
-            
+
             # Step 2: Run Claude Code CLI
-            print("Running vulnerability scan with Claude Code CLI...")
+            logger.info("Step 2: Running Claude Code CLI scan")
+            print("🤖 Step 2: Running vulnerability scan with Claude Code CLI...")
             scan_results = self._run_claude_scan(repo_path, scan_data.claude_cli_args)
-            
+
             # Step 3: Process results
+            logger.info("Step 3: Processing scan results")
+            print("📊 Step 3: Processing scan results...")
             result = {
                 "scan_completed_at": datetime.now().isoformat(),
                 "repository": scan_data.repo_url,
                 "branch": scan_data.branch,
-                "results": scan_results
+                "results": scan_results,
             }
             
-            print(f"Scan completed for job {job.id}")
+            logger.info(f"Scan completed successfully for job {job.id}")
+            logger.debug(f"Final result keys: {list(result.keys())}")
+            print(f"✅ Scan completed for job {job.id}")
             return result
-            
+
         finally:
             # Clean up temporary directory
             if temp_dir and os.path.exists(temp_dir):
+                logger.info(f"Cleaning up temporary directory: {temp_dir}")
+                print(f"🧹 Cleaning up temporary directory: {temp_dir}")
                 shutil.rmtree(temp_dir)
-    
+            else:
+                logger.debug("No temporary directory to clean up")
+
     def process_job(self, job: Job):
         """Process a single job."""
         try:
             print(f"Starting job {job.id} of type {job.type.value}")
-            
+
             if job.type == JobType.SCAN_REPO:
                 result = self._process_scan_job(job)
                 self.job_queue.complete_job(job.id, result)
             else:
                 raise Exception(f"Unknown job type: {job.type.value}")
-                
+
         except Exception as e:
             error_msg = str(e)
             print(f"Job {job.id} failed: {error_msg}")
             self.job_queue.fail_job(job.id, error_msg)
-    
+
     def run(self):
         """Main worker loop."""
         print("Scan worker started. Waiting for jobs...")
-        
+
         while self.running:
             try:
                 # Get next job from queue
                 job = self.job_queue.get_next_job()
-                
+
                 if job:
                     self.current_job = job
                     self.process_job(job)
@@ -174,17 +301,19 @@ class ScanWorker:
                 else:
                     # No job available, wait a bit
                     time.sleep(1)
-                    
+
             except Exception as e:
                 print(f"Worker error: {str(e)}")
                 time.sleep(5)  # Wait before retrying
-        
+
         print("Scan worker stopped.")
+
 
 def main():
     """Main entry point for the worker."""
     worker = ScanWorker()
     worker.run()
+
 
 if __name__ == "__main__":
     main()

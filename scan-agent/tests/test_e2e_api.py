@@ -15,6 +15,13 @@ import subprocess
 import os
 import signal
 import threading
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 class ScanAgentE2ETest:
@@ -34,16 +41,22 @@ class ScanAgentE2ETest:
 
     def setup(self):
         """Set up test environment."""
+        logger.info("Setting up test environment...")
+        print("🔧 Setting up test environment...")
+
         # Initialize Redis connection
+        logger.debug(f"Connecting to Redis at {self.redis_host}:{self.redis_port}")
         self.redis_client = redis.Redis(
             host=self.redis_host, port=self.redis_port, db=0, decode_responses=True
         )
 
         # Test Redis connection
         try:
-            self.redis_client.ping()
+            ping_result = self.redis_client.ping()
+            logger.info(f"Redis ping successful: {ping_result}")
             print("✅ Redis connection established")
-        except redis.ConnectionError:
+        except redis.ConnectionError as e:
+            logger.error(f"Redis connection failed: {e}")
             raise Exception(
                 "❌ Failed to connect to Redis. Make sure Redis is running."
             )
@@ -77,19 +90,31 @@ class ScanAgentE2ETest:
     async def test_create_scan_job(self) -> str:
         """Test creating a scan job."""
         print("\n🔍 Testing job creation...")
+        logger.info("Starting job creation test")
 
         # Test payload
         scan_request = {
-            "repo_url": "https://github.com/octocat/Hello-World.git",
-            "branch": "main",
+            "repo_url": "https://github.com/ishepard/pydriller.git",
+            "branch": "master",
             "claude_cli_args": "--max-tokens 1000",
             "scan_options": {"deep_scan": False, "include_tests": True},
         }
+        
+        logger.debug(f"Scan request payload: {json.dumps(scan_request, indent=2)}")
+        print(f"📝 Request payload: {json.dumps(scan_request, indent=2)}")
 
         async with httpx.AsyncClient(timeout=30.0) as client:
+            logger.debug(f"Sending POST request to {self.base_url}/scan/repo")
             response = await client.post(
                 f"{self.base_url}/scan/repo", json=scan_request
             )
+            
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response headers: {dict(response.headers)}")
+            logger.debug(f"Response content: {response.text}")
+            
+            print(f"📡 Response status: {response.status_code}")
+            print(f"📡 Response content: {response.text}")
 
             assert response.status_code == 200
             data = response.json()
@@ -106,7 +131,8 @@ class ScanAgentE2ETest:
 
             # Track job for cleanup
             self.test_jobs.append(job_id)
-
+            
+            logger.info(f"Job created with ID: {job_id}")
             print(f"✅ Job created successfully with ID: {job_id}")
             return job_id
 
@@ -224,8 +250,8 @@ class ScanAgentE2ETest:
         job_dict["updated_at"] = datetime.now().isoformat()
         job_dict["result"] = {
             "scan_completed_at": datetime.now().isoformat(),
-            "repository": "https://github.com/octocat/Hello-World.git",
-            "branch": "main",
+            "repository": "https://github.com/ishepard/pydriller.git",
+            "branch": "master",
             "results": {
                 "vulnerabilities": [],
                 "summary": "No vulnerabilities found in test simulation",
