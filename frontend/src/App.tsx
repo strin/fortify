@@ -2,8 +2,32 @@
 
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function App() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      router.push("/scan-targets")
+    }
+  }, [status, router])
+
+  // Show loading state while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Fortify</h1>
+          <p className="text-gray-300">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
       <div className="container mx-auto px-4 py-16">

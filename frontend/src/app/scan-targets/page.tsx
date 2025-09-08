@@ -235,7 +235,7 @@ export default function ScanTargetsPage() {
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Scan Targets</h1>
             <Button asChild variant="outline">
-              <Link href="/dashboard">Back to Dashboard</Link>
+              <Link href="/scan-targets">Back to Scan Targets</Link>
             </Button>
           </nav>
 
