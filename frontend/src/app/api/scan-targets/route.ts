@@ -56,55 +56,57 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to include vulnerability counts
-    const transformedTargets = scanTargets.map((target) => {
-      const lastScan = target.scanJobs[0];
-      let vulnerabilityStats = {
-        critical: 0,
-        high: 0,
-        medium: 0,
-        low: 0,
-        info: 0,
-        total: 0,
-      };
+    const transformedTargets = scanTargets.map(
+      (target: (typeof scanTargets)[0]) => {
+        const lastScan = target.scanJobs[0];
+        let vulnerabilityStats = {
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0,
+          info: 0,
+          total: 0,
+        };
 
-      if (lastScan?.vulnerabilities) {
-        const severityCounts = lastScan.vulnerabilities.reduce(
-          (acc, vuln) => {
-            const severity = vuln.severity.toLowerCase() as keyof typeof acc;
-            if (severity in acc && severity !== "total") {
-              acc[severity]++;
-            }
-            acc.total++;
-            return acc;
-          },
-          { critical: 0, high: 0, medium: 0, low: 0, info: 0, total: 0 }
+        if (lastScan?.vulnerabilities) {
+          const severityCounts = lastScan.vulnerabilities.reduce(
+            (acc, vuln) => {
+              const severity = vuln.severity.toLowerCase() as keyof typeof acc;
+              if (severity in acc && severity !== "total") {
+                acc[severity]++;
+              }
+              acc.total++;
+              return acc;
+            },
+            { critical: 0, high: 0, medium: 0, low: 0, info: 0, total: 0 }
+          );
+          vulnerabilityStats = severityCounts;
+        }
+
+        // Parse repository owner/name from repoUrl
+        const repoUrlMatch = target.repoUrl.match(
+          /github\.com\/([^\/]+)\/([^\/\.]+)/
         );
-        vulnerabilityStats = severityCounts;
+        const owner = repoUrlMatch?.[1] || "";
+        const repo = repoUrlMatch?.[2] || "";
+
+        return {
+          ...target,
+          owner,
+          repo,
+          lastScan: lastScan
+            ? {
+                id: lastScan.id,
+                status: lastScan.status,
+                createdAt: lastScan.createdAt,
+                vulnerabilitiesFound: lastScan.vulnerabilitiesFound,
+              }
+            : null,
+          vulnerabilityStats,
+          totalScans: target._count.scanJobs,
+        };
       }
-
-      // Parse repository owner/name from repoUrl
-      const repoUrlMatch = target.repoUrl.match(
-        /github\.com\/([^\/]+)\/([^\/\.]+)/
-      );
-      const owner = repoUrlMatch?.[1] || "";
-      const repo = repoUrlMatch?.[2] || "";
-
-      return {
-        ...target,
-        owner,
-        repo,
-        lastScan: lastScan
-          ? {
-              id: lastScan.id,
-              status: lastScan.status,
-              createdAt: lastScan.createdAt,
-              vulnerabilitiesFound: lastScan.vulnerabilitiesFound,
-            }
-          : null,
-        vulnerabilityStats,
-        totalScans: target._count.scanJobs,
-      };
-    });
+    );
 
     return NextResponse.json({
       scanTargets: transformedTargets,
