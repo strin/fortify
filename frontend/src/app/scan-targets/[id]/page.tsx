@@ -70,12 +70,12 @@ interface ScanTarget {
   totalScans: number;
 }
 
-export default async function ScanTargetDetailPage({
+export default function ScanTargetDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
