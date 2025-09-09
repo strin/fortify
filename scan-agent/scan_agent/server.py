@@ -97,6 +97,7 @@ class ScanRepoRequest(BaseModel):
     branch: Optional[str] = "main"
     claude_cli_args: Optional[str] = None
     scan_options: Optional[dict] = {}
+    job_id: Optional[str] = None
 
 
 class JobResponse(BaseModel):
@@ -143,7 +144,7 @@ async def scan_repository(request: ScanRepoRequest, background_tasks: Background
         logger.debug(f"Created scan data: {scan_data.to_dict()}")
 
         # Add job to queue
-        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict())
+        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict(), request.job_id)
         logger.info(f"Created job with ID: {job_id}")
 
         # Trigger background processing of the job

@@ -232,7 +232,7 @@ class ScanAgentE2ETest:
         job_dict = json.loads(job_data)
 
         # Update to in_progress
-        job_dict["status"] = "in_progress"
+        job_dict["status"] = "IN_PROGRESS"
         job_dict["updated_at"] = datetime.now().isoformat()
         self.redis_client.hset("scan_jobs:jobs", job_id, json.dumps(job_dict))
 

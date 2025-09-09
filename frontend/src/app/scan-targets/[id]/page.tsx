@@ -94,7 +94,9 @@ export default async function ScanTargetDetailPage({
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/scan-targets/${id}`);
+      const response = await fetch(`/api/scan-targets/${id}` as any, {
+        cache: "no-store",
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -150,6 +152,23 @@ export default async function ScanTargetDetailPage({
       fetchScanTarget();
     }
   }, [session, id, fetchScanTarget]);
+
+  // Lightweight polling while any job is active
+  useEffect(() => {
+    if (!scanTarget) return;
+
+    const hasActive = scanTarget.scanJobs?.some(
+      (s) => s.status === "PENDING" || s.status === "IN_PROGRESS"
+    );
+
+    if (!hasActive) return;
+
+    const interval = setInterval(() => {
+      fetchScanTarget();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [scanTarget, fetchScanTarget]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";

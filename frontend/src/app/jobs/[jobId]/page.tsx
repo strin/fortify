@@ -231,6 +231,7 @@ export default function ScanJobPage() {
   if (!jobStatus) return null;
 
   const config = statusConfig[jobStatus.status];
+  console.log("config", config, jobStatus.status);
   const StatusIcon = config.icon;
 
   return (
