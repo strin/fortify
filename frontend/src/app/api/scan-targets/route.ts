@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
         if (lastScan?.vulnerabilities) {
           const severityCounts = lastScan.vulnerabilities.reduce(
-            (acc, vuln) => {
+            (acc: any, vuln) => {
               const severity = vuln.severity.toLowerCase() as keyof typeof acc;
               if (severity in acc && severity !== "total") {
                 acc[severity]++;
