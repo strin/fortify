@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build": "npm run prisma:generate && next build",
+    "prisma:generate": "cd ../db && make install-js && make generate-js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.10.0",
