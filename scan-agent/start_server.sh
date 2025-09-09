@@ -31,4 +31,19 @@ else
     echo "  REDIS_DB: $REDIS_DB"
 fi
 
-python -m scan_agent.server
+# Use gunicorn in production, uvicorn for development
+if [ "$NODE_ENV" = "production" ] || [ "$ENVIRONMENT" = "production" ] || [ -n "$RENDER" ]; then
+    echo "Starting with gunicorn (production mode)..."
+    exec gunicorn scan_agent.server:app \
+        --bind 0.0.0.0:$PORT \
+        --worker-class uvicorn.workers.UvicornWorker \
+        --workers 2 \
+        --timeout 120 \
+        --keep-alive 2 \
+        --max-requests 1000 \
+        --max-requests-jitter 50 \
+        --preload
+else
+    echo "Starting with uvicorn (development mode)..."
+    python -m scan_agent.server
+fi
