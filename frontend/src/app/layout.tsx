@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fortify",
-  description: "Build secure, scalable applications with confidence",
+  title: "Fortify AI - Stop Security Vulnerabilities Before They Ship",
+  description: "AI-powered code security that catches what you miss. Automatically scan your JavaScript and Python code for vulnerabilities, generate instant fixes, and integrate seamlessly into your development workflow.",
 };
 
 export default function RootLayout({

@@ -290,7 +290,7 @@ export default async function ScanTargetDetailPage({
             <Button
               onClick={handleTriggerScan}
               disabled={!scanTarget.isActive || scanning}
-              className="bg-blue-600 hover:bg-blue-700"
+              variant="cta"
             >
               {scanning ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -436,7 +436,8 @@ export default async function ScanTargetDetailPage({
                 <Button
                   onClick={handleTriggerScan}
                   disabled={!scanTarget.isActive || scanning}
-                  className="mt-4 bg-blue-600 hover:bg-blue-700"
+                  className="mt-4"
+                  variant="cta"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Run First Scan
