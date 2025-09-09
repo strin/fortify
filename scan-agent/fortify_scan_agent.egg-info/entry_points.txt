@@ -1,0 +1,3 @@
+[console_scripts]
+fortify-scan-server = scan_agent.server:main
+fortify-scan-worker = scan_agent.workers.scanner:main
