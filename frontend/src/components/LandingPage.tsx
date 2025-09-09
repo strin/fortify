@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { signIn } from "next-auth/react"
 import ExitIntentPopup from "./ExitIntentPopup"
-import PromoBanner from "./PromoBanner"
 import SampleScanReport from "./SampleScanReport"
 
 export default function LandingPage() {
@@ -16,20 +15,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
-      <PromoBanner />
       <ExitIntentPopup />
-      {/* Sticky Header CTA */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 py-2 px-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="text-xl font-bold">🔒 Fortify AI</Link>
-          <Button onClick={handleGitHubScan} className="bg-blue-600 hover:bg-blue-700">
-            🔒 Get Free Security Scan
-          </Button>
-        </div>
-      </div>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-16 px-4">
+      <section className="pt-8 pb-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">🔒 Fortify AI</h1>
@@ -44,11 +33,8 @@ export default function LandingPage() {
             <h2 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Stop Security Vulnerabilities Before They Ship
             </h2>
-            <p className="text-xl md:text-2xl text-gray-300 mb-8">
-              AI-powered code security that catches what you miss. Automatically scan your JavaScript and Python code, generate instant fixes, and integrate seamlessly into your development workflow.
-            </p>
-            <p className="text-lg text-gray-400 mb-12">
-              Get your first free security scan in under 2 minutes.
+            <p className="text-xl md:text-2xl text-gray-300 mb-12">
+              AI-powered code security that catches what you miss. Get your first free scan in under 2 minutes.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
@@ -63,22 +49,22 @@ export default function LandingPage() {
             </div>
 
             {/* Trust Indicators */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-300">
-              <div className="flex items-center justify-center">
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
+              <div className="flex items-center">
                 <span className="text-green-400 mr-2">✅</span>
-                Used by 1,000+ developers
+                1,000+ developers
               </div>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center">
                 <span className="text-green-400 mr-2">✅</span>
-                Detects OWASP Top 10
+                OWASP Top 10
               </div>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center">
                 <span className="text-green-400 mr-2">✅</span>
-                95% detection accuracy
+                95% accuracy
               </div>
-              <div className="flex items-center justify-center">
+              <div className="flex items-center">
                 <span className="text-green-400 mr-2">✅</span>
-                No code access required
+                No code access
               </div>
             </div>
           </div>
