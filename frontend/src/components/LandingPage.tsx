@@ -27,7 +27,7 @@ export default function LandingPage() {
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">🔒 Fortify AI</h1>
             <div className="flex gap-4">
-              <Button asChild variant="outline">
+              <Button asChild variant="ghost">
                 <Link href="/login">Sign In</Link>
               </Button>
             </div>
@@ -49,8 +49,8 @@ export default function LandingPage() {
                 <div className="flex flex-col sm:flex-row gap-4 items-center mb-10">
                   <Button
                     onClick={handleGitHubScan}
-                    size="lg"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
+                    size="xl"
+                    variant="cta"
                   >
                     🔒 Scan My GitHub Repo for Free
                   </Button>
@@ -443,7 +443,7 @@ export default function LandingPage() {
           <p className="text-xl text-gray-300 mb-8">
             Watch how we detect and fix a real SQL injection vulnerability
           </p>
-          <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+          <Button size="xl" variant="outline">
             ▶️ Watch 2-Minute Demo
           </Button>
         </div>
@@ -499,7 +499,8 @@ export default function LandingPage() {
                 </ul>
                 <Button
                   onClick={handleGitHubScan}
-                  className="w-full mt-6 bg-gray-600 hover:bg-gray-700"
+                  className="w-full mt-6"
+                  variant="secondary"
                 >
                   Get Started Free
                 </Button>
@@ -561,7 +562,8 @@ export default function LandingPage() {
                 </ul>
                 <Button
                   onClick={handleGitHubScan}
-                  className="w-full mt-6 bg-blue-600 hover:bg-blue-700"
+                  className="w-full mt-6"
+                  variant="cta"
                 >
                   Start Pro Trial
                 </Button>
@@ -666,8 +668,9 @@ export default function LandingPage() {
           </p>
           <Button
             onClick={handleGitHubScan}
-            size="lg"
-            className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4 mb-4"
+            size="xl"
+            variant="cta"
+            className="mb-4"
           >
             🚀 Scan My Code Now - Free
           </Button>

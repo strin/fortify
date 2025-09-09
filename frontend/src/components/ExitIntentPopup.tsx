@@ -58,8 +58,9 @@ export default function ExitIntentPopup() {
           <div className="space-y-3">
             <Button
               onClick={handleGetFreeScan}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3"
-              size="lg"
+              className="w-full"
+              size="xl"
+              variant="cta"
             >
               Claim My Free Scan
             </Button>

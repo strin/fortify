@@ -10,7 +10,7 @@ export default function SampleScanReport() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size="lg" variant="outline" className="text-lg px-8 py-4">
+        <Button size="xl" variant="outline">
           📋 See Example Scan Report
         </Button>
       </DialogTrigger>
@@ -178,7 +178,7 @@ export default function SampleScanReport() {
           </div>
 
           <div className="flex gap-4 pt-4">
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button variant="cta">
               Get Full Report
             </Button>
             <Button variant="outline">
