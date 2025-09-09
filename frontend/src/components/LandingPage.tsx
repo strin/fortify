@@ -73,8 +73,8 @@ export default function LandingPage() {
                   </span>
                   <span className="h-3 w-px bg-gray-600 hidden sm:inline-block"></span>
                   <span className="flex items-center">
-                    <span className="text-green-400 mr-2">✅</span>No code
-                    access
+                    <span className="text-green-400 mr-2">✅</span>Read-only
+                    GitHub access
                   </span>
                 </div>
               </div>
@@ -672,7 +672,7 @@ export default function LandingPage() {
             🚀 Scan My Code Now - Free
           </Button>
           <p className="text-sm text-gray-400">
-            No code access required • Results in 60 seconds • Cancel anytime
+            Read-only GitHub access • Results in 60 seconds • Cancel anytime
           </p>
         </div>
       </section>

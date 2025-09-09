@@ -21,7 +21,7 @@ Fortify AI automatically scans your JavaScript and Python code for security vuln
 - ✅ Used by 1,000+ developers
 - ✅ Detects OWASP Top 10 vulnerabilities  
 - ✅ 95% detection accuracy
-- ✅ No code access required for public repos
+- ✅ No repository permissions for public repos
 
 ---
 
@@ -140,7 +140,7 @@ Start with a free scan of your public repository. Upgrade anytime.
 
 [🚀 Scan My Code Now - Free]
 
-*No code access required • Results in 60 seconds • Cancel anytime*
+*Read-only GitHub access • Results in 60 seconds • Cancel anytime*
 
 ---
 
