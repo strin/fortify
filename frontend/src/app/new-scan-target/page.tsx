@@ -189,7 +189,7 @@ export default function NewScanTargetPage() {
       }
 
       // Redirect to scan target detail page
-      router.push(`/scan-targets/${data.scanTarget.id}`);
+      router.push(`/scan-targets/${data.id}`);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to create scan target"
@@ -286,7 +286,7 @@ export default function NewScanTargetPage() {
                   step >= 3 ? "bg-blue-600" : "bg-gray-600"
                 }`}
               >
-                "3"
+                3
               </div>
               <span>Review</span>
             </div>
