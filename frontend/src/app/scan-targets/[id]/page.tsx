@@ -4,12 +4,18 @@ import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { 
+import {
   ArrowLeft,
-  RefreshCw, 
+  RefreshCw,
   AlertCircle,
   GitBranch,
   Shield,
@@ -17,7 +23,7 @@ import {
   Play,
   Settings,
   Trash2,
-  MoreHorizontal
+  MoreHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -64,11 +70,12 @@ interface ScanTarget {
   totalScans: number;
 }
 
-export default function ScanTargetDetailPage({ 
-  params 
-}: { 
-  params: { id: string } 
+export default async function ScanTargetDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
@@ -86,8 +93,8 @@ export default function ScanTargetDetailPage({
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/scan-targets/${params.id}`);
+
+      const response = await fetch(`/api/scan-targets/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -100,33 +107,35 @@ export default function ScanTargetDetailPage({
 
       setScanTarget(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
       setLoading(false);
     }
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleTriggerScan = async () => {
     try {
       setScanning(true);
-      
-      const response = await fetch(`/api/scan-targets/${params.id}/scan`, {
+
+      const response = await fetch(`/api/scan-targets/${id}/scan`, {
         method: "POST",
       });
-      
+
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to trigger scan");
       }
-      
+
       const data = await response.json();
-      
+
       // Redirect to the job page if we got a job ID
       if (data.scanJobId) {
         router.push(`/jobs/${data.scanJobId}`);
         return;
       }
-      
+
       // Fallback: refresh the scan target to show updated status
       await fetchScanTarget();
     } catch (err) {
@@ -140,7 +149,7 @@ export default function ScanTargetDetailPage({
     if (session) {
       fetchScanTarget();
     }
-  }, [session, params.id, fetchScanTarget]);
+  }, [session, id, fetchScanTarget]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";
@@ -159,7 +168,11 @@ export default function ScanTargetDetailPage({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "COMPLETED":
-        return <Badge variant="default" className="bg-green-600">✅ Completed</Badge>;
+        return (
+          <Badge variant="default" className="bg-green-600">
+            ✅ Completed
+          </Badge>
+        );
       case "FAILED":
         return <Badge variant="destructive">❌ Failed</Badge>;
       case "IN_PROGRESS":
@@ -171,11 +184,14 @@ export default function ScanTargetDetailPage({
     }
   };
 
-  const getVulnerabilityStats = (vulnerabilities: Array<{ severity: string }>) => {
+  const getVulnerabilityStats = (
+    vulnerabilities: Array<{ severity: string }>
+  ) => {
     return vulnerabilities.reduce(
       (acc, vuln) => {
-        const severity = vuln.severity.toLowerCase() as keyof VulnerabilityStats;
-        if (severity in acc && severity !== 'total') {
+        const severity =
+          vuln.severity.toLowerCase() as keyof VulnerabilityStats;
+        if (severity in acc && severity !== "total") {
           acc[severity]++;
         }
         acc.total++;
@@ -202,7 +218,9 @@ export default function ScanTargetDetailPage({
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
-            <h2 className="text-2xl font-bold mb-4">Error Loading Scan Target</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              Error Loading Scan Target
+            </h2>
             <p className="text-gray-300 mb-6">{error}</p>
             <div className="flex gap-4 justify-center">
               <Button onClick={fetchScanTarget}>
@@ -248,7 +266,7 @@ export default function ScanTargetDetailPage({
               </p>
             </div>
           </div>
-          
+
           <div className="flex gap-2">
             <Button
               onClick={handleTriggerScan}
@@ -262,7 +280,7 @@ export default function ScanTargetDetailPage({
               )}
               {scanning ? "Scanning..." : "Scan Now"}
             </Button>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -275,7 +293,11 @@ export default function ScanTargetDetailPage({
                   Edit Settings
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={scanTarget.repoUrl} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={scanTarget.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <ExternalLink className="h-4 w-4 mr-2" />
                     View Repository
                   </a>
@@ -293,10 +315,14 @@ export default function ScanTargetDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-400">Total Scans</CardTitle>
+              <CardTitle className="text-sm text-gray-400">
+                Total Scans
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-white">{scanTarget.totalScans}</div>
+              <div className="text-2xl font-bold text-white">
+                {scanTarget.totalScans}
+              </div>
             </CardContent>
           </Card>
 
@@ -331,17 +357,21 @@ export default function ScanTargetDetailPage({
           <CardContent className="space-y-4">
             {scanTarget.description && (
               <div>
-                <h4 className="text-sm font-medium text-gray-400 mb-1">Description</h4>
+                <h4 className="text-sm font-medium text-gray-400 mb-1">
+                  Description
+                </h4>
                 <p className="text-white">{scanTarget.description}</p>
               </div>
             )}
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h4 className="text-sm font-medium text-gray-400 mb-1">Repository URL</h4>
-                <a 
-                  href={scanTarget.repoUrl} 
-                  target="_blank" 
+                <h4 className="text-sm font-medium text-gray-400 mb-1">
+                  Repository URL
+                </h4>
+                <a
+                  href={scanTarget.repoUrl}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-400 hover:underline flex items-center gap-1"
                 >
@@ -349,18 +379,22 @@ export default function ScanTargetDetailPage({
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-              
+
               <div>
-                <h4 className="text-sm font-medium text-gray-400 mb-1">Branch</h4>
+                <h4 className="text-sm font-medium text-gray-400 mb-1">
+                  Branch
+                </h4>
                 <div className="flex items-center gap-1 text-white">
                   <GitBranch className="h-3 w-3" />
                   {scanTarget.branch}
                 </div>
               </div>
-              
+
               {scanTarget.subPath && (
                 <div>
-                  <h4 className="text-sm font-medium text-gray-400 mb-1">Sub-path</h4>
+                  <h4 className="text-sm font-medium text-gray-400 mb-1">
+                    Sub-path
+                  </h4>
                   <p className="text-white">{scanTarget.subPath}</p>
                 </div>
               )}
@@ -392,17 +426,17 @@ export default function ScanTargetDetailPage({
             ) : (
               <div className="space-y-4">
                 {scanTarget.scanJobs.map((scan) => {
-                  const vulnStats = getVulnerabilityStats(scan.vulnerabilities || []);
-                  
+                  const vulnStats = getVulnerabilityStats(
+                    scan.vulnerabilities || []
+                  );
+
                   return (
                     <div
                       key={scan.id}
                       className="flex items-center justify-between p-4 bg-gray-750 rounded-lg border border-gray-600"
                     >
                       <div className="flex items-center gap-4">
-                        <div>
-                          {getStatusBadge(scan.status)}
-                        </div>
+                        <div>{getStatusBadge(scan.status)}</div>
                         <div>
                           <p className="text-white font-medium">
                             Scan {scan.id.slice(0, 8)}
@@ -410,23 +444,56 @@ export default function ScanTargetDetailPage({
                           <p className="text-sm text-gray-400">
                             {formatDate(scan.createdAt)}
                             {scan.startedAt && scan.finishedAt && (
-                              <span> • Duration: {formatDuration(scan.startedAt, scan.finishedAt)}</span>
+                              <span>
+                                {" "}
+                                • Duration:{" "}
+                                {formatDuration(
+                                  scan.startedAt,
+                                  scan.finishedAt
+                                )}
+                              </span>
                             )}
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         {scan.status === "COMPLETED" && (
                           <div className="flex gap-1">
-                            {vulnStats.critical > 0 && <Badge variant="destructive">{vulnStats.critical} Critical</Badge>}
-                            {vulnStats.high > 0 && <Badge variant="destructive" className="bg-orange-600">{vulnStats.high} High</Badge>}
-                            {vulnStats.medium > 0 && <Badge variant="secondary">{vulnStats.medium} Medium</Badge>}
-                            {vulnStats.low > 0 && <Badge variant="outline">{vulnStats.low} Low</Badge>}
-                            {vulnStats.total === 0 && <Badge variant="outline" className="text-green-600">No vulnerabilities</Badge>}
+                            {vulnStats.critical > 0 && (
+                              <Badge variant="destructive">
+                                {vulnStats.critical} Critical
+                              </Badge>
+                            )}
+                            {vulnStats.high > 0 && (
+                              <Badge
+                                variant="destructive"
+                                className="bg-orange-600"
+                              >
+                                {vulnStats.high} High
+                              </Badge>
+                            )}
+                            {vulnStats.medium > 0 && (
+                              <Badge variant="secondary">
+                                {vulnStats.medium} Medium
+                              </Badge>
+                            )}
+                            {vulnStats.low > 0 && (
+                              <Badge variant="outline">
+                                {vulnStats.low} Low
+                              </Badge>
+                            )}
+                            {vulnStats.total === 0 && (
+                              <Badge
+                                variant="outline"
+                                className="text-green-600"
+                              >
+                                No vulnerabilities
+                              </Badge>
+                            )}
                           </div>
                         )}
-                        
+
                         <Button asChild variant="outline" size="sm">
                           <Link href={`/vulnerabilities/${scan.id}`}>
                             View Details
@@ -436,11 +503,13 @@ export default function ScanTargetDetailPage({
                     </div>
                   );
                 })}
-                
+
                 {scanTarget.totalScans > scanTarget.scanJobs.length && (
                   <div className="text-center pt-4">
                     <Button asChild variant="outline">
-                      <Link href={`/scans/${scanTarget.owner}/${scanTarget.repo}`}>
+                      <Link
+                        href={`/scans/${scanTarget.owner}/${scanTarget.repo}`}
+                      >
                         View All Scans ({scanTarget.totalScans})
                       </Link>
                     </Button>
