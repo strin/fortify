@@ -1,12 +1,13 @@
 import { getServerSession as nextAuthGetServerSession } from "next-auth/next";
 import { Session } from "next-auth";
-import { authOptions } from "./route";
+import { authOptions } from "./config";
 
 export interface SessionUser {
   id: string;
   email?: string | null;
   name?: string | null;
   image?: string | null;
+  githubAccessToken?: string | null;
 }
 
 export interface AuthSession {
@@ -34,6 +35,7 @@ export async function getServerSession(): Promise<AuthSession | null> {
         email: session.user.email,
         name: session.user.name,
         image: session.user.image,
+        githubAccessToken: session.user.githubAccessToken,
       },
       expires: session.expires,
     };

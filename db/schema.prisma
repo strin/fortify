@@ -42,7 +42,8 @@ model User {
         preferences Json?
 
         // Relations
-        scanJobs ScanJob[]
+        scanJobs    ScanJob[]
+        scanTargets ScanTarget[]
 
         @@map("users")
 }
@@ -52,8 +53,9 @@ model User {
 // ==========================================
 
 model ScanJob {
-        id     String  @id @default(cuid())
-        userId String? // Optional for now to match current implementation
+        id           String  @id @default(cuid())
+        userId       String? // Optional for now to match current implementation
+        scanTargetId String? // Optional link to scan target
 
         // Core job information (exactly matching job.py)
         type   JobType   @default(SCAN_REPO)
@@ -75,10 +77,12 @@ model ScanJob {
 
         // Relations
         user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+        scanTarget      ScanTarget?         @relation(fields: [scanTargetId], references: [id], onDelete: SetNull)
         vulnerabilities CodeVulnerability[]
 
         @@index([status, createdAt])
         @@index([userId, finishedAt])
+        @@index([scanTargetId])
         @@map("scan_jobs")
 }
 
@@ -117,6 +121,39 @@ model CodeVulnerability {
         @@index([scanJobId, severity])
         @@index([filePath])
         @@map("code_vulnerabilities")
+}
+
+// ==========================================
+// SCAN TARGET MANAGEMENT
+// ==========================================
+
+model ScanTarget {
+        id     String @id @default(cuid())
+        userId String // Owner
+
+        // Repository information
+        name        String // User-friendly name
+        description String?
+        repoUrl     String
+        branch      String  @default("main")
+        subPath     String? // Optional path filter
+
+        // Configuration
+        isActive Boolean @default(true)
+
+        // Metadata
+        createdAt  DateTime  @default(now())
+        updatedAt  DateTime  @updatedAt
+        lastScanAt DateTime?
+
+        // Relations
+        user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+        scanJobs ScanJob[]
+
+        @@unique([userId, repoUrl, branch, subPath])
+        @@index([userId, isActive])
+        @@index([lastScanAt])
+        @@map("scan_targets")
 }
 
 // ==========================================

@@ -40,7 +40,7 @@ export default function AuthForm({ type }: AuthFormProps) {
         setError("Invalid email or password")
         setLoading(false)
       } else {
-        router.push("/dashboard")
+        router.push("/scan-targets")
         router.refresh()
       }
     } else {
@@ -67,7 +67,7 @@ export default function AuthForm({ type }: AuthFormProps) {
 
   const handleOAuthSignIn = async (provider: string) => {
     setLoading(true)
-    await signIn(provider, { callbackUrl: "/dashboard" })
+    await signIn(provider, { callbackUrl: "/scan-targets" })
   }
 
   return (

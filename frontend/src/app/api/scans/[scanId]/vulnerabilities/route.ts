@@ -4,27 +4,24 @@ import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { scanId: string } }
+  { params }: { params: Promise<{ scanId: string }> }
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { scanId } = params;
+    const { scanId } = await params;
     const { searchParams } = new URL(request.url);
-    
+
     // Parse query parameters
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const severity = searchParams.get('severity');
-    const category = searchParams.get('category');
-    const filePath = searchParams.get('filePath');
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const severity = searchParams.get("severity");
+    const category = searchParams.get("category");
+    const filePath = searchParams.get("filePath");
 
     // First, verify the scan belongs to the user
     const scanJob = await prisma.scanJob.findFirst({
@@ -65,7 +62,7 @@ export async function GET(
     if (filePath) {
       whereClause.filePath = {
         contains: filePath,
-        mode: 'insensitive',
+        mode: "insensitive",
       };
     }
 
@@ -78,9 +75,9 @@ export async function GET(
     const vulnerabilities = await prisma.codeVulnerability.findMany({
       where: whereClause,
       orderBy: [
-        { severity: 'desc' }, // Order by severity (CRITICAL first)
-        { filePath: 'asc' },
-        { startLine: 'asc' },
+        { severity: "desc" }, // Order by severity (CRITICAL first)
+        { filePath: "asc" },
+        { startLine: "asc" },
       ],
       skip: (page - 1) * limit,
       take: limit,
@@ -88,7 +85,7 @@ export async function GET(
 
     // Get summary statistics
     const severityCounts = await prisma.codeVulnerability.groupBy({
-      by: ['severity'],
+      by: ["severity"],
       where: { scanJobId: scanId },
       _count: {
         severity: true,
@@ -96,7 +93,7 @@ export async function GET(
     });
 
     const categoryCounts = await prisma.codeVulnerability.groupBy({
-      by: ['category'],
+      by: ["category"],
       where: { scanJobId: scanId },
       _count: {
         category: true,
@@ -104,14 +101,14 @@ export async function GET(
     });
 
     const fileCounts = await prisma.codeVulnerability.groupBy({
-      by: ['filePath'],
+      by: ["filePath"],
       where: { scanJobId: scanId },
       _count: {
         filePath: true,
       },
       orderBy: {
         _count: {
-          filePath: 'desc',
+          filePath: "desc",
         },
       },
       take: 10, // Top 10 files with most vulnerabilities
@@ -127,7 +124,7 @@ export async function GET(
         acc[item.category] = item._count.category;
         return acc;
       }, {} as Record<string, number>),
-      topFiles: fileCounts.map(item => ({
+      topFiles: fileCounts.map((item) => ({
         filePath: item.filePath,
         count: item._count.filePath,
       })),
@@ -155,7 +152,6 @@ export async function GET(
       summary,
       pagination,
     });
-
   } catch (error) {
     console.error("Error fetching vulnerabilities:", error);
     return NextResponse.json(
