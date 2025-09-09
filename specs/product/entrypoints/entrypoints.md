@@ -4,7 +4,11 @@ These are entrypoints for the product. The goal is to have the product integrate
 
 ## Landing page
 
-User discover lead magnets on social platforms. They come to the landing page and sign up for a free scan of their repo. The product then integrates into the repos PR workflow.
+### Landing Page & Social Lead Magnets
+- **Entry**: Discovery via lead magnets on social platforms (e.g., Twitter, LinkedIn, dev communities)
+- **Hook**: "Get a free security scan of your repository" - frictionless onboarding
+- **Value**: Immediate value with a free scan, seamless integration into the repository's PR workflow
+- **Implementation**: Users sign up on the landing page, connect their repository, and Fortify automatically integrates with their PR workflow for ongoing security scanning
 
 ## Developer Tool Integrations
 
