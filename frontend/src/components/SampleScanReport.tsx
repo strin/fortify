@@ -76,7 +76,7 @@ export default function SampleScanReport() {
                 </p>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <code className="text-sm text-red-300">
-                    const query = "SELECT * FROM users WHERE id = " + userId;
+                    const query = &quot;SELECT * FROM users WHERE id = &quot; + userId;
                   </code>
                 </div>
                 <div className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export default function SampleScanReport() {
                 </p>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <code className="text-sm text-yellow-300">
-                    const API_KEY = "sk-1234567890abcdef...";
+                    const API_KEY = &quot;sk-1234567890abcdef...&quot;;
                   </code>
                 </div>
                 <div className="flex items-center gap-2">
@@ -144,7 +144,7 @@ export default function SampleScanReport() {
                 </p>
                 <div className="bg-gray-800 p-3 rounded-md">
                   <code className="text-sm text-red-300">
-                    "lodash": "4.17.20"
+                    &quot;lodash&quot;: &quot;4.17.20&quot;
                   </code>
                 </div>
                 <div className="flex items-center gap-2">

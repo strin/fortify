@@ -44,7 +44,7 @@ export default function ExitIntentPopup() {
       <DialogContent className="sm:max-w-md bg-gray-900 border-blue-500/20">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-center text-white mb-2">
-            Wait! Don't Leave Your Code Vulnerable
+            Wait! Don&apos;t Leave Your Code Vulnerable
           </DialogTitle>
         </DialogHeader>
 
@@ -75,7 +75,7 @@ export default function ExitIntentPopup() {
               onClick={() => setShowPopup(false)}
               className="text-gray-400 hover:text-white"
             >
-              No thanks, I'll take the risk
+              No thanks, I&apos;ll take the risk
             </Button>
           </div>
         </div>

@@ -100,7 +100,7 @@ export default function LandingPage() {
             </h3>
             <p className="text-lg md:text-xl text-gray-300 max-w-3xl mb-8">
               In the AI-generated code era, vibe coding has become a big
-              security risk. Here's why:
+              security risk. Here&apos;s why:
             </p>
           </div>
 
