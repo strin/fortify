@@ -4,25 +4,37 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Github, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import Link from "next/link";
 
 interface Repository {
   id: number;
   name: string;
-  full_name: string;
+  fullName: string;
   description: string | null;
   private: boolean;
-  html_url: string;
-  default_branch: string;
+  htmlUrl: string;
+  defaultBranch: string;
   language: string | null;
-  stargazers_count: number;
-  updated_at: string;
+  stars: number;
+  updatedAt: string;
 }
 
 interface Branch {
@@ -36,17 +48,17 @@ export default function NewScanTargetPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Authentication state
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  
+
   // Form state
   const [step, setStep] = useState(1); // 1: Repository Selection, 2: Configuration, 3: Review
   const [repositories, setRepositories] = useState<Repository[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Form data
   const [selectedRepo, setSelectedRepo] = useState<Repository | null>(null);
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -54,20 +66,20 @@ export default function NewScanTargetPage() {
   const [scanTargetName, setScanTargetName] = useState("");
   const [description, setDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Check authentication and handle redirect
   useEffect(() => {
     if (status === "loading") {
       return; // Still loading session
     }
-    
+
     if (status === "unauthenticated") {
       // Store the current URL to redirect back after login
       const currentUrl = window.location.pathname + window.location.search;
       router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
       return;
     }
-    
+
     // User is authenticated, fetch repositories
     if (session && step === 1) {
       fetchRepositories();
@@ -79,17 +91,19 @@ export default function NewScanTargetPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch("/api/github/repos");
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch repositories");
       }
-      
+
       setRepositories(data.repositories || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch repositories");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch repositories"
+      );
     } finally {
       setLoading(false);
     }
@@ -100,17 +114,29 @@ export default function NewScanTargetPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const [owner, repoName] = repo.full_name.split("/");
-      const response = await fetch(`/api/repositories/branches/${owner}/${repoName}`);
+
+      // Validate repo and fullName
+      if (!repo || !repo.fullName) {
+        throw new Error("Invalid repository data");
+      }
+
+      const parts = repo.fullName.split("/");
+      if (parts.length !== 2) {
+        throw new Error("Invalid repository format");
+      }
+
+      const [owner, repoName] = parts;
+      const response = await fetch(
+        `/api/repositories/branches/${owner}/${repoName}`
+      );
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch branches");
       }
-      
+
       setBranches(data.branches || []);
-      setSelectedBranch(repo.default_branch); // Set default branch
+      setSelectedBranch(repo.defaultBranch || "main"); // Set default branch with fallback
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch branches");
     } finally {
@@ -120,8 +146,13 @@ export default function NewScanTargetPage() {
 
   // Handle repository selection
   const handleRepositorySelect = async (repo: Repository) => {
+    if (!repo || !repo.name || !repo.fullName) {
+      setError("Invalid repository selected");
+      return;
+    }
+
     setSelectedRepo(repo);
-    setScanTargetName(`${repo.name} - ${repo.default_branch}`); // Auto-generate name
+    setScanTargetName(`${repo.name} - ${repo.defaultBranch || "main"}`); // Auto-generate name
     await fetchBranches(repo);
     setStep(2);
   };
@@ -145,7 +176,7 @@ export default function NewScanTargetPage() {
         body: JSON.stringify({
           name: scanTargetName,
           description: description || null,
-          repoUrl: selectedRepo.html_url,
+          repoUrl: selectedRepo.htmlUrl,
           branch: selectedBranch,
           subPath: subPath || null,
         }),
@@ -160,17 +191,20 @@ export default function NewScanTargetPage() {
       // Redirect to scan target detail page
       router.push(`/scan-targets/${data.scanTarget.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create scan target");
+      setError(
+        err instanceof Error ? err.message : "Failed to create scan target"
+      );
     } finally {
       setLoading(false);
     }
   };
 
   // Filter repositories based on search
-  const filteredRepositories = repositories.filter(repo =>
-    repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ""
+  const filteredRepositories = repositories.filter(
+    (repo) =>
+      repo.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      repo.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ""
   );
 
   // Show loading state while checking authentication
@@ -200,7 +234,7 @@ export default function NewScanTargetPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => step > 1 ? setStep(step - 1) : router.back()}
+                onClick={() => (step > 1 ? setStep(step - 1) : router.back())}
                 className="text-gray-400 hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -209,25 +243,49 @@ export default function NewScanTargetPage() {
               <h1 className="text-3xl font-bold">Create New Scan Target</h1>
             </div>
           </div>
-          
+
           {/* Progress indicator */}
           <div className="flex items-center gap-4 mb-6">
-            <div className={`flex items-center gap-2 ${step >= 1 ? 'text-blue-400' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600' : 'bg-gray-600'}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                step >= 1 ? "text-blue-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 1 ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
                 {step > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
               <span>Repository</span>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-500" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? 'text-blue-400' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600' : 'bg-gray-600'}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                step >= 2 ? "text-blue-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 2 ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
                 {step > 2 ? <Check className="h-4 w-4" /> : "2"}
               </div>
               <span>Configuration</span>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-500" />
-            <div className={`flex items-center gap-2 ${step >= 3 ? 'text-blue-400' : 'text-gray-500'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600' : 'bg-gray-600'}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                step >= 3 ? "text-blue-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 3 ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
                 "3"
               </div>
               <span>Review</span>
@@ -253,7 +311,8 @@ export default function NewScanTargetPage() {
                 Select Repository
               </CardTitle>
               <CardDescription>
-                Choose the GitHub repository you want to scan for security vulnerabilities.
+                Choose the GitHub repository you want to scan for security
+                vulnerabilities.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -284,7 +343,9 @@ export default function NewScanTargetPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-white">{repo.name}</h3>
+                            <h3 className="font-semibold text-white">
+                              {repo.name}
+                            </h3>
                             {repo.private && (
                               <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
                                 Private
@@ -297,11 +358,16 @@ export default function NewScanTargetPage() {
                             )}
                           </div>
                           {repo.description && (
-                            <p className="text-gray-400 text-sm mb-2">{repo.description}</p>
+                            <p className="text-gray-400 text-sm mb-2">
+                              {repo.description}
+                            </p>
                           )}
                           <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>⭐ {repo.stargazers_count}</span>
-                            <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                            <span>⭐ {repo.stars}</span>
+                            <span>
+                              Updated{" "}
+                              {new Date(repo.updatedAt).toLocaleDateString()}
+                            </span>
                           </div>
                         </div>
                         <ArrowRight className="h-4 w-4 text-gray-500 mt-1" />
@@ -344,7 +410,10 @@ export default function NewScanTargetPage() {
               {/* Branch Selection */}
               <div>
                 <Label htmlFor="branch">Branch *</Label>
-                <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <Select
+                  value={selectedBranch}
+                  onValueChange={setSelectedBranch}
+                >
                   <SelectTrigger className="bg-gray-900 border-gray-600 mt-2">
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
@@ -352,7 +421,8 @@ export default function NewScanTargetPage() {
                     {branches.map((branch) => (
                       <SelectItem key={branch.name} value={branch.name}>
                         {branch.name}
-                        {branch.name === selectedRepo.default_branch && " (default)"}
+                        {branch.name === selectedRepo.defaultBranch &&
+                          " (default)"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -424,13 +494,17 @@ export default function NewScanTargetPage() {
                   <h4 className="font-semibold mb-3">Repository</h4>
                   <div className="bg-gray-900 p-4 rounded border border-gray-700">
                     <p className="font-medium">{selectedRepo.name}</p>
-                    <p className="text-sm text-gray-400">{selectedRepo.full_name}</p>
+                    <p className="text-sm text-gray-400">
+                      {selectedRepo.fullName}
+                    </p>
                     {selectedRepo.description && (
-                      <p className="text-sm text-gray-300 mt-2">{selectedRepo.description}</p>
+                      <p className="text-sm text-gray-300 mt-2">
+                        {selectedRepo.description}
+                      </p>
                     )}
                   </div>
                 </div>
-                
+
                 <div>
                   <h4 className="font-semibold mb-3">Scan Configuration</h4>
                   <div className="bg-gray-900 p-4 rounded border border-gray-700 space-y-2">
@@ -450,7 +524,9 @@ export default function NewScanTargetPage() {
                     )}
                     {description && (
                       <div>
-                        <span className="text-sm text-gray-400">Description:</span>
+                        <span className="text-sm text-gray-400">
+                          Description:
+                        </span>
                         <p className="text-sm">{description}</p>
                       </div>
                     )}
