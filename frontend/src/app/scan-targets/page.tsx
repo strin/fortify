@@ -131,7 +131,7 @@ export default function ScanTargetsPage() {
       }
 
       const data = await response.json();
-      
+
       // Redirect to the job page if we got a job ID
       if (data.scanJobId) {
         router.push(`/jobs/${data.scanJobId}`);
@@ -182,7 +182,7 @@ export default function ScanTargetsPage() {
   };
 
   const getVulnerabilityBadges = (stats: VulnerabilityStats) => {
-    const badges = [];
+    const badges: React.JSX.Element[] = [];
     if (stats.critical > 0)
       badges.push(
         <Badge key="critical" variant="destructive">
@@ -271,9 +271,7 @@ export default function ScanTargetsPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
-            <Button
-              onClick={() => setShowCreateDialog(true)}
-            >
+            <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Add New
             </Button>
@@ -296,10 +294,10 @@ export default function ScanTargetsPage() {
         {/* Scan Targets Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {scanTargets.map((target) => (
-                         <Card
-               key={target.id}
-               className="hover:bg-accent/50 transition-colors"
-             >
+            <Card
+              key={target.id}
+              className="hover:bg-accent/50 transition-colors"
+            >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
@@ -366,7 +364,9 @@ export default function ScanTargetsPage() {
                   {/* Last Scan Status */}
                   {target.lastScan && (
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Last scan:</span>
+                      <span className="text-sm text-muted-foreground">
+                        Last scan:
+                      </span>
                       {getStatusBadge(target.lastScan.status)}
                     </div>
                   )}
@@ -424,12 +424,10 @@ export default function ScanTargetsPage() {
               Get started by creating your first scan target. Connect a
               repository and configure security scanning for your codebase.
             </p>
-                         <Button
-               onClick={() => setShowCreateDialog(true)}
-             >
-               <Plus className="h-4 w-4 mr-2" />
-               Create Your First Scan Target
-             </Button>
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Scan Target
+            </Button>
           </div>
         )}
 
