@@ -96,11 +96,11 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="mb-12">
             <h3 className="text-4xl md:text-5xl font-bold mb-6">
-              Vibe Coding: The Biggest Security Risk for Software Engineers
+              Vibe Coding: A Big Security Risk
             </h3>
             <p className="text-lg md:text-xl text-gray-300 max-w-3xl mb-8">
-              In the AI-generated code era, vibe coding has become every
-              developer's biggest security vulnerability. Here's why:
+              In the AI-generated code era, vibe coding has become a big
+              security risk. Here's why:
             </p>
           </div>
 
@@ -171,7 +171,7 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h3 className="text-4xl md:text-5xl font-bold mb-6">
-              The Only Security Solution Built for the Vibe Coding Era
+              The Only Security Solution Built for Vibe Coding 
             </h3>
             <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-8">
               Our AI agents understand how AI generates code and fortify it
