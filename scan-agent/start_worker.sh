@@ -25,10 +25,8 @@ else
 fi
 
 # Generate Prisma client if needed (for production environments)
-if [ ! -d "../db/generated" ]; then
-    echo "Generating Prisma client..."
-    cd ../db && prisma generate && cd ../scan-agent
-fi
+echo "Generating Prisma client..."
+cd /db && prisma generate && cd /scan-agent
 
 # Start the worker using the same command as the original run-worker-local.sh
 python -m scan_agent.workers.scanner

@@ -3,8 +3,8 @@ version: '3.8'
 services:
   scan-server:
     build:
-      context: ./scan-agent
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: scan-agent/Dockerfile
     container_name: scan-server
     ports:
       - "8000:8000" # Expose API port
@@ -24,8 +24,8 @@ services:
 
   scan-agent:
     build:
-      context: ./scan-agent
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: scan-agent/Dockerfile
     container_name: scan-agent
     volumes:
       - ./scan-agent:/scan-agent

@@ -18,10 +18,8 @@ fi
 # DATABASE_URL and ANTHROPIC_API_KEY should be provided externally
 
 # Generate Prisma client if needed (for production environments)
-if [ ! -d "../db/generated" ]; then
-    echo "Generating Prisma client..."
-    cd ../db && prisma generate && cd ../scan-agent
-fi
+echo "Generating Prisma client..."
+cd /db && prisma generate && cd /scan-agent
 
 echo "Starting scan-agent server..."
 echo "  PORT: $PORT"
