@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
 
 export async function GET(
   request: NextRequest,
@@ -34,6 +36,84 @@ export async function GET(
     return NextResponse.json(jobData);
   } catch (error) {
     console.error("Error fetching job status:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ jobId: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { jobId } = await params;
+
+    // Verify the job belongs to the user and is in a cancellable state
+    const job = await prisma.scanJob.findFirst({
+      where: {
+        id: jobId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    if (job.status !== "IN_PROGRESS" && job.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Job cannot be cancelled. Only PENDING or IN_PROGRESS jobs can be cancelled." },
+        { status: 400 }
+      );
+    }
+
+    // Update job status to CANCELLED in database
+    await prisma.scanJob.update({
+      where: { id: jobId },
+      data: {
+        status: "CANCELLED",
+        finishedAt: new Date(),
+        error: "Job cancelled by user"
+      },
+    });
+
+    // Try to signal the worker to cancel the job (optional - may fail if worker is not reachable)
+    try {
+      const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
+      
+      const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      // Don't fail if worker is not reachable - the database update is the source of truth
+      if (response.ok) {
+        console.log(`Successfully signaled worker to cancel job ${jobId}`);
+      } else {
+        console.warn(`Failed to signal worker to cancel job ${jobId}: ${response.status}`);
+      }
+    } catch (workerError) {
+      console.warn(`Failed to contact worker for job cancellation ${jobId}:`, workerError);
+    }
+
+    return NextResponse.json({
+      message: "Job cancelled successfully",
+      jobId: jobId,
+      status: "CANCELLED"
+    });
+
+  } catch (error) {
+    console.error("Error cancelling job:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

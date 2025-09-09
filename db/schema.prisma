@@ -172,6 +172,7 @@ enum JobStatus {
         IN_PROGRESS
         COMPLETED
         FAILED
+        CANCELLED
 }
 
 enum VulnerabilitySeverity {

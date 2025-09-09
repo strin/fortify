@@ -93,6 +93,17 @@ class JobQueue:
             self.update_job(job)
             # Remove from processing queue
             self.redis.lrem(self.processing_queue, 1, job_id)
+    
+    def cancel_job(self, job_id: str, reason: str):
+        """Mark a job as cancelled."""
+        job = self.get_job(job_id)
+        if job:
+            job.status = JobStatus.CANCELLED
+            job.error = reason
+            self.update_job(job)
+            # Remove from both pending and processing queues
+            self.redis.lrem(self.pending_queue, 1, job_id)
+            self.redis.lrem(self.processing_queue, 1, job_id)
 
     def get_job_status(self, job_id: str) -> Optional[JobStatus]:
         """Get the status of a job."""

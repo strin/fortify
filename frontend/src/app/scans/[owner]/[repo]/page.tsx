@@ -25,6 +25,7 @@ import {
   Loader2,
   ArrowLeft,
   BarChart3,
+  StopCircle,
 } from "lucide-react";
 
 interface ScanJobSummary {
@@ -74,6 +75,7 @@ const statusIcons = {
   IN_PROGRESS: Loader2,
   COMPLETED: CheckCircle,
   FAILED: XCircle,
+  CANCELLED: StopCircle,
 };
 
 const severityColors = {
@@ -107,6 +109,7 @@ function RepositoryScansContent({
   const [scans, setScans] = useState<ScanJobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancellingJobs, setCancellingJobs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -161,6 +164,35 @@ function RepositoryScansContent({
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
+  };
+
+  const cancelScan = async (scanId: string) => {
+    try {
+      setCancellingJobs(prev => new Set(prev.add(scanId)));
+      
+      const response = await fetch(`/api/jobs/${scanId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel scan");
+      }
+
+      // Refresh the scans list after successful cancellation
+      await fetchRepositoryScans();
+    } catch (err) {
+      console.error("Error cancelling scan:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to cancel scan"
+      );
+    } finally {
+      setCancellingJobs(prev => {
+        const next = new Set(prev);
+        next.delete(scanId);
+        return next;
+      });
+    }
   };
 
   if (status === "loading" || loading) {
@@ -353,6 +385,8 @@ function RepositoryScansContent({
                               ? "text-red-400 border-red-400"
                               : scan.status === "IN_PROGRESS"
                               ? "text-blue-400 border-blue-400"
+                              : scan.status === "CANCELLED"
+                              ? "text-gray-400 border-gray-400"
                               : "text-yellow-400 border-yellow-400"
                           } border-current`}
                         >
@@ -371,13 +405,35 @@ function RepositoryScansContent({
                         </div>
                       </CardDescription>
                     </div>
-                    {scan.status === "COMPLETED" && (
-                      <Button asChild>
-                        <Link href={`/vulnerabilities/${scan.id}`}>
-                          View Vulnerabilities
-                        </Link>
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {scan.status === "COMPLETED" && (
+                        <Button asChild>
+                          <Link href={`/vulnerabilities/${scan.id}`}>
+                            View Vulnerabilities
+                          </Link>
+                        </Button>
+                      )}
+                      {(scan.status === "IN_PROGRESS" || scan.status === "PENDING") && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => cancelScan(scan.id)}
+                          disabled={cancellingJobs.has(scan.id)}
+                        >
+                          {cancellingJobs.has(scan.id) ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            <>
+                              <StopCircle className="h-4 w-4 mr-2" />
+                              Cancel
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>

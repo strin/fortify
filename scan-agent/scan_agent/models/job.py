@@ -10,6 +10,7 @@ class JobStatus(Enum):
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
 
 class JobType(Enum):
     SCAN_REPO = "SCAN_REPO"
