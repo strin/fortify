@@ -9,8 +9,6 @@ import {
   CheckCircle, 
   ArrowRight, 
   GitBranch, 
-  Clock, 
-  Bot,
   ExternalLink,
   Loader2,
   AlertTriangle
@@ -254,7 +252,7 @@ export default function GitHubActionsInstallCTA({
 
           {/* What you'll get */}
           <div className="bg-blue-500/20 rounded-lg p-4">
-            <h4 className="text-white font-medium mb-3">What you'll get:</h4>
+            <h4 className="text-white font-medium mb-3">What you&apos;ll get:</h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2 text-blue-100">
                 <CheckCircle className="h-4 w-4 text-green-300" />

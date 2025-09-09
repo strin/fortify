@@ -70,12 +70,16 @@ interface ScanTarget {
   totalScans: number;
 }
 
-export default async function ScanTargetDetailPage({
+export default function ScanTargetDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const [id, setId] = useState<string>("");
+
+  useEffect(() => {
+    params.then(({ id }) => setId(id));
+  }, [params]);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
@@ -148,7 +152,7 @@ export default async function ScanTargetDetailPage({
   };
 
   useEffect(() => {
-    if (session) {
+    if (session && id) {
       fetchScanTarget();
     }
   }, [session, id, fetchScanTarget]);

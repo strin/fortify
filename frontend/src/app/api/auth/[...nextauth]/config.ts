@@ -160,3 +160,5 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export const authConfig = authOptions;

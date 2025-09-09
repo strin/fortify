@@ -94,12 +94,27 @@ const categoryLabels: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default async function VulnerabilitiesPage({
+export default function VulnerabilitiesPage({
   params,
 }: {
   params: Promise<{ scanId: string }>;
 }) {
-  const { scanId } = await params;
+  const [scanId, setScanId] = useState<string>('');
+  
+  useEffect(() => {
+    params.then(({ scanId }) => setScanId(scanId));
+  }, [params]);
+
+  if (!scanId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
   
   return <VulnerabilitiesContent scanId={scanId} />;
 }

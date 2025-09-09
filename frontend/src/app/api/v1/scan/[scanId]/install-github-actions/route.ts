@@ -103,7 +103,7 @@ export async function POST(
     }
 
     // Set up branch protection if requested
-    let branchProtectionResult = null;
+    let branchProtectionResult: { success: boolean; error?: string } | null = null;
     if (body.enable_branch_protection) {
       branchProtectionResult = await setupBranchProtection(
         user.githubAccessToken,
@@ -221,7 +221,7 @@ async function createWorkflowFile(
         body: JSON.stringify({
           message: sha ? 'Update Fortify security scanning workflow' : 'Add Fortify security scanning workflow',
           content: Buffer.from(content).toString('base64'),
-          ...(sha && { sha })
+          ...(sha ? { sha } : {})
         })
       }
     );

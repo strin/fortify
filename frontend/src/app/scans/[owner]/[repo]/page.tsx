@@ -84,14 +84,29 @@ const severityColors = {
   INFO: "text-gray-400",
 };
 
-export default async function RepositoryScansPage({
+export default function RepositoryScansPage({
   params,
 }: {
   params: Promise<{ owner: string; repo: string }>;
 }) {
-  const { owner, repo } = await params;
+  const [routeParams, setRouteParams] = useState<{ owner: string; repo: string } | null>(null);
+  
+  useEffect(() => {
+    params.then((p) => setRouteParams(p));
+  }, [params]);
 
-  return <RepositoryScansContent owner={owner} repo={repo} />;
+  if (!routeParams) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <RepositoryScansContent owner={routeParams.owner} repo={routeParams.repo} />;
 }
 
 function RepositoryScansContent({
