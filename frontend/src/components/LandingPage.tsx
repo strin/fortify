@@ -11,7 +11,7 @@ import SampleScanReport from "./SampleScanReport";
 
 export default function LandingPage() {
   const handleGitHubScan = () => {
-    signIn("github", { callbackUrl: "/dashboard" });
+    signIn("github", { callbackUrl: "/new-scan-target" });
   };
 
   return (
@@ -47,11 +47,7 @@ export default function LandingPage() {
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 items-center mb-10">
-                  <Button
-                    onClick={handleGitHubScan}
-                    size="xl"
-                    variant="cta"
-                  >
+                  <Button onClick={handleGitHubScan} size="xl" variant="cta">
                     🔒 Scan My GitHub Repo for Free
                   </Button>
                   <SampleScanReport />
@@ -129,7 +125,8 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300">
-                  Traditional tools can&apos;t keep pace with AI-assisted development
+                  Traditional tools can&apos;t keep pace with AI-assisted
+                  development
                 </p>
               </CardContent>
             </Card>
@@ -171,7 +168,7 @@ export default function LandingPage() {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-12">
             <h3 className="text-4xl md:text-5xl font-bold mb-6">
-              The Only Security Solution Built for Vibe Coding 
+              The Only Security Solution Built for Vibe Coding
             </h3>
             <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-8">
               Our AI agents understand how AI generates code and fortify it
@@ -395,8 +392,8 @@ export default function LandingPage() {
             <Card className="bg-gray-800/80 border-gray-600">
               <CardContent className="pt-6">
                 <blockquote className="text-lg text-gray-300 mb-4">
-                  &quot;Finally, a security tool that actually helps instead of just
-                  complaining. The GitHub integration is seamless.&quot;
+                  &quot;Finally, a security tool that actually helps instead of
+                  just complaining. The GitHub integration is seamless.&quot;
                 </blockquote>
                 <cite className="text-gray-400">
                   — Marcus Rodriguez, Security Engineer
