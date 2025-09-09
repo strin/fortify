@@ -82,7 +82,7 @@ async def process_job_task(job_id: str):
             return
 
         # Process the job using the worker
-        scan_worker.process_job(job)
+        await scan_worker.process_job(job)
         logger.info(f"Background processing completed for job {job_id}")
 
     except Exception as e:

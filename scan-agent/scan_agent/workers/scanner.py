@@ -10,7 +10,6 @@ import subprocess
 import json
 import logging
 import asyncio
-import anyio
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -200,7 +199,7 @@ Please begin the security audit now."""
             logger.info("Executing Claude SDK query...")
             print("⏳ Executing Claude SDK query (this may take several minutes)...")
 
-            # Use anyio to run the async query function
+            # Run the async query function
             messages = []
 
             def format_claude_message(message, index=None) -> str:
@@ -962,14 +961,14 @@ Please begin the security audit now."""
             except Exception as close_error:
                 logger.error(f"Failed to close database connection: {close_error}")
 
-    def process_job(self, job: Job):
+    async def process_job(self, job: Job):
         """Process a single job."""
         try:
             logger.info(f"Starting job {job.id} of type {job.type.value}")
             print(f"🚀 Starting job {job.id} of type {job.type.value}")
 
             if job.type == JobType.SCAN_REPO:
-                result = anyio.run(self._process_scan_job, job)
+                result = await self._process_scan_job(job)
 
                 # Mark job as completed and log the result
                 self.job_queue.complete_job(job.id, result)
@@ -1007,8 +1006,8 @@ Please begin the security audit now."""
             logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
             print(f"❌ Job {job.id} failed: {error_msg}")
 
-            # Update ScanJob status to FAILED in database using a separate async context
-            anyio.run(self._update_failed_job_status, job.id, error_msg)
+            # Update ScanJob status to FAILED in database
+            await self._update_failed_job_status(job.id, error_msg)
 
             self.job_queue.fail_job(job.id, error_msg)
 
@@ -1016,24 +1015,33 @@ Please begin the security audit now."""
         """Main worker loop."""
         print("Scan worker started. Waiting for jobs...")
 
-        while self.running:
-            try:
-                # Get next job from queue
-                job = self.job_queue.get_next_job()
+        # Create an event loop for the standalone worker
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-                if job:
-                    self.current_job = job
-                    self.process_job(job)
-                    self.current_job = None
-                else:
-                    # No job available, wait a bit
-                    time.sleep(1)
+        async def worker_loop():
+            while self.running:
+                try:
+                    # Get next job from queue
+                    job = self.job_queue.get_next_job()
 
-            except Exception as e:
-                print(f"Worker error: {str(e)}")
-                time.sleep(5)  # Wait before retrying
+                    if job:
+                        self.current_job = job
+                        await self.process_job(job)
+                        self.current_job = None
+                    else:
+                        # No job available, wait a bit
+                        await asyncio.sleep(1)
 
-        print("Scan worker stopped.")
+                except Exception as e:
+                    print(f"Worker error: {str(e)}")
+                    await asyncio.sleep(5)  # Wait before retrying
+
+        try:
+            loop.run_until_complete(worker_loop())
+        finally:
+            loop.close()
+            print("Scan worker stopped.")
 
 
 def main():
