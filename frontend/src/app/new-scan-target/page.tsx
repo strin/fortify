@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ interface Branch {
   };
 }
 
-export default function NewScanTargetPage() {
+function NewScanTargetForm() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -564,5 +564,22 @@ export default function NewScanTargetPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function NewScanTargetPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+            <p className="text-gray-300">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <NewScanTargetForm />
+    </Suspense>
   );
 }
