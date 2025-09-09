@@ -1,6 +1,6 @@
 import { getServerSession as nextAuthGetServerSession } from "next-auth/next";
 import { Session } from "next-auth";
-import { authOptions } from "./route";
+import { authOptions } from "./config";
 
 export interface SessionUser {
   id: string;
