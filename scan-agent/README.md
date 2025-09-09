@@ -1,73 +1,109 @@
-# Vulnerability Scan Agent
+# Fortify Scan Agent
 
-A Python-based orchestrator and background agent system for automated vulnerability scanning using Claude Code CLI.
+A Python-based security scanning service that provides AI-powered vulnerability detection for codebases using Claude Code SDK. Part of the Fortify security platform for validating AI-generated code and dependencies.
 
 ## Architecture
 
-The system follows a similar design pattern to the content-server, with:
-- **Orchestrator Server**: FastAPI server that accepts scan requests and manages jobs
-- **Background Worker**: Processes scan jobs asynchronously
-- **Redis Queue**: Manages job queue and state
+The scan agent is a FastAPI-based service with an integrated background worker:
+- **FastAPI Server**: REST API for scan job management and status tracking
+- **Background Worker**: Processes scan jobs asynchronously using Claude Code SDK
+- **Redis Queue**: Simple list-based job queue using brpoplpush pattern
+- **PostgreSQL Database**: Persistent storage for scan results and vulnerabilities
+- **Prisma ORM**: Database client for type-safe database operations
+
+## Current Implementation
+
+This is the MVP implementation focusing on core scanning functionality:
+- Single Python process with FastAPI server + background worker thread
+- Redis Lists for job queue management (pending → processing → completed)
+- Claude Code SDK integration for AI-powered security analysis
+- Database integration for storing scan results and vulnerability data
+- Repository cloning with temporary workspace management
 
 ## Components
 
-### 1. Server (`src/server.py`)
-- REST API endpoints for submitting scan jobs
+### 1. FastAPI Server (`scan_agent/server.py`)
+- REST API endpoints for scan job submission and management
 - Job status tracking and retrieval
-- CORS-enabled for web integration
+- CORS-enabled for frontend integration
+- Request validation and error handling
 
-### 2. Worker (`src/workers/scanner.py`)
-- Clones repositories
-- Runs Claude Code CLI for vulnerability detection
-- Processes and stores scan results
+### 2. Background Worker (`scan_agent/workers/scanner.py`)
+- Atomic job claiming from Redis queue using brpoplpush
+- Git repository cloning with branch support
+- Claude Code SDK integration for security analysis
+- Vulnerability extraction and database storage
+- Temporary directory cleanup and error handling
 
-### 3. Job Queue (`src/utils/queue.py`)
-- Redis-based job queue implementation
-- Atomic job state transitions
-- Job persistence and retrieval
+### 3. Job Queue System (`scan_agent/utils/queue.py`)
+- Redis Lists-based implementation for simplicity
+- Atomic job state transitions (pending → processing)
+- Job persistence and metadata storage in Redis hashes
+- Basic failure handling and cleanup
+
+### 4. Database Integration (`scan_agent/utils/database.py`)
+- Prisma client for PostgreSQL operations
+- Vulnerability storage with full metadata
+- Transaction support for atomic operations
+- Connection management and health checks
 
 ## Setup
 
-1. Install dependencies:
+### Prerequisites
+- Python 3.11+
+- PostgreSQL database
+- Redis server
+- Claude Code SDK (installed via pip)
+
+### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-2. Set up Redis:
+### 2. Database Setup
+```bash
+# Set up PostgreSQL database
+# Update DATABASE_URL in your environment
+
+# Generate Prisma client
+cd ../db
+npx prisma generate
+cd ../scan-agent
+```
+
+### 3. Redis Setup
 ```bash
 # Using Docker
 docker run -d -p 6379:6379 redis:latest
 
-# Or install locally
-brew install redis  # macOS
-sudo apt-get install redis-server  # Ubuntu
+# Or install locally (macOS)
+brew install redis
+
+# Or install locally (Ubuntu)
+sudo apt-get install redis-server
 ```
 
-3. Configure environment:
+### 4. Environment Configuration
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Configure the following variables:
+# DATABASE_URL=postgresql://user:password@localhost:5432/fortify
+# REDIS_URL=redis://localhost:6379
+# ANTHROPIC_API_KEY=your_claude_api_key
 ```
 
-4. Ensure Claude Code CLI is installed:
-```bash
-# Follow Claude Code installation instructions
-# The worker expects 'claude-code' to be available in PATH
-```
+### 5. Claude Code SDK
+The Claude Code SDK is installed via pip and integrated directly into the worker. No separate CLI installation required.
 
 ## Usage
 
-### Start the Orchestrator Server
+### Start the Scan Agent
 ```bash
-python src/server.py
+# Run from the scan-agent directory
+python -m scan_agent.server
 ```
 
-The server will run on `http://localhost:8000` by default.
-
-### Start the Background Worker
-```bash
-python src/workers/scanner.py
-```
+The server will start on `http://localhost:8000` with the background worker running in the same process.
 
 ### Submit a Scan Job
 ```bash
@@ -76,7 +112,7 @@ curl -X POST http://localhost:8000/scan/repo \
   -d '{
     "repo_url": "https://github.com/example/repo.git",
     "branch": "main",
-    "claude_cli_args": "--model claude-3-haiku-20240307"
+    "scan_options": {}
   }'
 ```
 
@@ -85,46 +121,120 @@ curl -X POST http://localhost:8000/scan/repo \
 curl http://localhost:8000/jobs/{job_id}
 ```
 
+### Get Vulnerabilities for a Job
+```bash
+curl http://localhost:8000/jobs/{job_id}/vulnerabilities?severity=HIGH&limit=20
+```
+
 ### List All Jobs
 ```bash
-curl http://localhost:8000/jobs
+curl http://localhost:8000/jobs?status=completed&limit=50
+```
+
+### Get Vulnerability Summary
+```bash
+curl http://localhost:8000/jobs/{job_id}/summary
 ```
 
 ## API Endpoints
 
-- `GET /health` - Health check
+### Core Job Management
+- `GET /health` - Health check and system status
 - `POST /scan/repo` - Submit a repository for scanning
-- `GET /jobs/{job_id}` - Get specific job status
-- `GET /jobs` - List all jobs (optional status filter)
-- `DELETE /jobs/{job_id}` - Cancel a pending job
+- `GET /jobs/{job_id}` - Get specific job status and metadata
+- `GET /jobs` - List all jobs with optional filtering (`?status=completed&limit=50`)
+- `POST /jobs/{job_id}/cancel` - Cancel a pending job
+
+### Vulnerability Management
+- `GET /jobs/{job_id}/vulnerabilities` - Get vulnerabilities for a specific scan job
+  - Query params: `?severity=HIGH&category=INJECTION&page=1&limit=20`
+- `GET /jobs/{job_id}/summary` - Get vulnerability statistics for a job
+- `GET /vulnerabilities/{vulnerability_id}` - Get detailed vulnerability information
+- `GET /vulnerabilities` - List vulnerabilities across all scans with filtering
+  - Query params: `?filePath=src/auth&severity=HIGH&userId={user_id}&page=1&limit=50`
 
 ## Scan Results
 
-Scan results include:
-- Vulnerability type and severity
-- File location and line number
-- Description and recommendations
-- Overall risk assessment
+The scan agent uses Claude Code SDK to perform AI-powered security analysis and stores structured vulnerability data in PostgreSQL.
+
+### Vulnerability Data Structure
+Each vulnerability includes:
+- **Title**: Brief description of the security issue
+- **Description**: Detailed explanation of the vulnerability
+- **Severity**: Risk level (CRITICAL, HIGH, MEDIUM, LOW, INFO)
+- **Category**: Vulnerability type (INJECTION, AUTHENTICATION, AUTHORIZATION, etc.)
+- **Location**: File path, start line, and end line
+- **Code Snippet**: The vulnerable code section
+- **Recommendation**: Suggested fix or mitigation
+- **Metadata**: Additional context and scan information
+
+### Data Storage
+- **Job Metadata**: Stored in Redis for queue management and basic job tracking
+- **Vulnerability Data**: Persisted in PostgreSQL via Prisma ORM for structured queries
+- **Scan Results**: Summary statistics and metadata stored in both Redis and database
+- **Transaction Safety**: All vulnerability data saved atomically using database transactions
 
 ## Development
 
-### Running Multiple Workers
-You can run multiple workers to process jobs in parallel:
+### Architecture Documentation
+For detailed architecture and implementation details, see:
+- `specs/architecture/scanner.md` - Complete scan system architecture
+- `specs/architecture/mvp.md` - Overall system design and technology stack
+- `specs/architecture/schema.md` - Database schema and data models
+
+### Current Implementation Status
+This is the MVP implementation with the following characteristics:
+- **Single Process**: FastAPI server + background worker in one process
+- **Sequential Processing**: Jobs processed one at a time (no parallel workers yet)
+- **Basic Error Handling**: Failed jobs marked in Redis, no automatic retry
+- **Development Focus**: Designed for local development and testing
+
+### Job States
+Jobs are tracked with the following lifecycle:
+- `PENDING` - Job queued in Redis, waiting for processing
+- `IN_PROGRESS` - Job being processed by background worker
+- `COMPLETED` - Job finished successfully, results stored in database
+- `FAILED` - Job failed with error, error details stored in Redis
+
+### Testing
 ```bash
-python src/workers/scanner.py &
-python src/workers/scanner.py &
+# Run unit tests
+python -m pytest tests/
+
+# Run integration tests (requires Redis and PostgreSQL)
+python -m pytest tests/test_integration.py
+
+# Run end-to-end tests
+python run_e2e_tests.py
 ```
 
-### Monitoring
-Jobs are tracked in Redis with the following states:
-- `PENDING` - Job queued
-- `IN_PROGRESS` - Job being processed
-- `COMPLETED` - Job finished successfully
-- `FAILED` - Job failed with error
+## Security & Limitations
 
-## Security Notes
+### Current Security Measures
+- **Temporary Workspaces**: Repositories cloned to temporary directories and cleaned up after scanning
+- **No Code Execution**: Scanner only analyzes code, doesn't execute it
+- **Environment Isolation**: Claude Code SDK runs in controlled environment
+- **Database Security**: Prisma ORM provides protection against SQL injection
 
-- The scanner runs in temporary directories
-- Repositories are cleaned up after scanning
-- No credentials are stored in the system
-- Results are stored in Redis (configure persistence as needed)
+### Current Limitations (MVP)
+- **No Authentication**: API endpoints currently have no authentication
+- **Public Repositories Only**: No GitHub token support for private repositories
+- **No Rate Limiting**: No protection against API abuse
+- **No Input Validation**: Repository URLs not validated for security
+- **Single Process**: No horizontal scaling or load balancing
+- **Basic Error Handling**: No sophisticated retry mechanisms or dead letter queues
+
+### Production Readiness
+This MVP implementation is designed for development and testing. For production deployment, additional security measures will be needed:
+- API authentication and authorization
+- GitHub token management for private repositories
+- Request rate limiting and input validation
+- Container-based sandboxing for repository processing
+- Monitoring, logging, and alerting systems
+
+### Future Enhancements
+See `specs/architecture/scanner.md` for detailed roadmap including:
+- Redis Streams for advanced queue management
+- Multi-tenant isolation and resource limits
+- Horizontal scaling with container deployment
+- Advanced monitoring and observability
