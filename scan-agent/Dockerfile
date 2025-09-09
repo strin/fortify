@@ -29,6 +29,9 @@ RUN npm install -g @anthropic-ai/claude-code
 # Copy the rest of the application code
 COPY scan-agent/ .
 
+# Copy the db
+COPY db/ /db
+
 # Expose the port the app runs on
 EXPOSE 8000
 
