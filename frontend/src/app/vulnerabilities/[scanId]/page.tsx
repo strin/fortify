@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -15,22 +15,18 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import {
-  Shield,
   RefreshCw,
   AlertCircle,
   Bug,
   CheckCircle,
-  XCircle,
   Loader2,
   ArrowLeft,
   Search,
   Filter,
   FileText,
   MapPin,
-  Info,
   ChevronLeft,
   ChevronRight,
-  BarChart3,
 } from "lucide-react";
 
 interface CodeVulnerability {
@@ -81,13 +77,6 @@ const severityColors = {
   INFO: "bg-gray-500 text-white",
 };
 
-const severityTextColors = {
-  CRITICAL: "text-red-400",
-  HIGH: "text-orange-400",
-  MEDIUM: "text-yellow-400",
-  LOW: "text-blue-400",
-  INFO: "text-gray-400",
-};
 
 const categoryLabels: Record<string, string> = {
   INJECTION: "Injection",
@@ -104,11 +93,17 @@ const categoryLabels: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default function VulnerabilitiesPage({
+export default async function VulnerabilitiesPage({
   params,
 }: {
-  params: { scanId: string };
+  params: Promise<{ scanId: string }>;
 }) {
+  const { scanId } = await params;
+  
+  return <VulnerabilitiesContent scanId={scanId} />;
+}
+
+function VulnerabilitiesContent({ scanId }: { scanId: string }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanJob, setScanJob] = useState<ScanJob | null>(null);
@@ -127,15 +122,13 @@ export default function VulnerabilitiesPage({
   const [selectedFile, setSelectedFile] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { scanId } = params;
-
   useEffect(() => {
     if (status === "unauthenticated") {
       redirect("/login");
     }
   }, [status]);
 
-  const fetchVulnerabilities = async (page = 1) => {
+  const fetchVulnerabilities = useCallback(async (page = 1) => {
     console.log("fetchVulnerabilities", scanId);
     try {
       setLoading(true);
@@ -171,13 +164,13 @@ export default function VulnerabilitiesPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [scanId, selectedSeverity, selectedCategory, selectedFile]);
 
   useEffect(() => {
     if (session) {
       fetchVulnerabilities(1);
     }
-  }, [session, scanId, selectedSeverity, selectedCategory, selectedFile]);
+  }, [session, scanId, selectedSeverity, selectedCategory, selectedFile, fetchVulnerabilities]);
 
   const filteredVulnerabilities = vulnerabilities.filter(
     (vuln) =>

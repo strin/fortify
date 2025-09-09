@@ -58,3 +58,5 @@ Cargo.lock
 *.dll
 *.so
 *.dylib
+tree/** 
+tree/frontend-landing-page

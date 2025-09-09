@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 from scan_agent.models.job import JobType, JobStatus, ScanJobData
 from scan_agent.utils.queue import JobQueue
+from scan_agent.workers.scanner import ScanWorker
 
 # Initialize FastAPI app
 app = FastAPI(title="Vulnerability Scan Orchestrator", version="1.0.0")
@@ -63,8 +64,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize job queue
+# Initialize job queue and worker
 job_queue = JobQueue()
+scan_worker = ScanWorker()
+
+
+# Background task to process a specific job
+async def process_job_task(job_id: str):
+    """Background task to process a specific job."""
+    try:
+        logger.info(f"Starting background processing for job {job_id}")
+
+        # Get the job from the queue
+        job = job_queue.get_job(job_id)
+        if not job:
+            logger.error(f"Job {job_id} not found")
+            return
+
+        # Process the job using the worker
+        scan_worker.process_job(job)
+        logger.info(f"Background processing completed for job {job_id}")
+
+    except Exception as e:
+        logger.error(
+            f"Background processing failed for job {job_id}: {str(e)}", exc_info=True
+        )
 
 
 # Request/Response models
@@ -100,7 +124,7 @@ async def health_check():
 
 
 @app.post("/scan/repo", response_model=JobResponse)
-async def scan_repository(request: ScanRepoRequest):
+async def scan_repository(request: ScanRepoRequest, background_tasks: BackgroundTasks):
     """Submit a repository for vulnerability scanning."""
     try:
         logger.info(f"Received scan request for repo: {request.repo_url}")
@@ -121,6 +145,10 @@ async def scan_repository(request: ScanRepoRequest):
         # Add job to queue
         job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict())
         logger.info(f"Created job with ID: {job_id}")
+
+        # Trigger background processing of the job
+        background_tasks.add_task(process_job_task, job_id)
+        logger.info(f"Added background task for job {job_id}")
 
         response = JobResponse(
             job_id=job_id,
