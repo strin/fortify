@@ -93,11 +93,17 @@ const categoryLabels: Record<string, string> = {
   OTHER: "Other",
 };
 
-export default function VulnerabilitiesPage({
+export default async function VulnerabilitiesPage({
   params,
 }: {
-  params: { scanId: string };
+  params: Promise<{ scanId: string }>;
 }) {
+  const { scanId } = await params;
+  
+  return <VulnerabilitiesContent scanId={scanId} />;
+}
+
+function VulnerabilitiesContent({ scanId }: { scanId: string }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanJob, setScanJob] = useState<ScanJob | null>(null);
@@ -115,8 +121,6 @@ export default function VulnerabilitiesPage({
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const { scanId } = params;
 
   useEffect(() => {
     if (status === "unauthenticated") {
