@@ -4,26 +4,23 @@
 Fortify is an AI-powered security scanning platform that validates AI-generated code, dependencies, and vulnerabilities in real-time. The system focuses on low false positives (<1%), auto-fixes, and seamless integration into developer workflows.
 
 ## Architecture & Documentation Location
-**CRITICAL**: All architecture and product documentation is stored in the `specs/` directory. Always consult these files when making decisions or understanding the system:
+**CRITICAL**: All architecture and product documentation is stored in the `specs/` directory and its subdirectories. Always consult these files when making decisions or understanding the system:
 
-### Core Architecture Documents
-- `specs/mvp.md` - Complete MVP architecture design, technology stack, and implementation roadmap
-- `specs/scanner.md` - Detailed scan system architecture, current implementation, and Redis-based queue system
-- `specs/orchestrator.md` - Orchestration layer design and workflow management
-- `specs/frontend.md` - Frontend architecture, UI specifications, and component structure
-- `specs/reporter.md` - Reporting engine and compliance documentation system
-- `specs/fixer.md` - Auto-fix generation system and PR automation
-- `specs/schema.md` - Database schema, data models, and relationships
+### Documentation Structure
+The `specs/` directory contains the source of truth for all architectural decisions and product requirements:
 
-### Product Documentation
-- `specs/product/mvp.md` - Product requirements, user stories, and MVP specifications
-- `specs/product/landing.md` - Landing page requirements and conversion optimization
-- `specs/product/login-flow.md` - Authentication flows and user onboarding
-- `specs/product/u/[username]/` - User experience flows, wireframes, and interface designs
+- **Architecture**: `specs/architecture/` contains system architecture, implementation details, and technical specifications
+- **Product Requirements**: `specs/product/` contains all PRDs, user flows, feature specifications, and UI/UX documentation  
+- **Integration Specifications**: `specs/architecture/integrations/` contains third-party integration specs and API documentation
+- **Team & Configuration**: `specs/architecture/teams/` contains team management, configuration, and multi-tenant specifications
+- **Additional Subdirectories**: Any new subdirectories in `specs/` follow the same documentation standards
 
-### Integration & Team Documentation
-- `specs/integrations/github.md` - GitHub integration specifications and OAuth setup
-- `specs/teams/scan-target.md` - Team management, scan target configuration, and multi-tenant features
+### Key Documents to Always Reference
+- `specs/architecture/mvp.md` - Complete MVP architecture design and implementation roadmap
+- `specs/architecture/scanner.md` - Current scan system implementation and Redis-based queue system
+- `specs/architecture/schema.md` - Database schema, data models, and relationships
+- `specs/product/` - All product requirements, user stories, and specifications
+- Any other `.md` files in `specs/` and its subdirectories
 
 ## Current System State (as of latest implementation)
 
@@ -51,19 +48,22 @@ Fortify is an AI-powered security scanning platform that validates AI-generated 
 ## Development Context Rules
 
 ### Before Making Any Changes
-1. **MUST READ**: Review relevant documentation in `specs/` directory
-2. Understand current implementation state from `specs/scanner.md`
-3. Check database schema in `db/schema.prisma`
-4. Review existing patterns in codebase
-5. Consider impact on both frontend and backend
+1. **MUST READ**: Search and review relevant documentation in `specs/` directory and all subdirectories
+2. Check for related PRDs in `specs/product/` that might affect your changes
+3. Understand current implementation state from architecture docs in `specs/architecture/`
+4. Check database schema in `db/schema.prisma`
+5. Review existing patterns in codebase
+6. Consider impact on both frontend and backend
 
 ### When Adding Features
-1. Update relevant documentation in `specs/` first
-2. Add database migrations if schema changes needed
-3. Implement backend API endpoints with proper validation
-4. Add frontend components with TypeScript interfaces
-5. Include error handling and loading states
-6. Add appropriate logging and monitoring
+1. Create or update relevant documentation in appropriate `specs/` subdirectories first
+2. For product features, create/update PRDs in `specs/product/`
+3. For technical features, update architecture docs in `specs/architecture/`
+4. Add database migrations if schema changes needed
+5. Implement backend API endpoints with proper validation
+6. Add frontend components with TypeScript interfaces
+7. Include error handling and loading states
+8. Add appropriate logging and monitoring
 
 ### Code Quality Standards
 - TypeScript for all frontend code with strict types
@@ -83,6 +83,13 @@ Fortify is an AI-powered security scanning platform that validates AI-generated 
 ## File Structure Understanding
 ```
 /specs/                 # Architecture & product docs (SOURCE OF TRUTH)
+  /architecture/        # All technical architecture and implementation specs
+    /integrations/      # Third-party integration specifications
+    /teams/             # Team management and configuration specs
+    /*.md               # Core architecture documents (mvp, scanner, schema, etc.)
+  /product/             # All PRDs, user flows, feature specifications
+    /u/                 # User experience flows and wireframes
+    /*.md               # Product requirements and specifications
 /scan-agent/           # Python FastAPI backend service
 /frontend/             # Next.js TypeScript frontend
 /db/                   # Database schema, migrations, Prisma clients
@@ -96,4 +103,4 @@ Fortify is an AI-powered security scanning platform that validates AI-generated 
 - PostgreSQL for persistent data storage
 - Docker for containerization and deployment
 
-**Remember**: The `specs/` directory contains the authoritative documentation for all architectural decisions, product requirements, and implementation details. Always consult these documents to understand the system's design and current state before making changes.
+**Remember**: The `specs/` directory and all its subdirectories contain the authoritative documentation for all architectural decisions, product requirements, and implementation details. Always search and consult relevant documents in `specs/` to understand the system's design and current state before making changes. New PRDs should be added to `specs/product/` and new architecture docs to `specs/architecture/` or its subdirectories.
