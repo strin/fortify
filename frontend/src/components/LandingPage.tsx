@@ -14,7 +14,10 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
+      {/* Ambient gradient orbs */}
+      <div className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-purple-600/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
       <ExitIntentPopup />
 
       {/* Hero Section */}
@@ -29,42 +32,59 @@ export default function LandingPage() {
             </div>
           </nav>
 
-          <div className="max-w-4xl mx-auto text-center mb-16">
-            <h2 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              Keep the Vibe, Fortify the Code
-            </h2>
-            <p className="text-xl md:text-2xl text-gray-300 mb-12">
-              Vibe coding is the biggest security risk of the AI era. Our AI-powered security catches the vulnerabilities that AI-generated code creates. Get your first free scan in under 2 minutes.
-            </p>
+          <div className="mx-auto max-w-7xl">
+            <div className="grid md:grid-cols-12 gap-10 items-center">
+              {/* Left: Messaging */}
+              <div className="md:col-span-7">
+                <h2 className="text-left text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  Keep the Vibe, Fortify the Code
+                </h2>
+                <p className="text-left text-xl md:text-2xl text-gray-300 mb-10 max-w-2xl">
+                  Vibe coding is the biggest security risk of the AI era.
+                  Fortify catches the vulnerabilities AI-generated code
+                  creates—so you can move fast without shipping risk.
+                </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button
-                onClick={handleGitHubScan}
-                size="lg"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
-              >
-                🔒 Scan My GitHub Repo for Free
-              </Button>
-              <SampleScanReport />
-            </div>
+                <div className="flex flex-col sm:flex-row gap-4 items-center mb-10">
+                  <Button
+                    onClick={handleGitHubScan}
+                    size="lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-4"
+                  >
+                    🔒 Scan My GitHub Repo for Free
+                  </Button>
+                  <SampleScanReport />
+                </div>
 
-            {/* Trust Indicators */}
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-300">
-              <div className="flex items-center">
-                <span className="text-green-400 mr-2">✅</span>
-                1,000+ developers
+                {/* Trust row */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-gray-300">
+                  <span className="flex items-center">
+                    <span className="text-green-400 mr-2">✅</span>1,000+
+                    developers
+                  </span>
+                  <span className="h-3 w-px bg-gray-600 hidden sm:inline-block"></span>
+                  <span className="flex items-center">
+                    <span className="text-green-400 mr-2">✅</span>OWASP Top 10
+                  </span>
+                  <span className="h-3 w-px bg-gray-600 hidden sm:inline-block"></span>
+                  <span className="flex items-center">
+                    <span className="text-green-400 mr-2">✅</span>95% accuracy
+                  </span>
+                  <span className="h-3 w-px bg-gray-600 hidden sm:inline-block"></span>
+                  <span className="flex items-center">
+                    <span className="text-green-400 mr-2">✅</span>No code
+                    access
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center">
-                <span className="text-green-400 mr-2">✅</span>
-                OWASP Top 10
-              </div>
-              <div className="flex items-center">
-                <span className="text-green-400 mr-2">✅</span>
-                95% accuracy
-              </div>
-              <div className="flex items-center">
-                <span className="text-green-400 mr-2">✅</span>
-                No code access
+
+              {/* Right: Decorative blob */}
+              <div className="md:col-span-5">
+                <div className="relative mx-auto h-72 w-72 md:h-[420px] md:w-[420px]">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-cyan-400/30 blur-0"></div>
+                  <div className="absolute inset-6 rounded-full bg-gradient-to-tr from-purple-500/20 via-cyan-400/20 to-blue-500/20 blur-xl"></div>
+                  <div className="absolute inset-0 animate-pulse rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -72,33 +92,35 @@ export default function LandingPage() {
       </section>
 
       {/* Problem Statement Section */}
-      <section className="py-16 px-4 bg-gray-800/50">
+      <section className="py-20 px-4 bg-gray-900/40">
         <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
+          <div className="mb-12">
             <h3 className="text-4xl md:text-5xl font-bold mb-6">
               Vibe Coding: The Biggest Security Risk for Software Engineers
             </h3>
-            <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-8">
-              In the AI-generated code era, vibe coding has become every developer's biggest security vulnerability. Here's why:
+            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mb-8">
+              In the AI-generated code era, vibe coding has become every
+              developer's biggest security vulnerability. Here's why:
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <Card className="bg-gray-800/80 border-red-500/20">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="bg-gray-800/70 border-red-500/20 hover:border-red-400/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">🚨</div>
                 <CardTitle className="text-red-400">
-                   AI generates insecure code patterns
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <p className="text-gray-300">
-                   Vibe coding creates vulnerabilities that traditional security tools miss entirely
-                 </p>
+                  AI generates insecure code patterns
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-300">
+                  Vibe coding creates vulnerabilities that traditional security
+                  tools miss entirely
+                </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/80 border-yellow-500/20">
+            <Card className="bg-gray-800/70 border-yellow-500/20 hover:border-yellow-400/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">⏰</div>
                 <CardTitle className="text-yellow-400">
@@ -112,7 +134,7 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/80 border-red-500/20">
+            <Card className="bg-gray-800/70 border-red-500/20 hover:border-red-400/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">💸</div>
                 <CardTitle className="text-red-400">
@@ -126,17 +148,18 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/80 border-orange-500/20">
+            <Card className="bg-gray-800/70 border-orange-500/20 hover:border-orange-400/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">🔧</div>
                 <CardTitle className="text-orange-400">
-                   Vibe coding creates unknown risks
-                 </CardTitle>
-               </CardHeader>
-               <CardContent>
-                 <p className="text-gray-300">
-                   Software engineers don't know what security risks AI has introduced into their codebase
-                 </p>
+                  Vibe coding creates unknown risks
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-300">
+                  Software engineers don't know what security risks AI has
+                  introduced into their codebase
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -151,7 +174,9 @@ export default function LandingPage() {
               The Only Security Solution Built for the Vibe Coding Era
             </h3>
             <p className="text-xl text-gray-300 max-w-4xl mx-auto mb-8">
-              Our AI agents understand how AI generates code and fortify it against the unique vulnerabilities that come with AI-assisted development.
+              Our AI agents understand how AI generates code and fortify it
+              against the unique vulnerabilities that come with AI-assisted
+              development.
             </p>
           </div>
 
