@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import GitHubActionsInstallCTA from "@/components/scan-results/GitHubActionsInstallCTA";
 
 interface CodeVulnerability {
   id: string;
@@ -274,6 +275,18 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
             </Button>
           </div>
         </nav>
+
+        {/* GitHub Actions Installation CTA */}
+        {scanJob && summary && scanJob.status === "COMPLETED" && (
+          <GitHubActionsInstallCTA
+            scanId={scanId}
+            vulnerabilityCount={summary.totalVulnerabilities}
+            criticalCount={summary.severityCounts.CRITICAL || 0}
+            highCount={summary.severityCounts.HIGH || 0}
+            repositoryName={scanJob.data?.repo?.split('/')[1] || 'repository'}
+            repositoryOwner={scanJob.data?.repo?.split('/')[0] || 'owner'}
+          />
+        )}
 
         {/* Summary Cards */}
         {summary && (
