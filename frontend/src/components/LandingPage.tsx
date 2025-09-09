@@ -129,7 +129,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300">
-                  Traditional tools can't keep pace with AI-assisted development
+                  Traditional tools can&apos;t keep pace with AI-assisted development
                 </p>
               </CardContent>
             </Card>
@@ -157,7 +157,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300">
-                  Software engineers don't know what security risks AI has
+                  Software engineers don&apos;t know what security risks AI has
                   introduced into their codebase
                 </p>
               </CardContent>
@@ -382,9 +382,9 @@ export default function LandingPage() {
             <Card className="bg-gray-800/80 border-gray-600">
               <CardContent className="pt-6">
                 <blockquote className="text-lg text-gray-300 mb-4">
-                  "Fortify AI caught 12 security issues in our Supabase
+                  &quot;Fortify AI caught 12 security issues in our Supabase
                   integration that we completely missed. The auto-generated
-                  fixes saved us hours of research."
+                  fixes saved us hours of research.&quot;
                 </blockquote>
                 <cite className="text-gray-400">
                   — Sarah Chen, Senior Developer at TechCorp
@@ -395,8 +395,8 @@ export default function LandingPage() {
             <Card className="bg-gray-800/80 border-gray-600">
               <CardContent className="pt-6">
                 <blockquote className="text-lg text-gray-300 mb-4">
-                  "Finally, a security tool that actually helps instead of just
-                  complaining. The GitHub integration is seamless."
+                  &quot;Finally, a security tool that actually helps instead of just
+                  complaining. The GitHub integration is seamless.&quot;
                 </blockquote>
                 <cite className="text-gray-400">
                   — Marcus Rodriguez, Security Engineer
@@ -591,7 +591,7 @@ export default function LandingPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-300">
-                  For public repositories, we only analyze what's publicly
+                  For public repositories, we only analyze what&apos;s publicly
                   available. For private repos (Pro tier), we use read-only
                   access and never store your code.
                 </p>
