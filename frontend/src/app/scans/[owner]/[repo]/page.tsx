@@ -4,11 +4,17 @@ import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { 
-  Shield, 
+import {
+  Shield,
   Clock,
   RefreshCw,
   AlertCircle,
@@ -18,7 +24,7 @@ import {
   XCircle,
   Loader2,
   ArrowLeft,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 
 interface ScanJobSummary {
@@ -63,7 +69,6 @@ interface RepositorySummary {
   lastScanned?: string;
 }
 
-
 const statusIcons = {
   PENDING: Clock,
   IN_PROGRESS: Loader2,
@@ -79,10 +84,22 @@ const severityColors = {
   INFO: "text-gray-400",
 };
 
-export default function RepositoryScansPage({
+export default async function RepositoryScansPage({
   params,
 }: {
-  params: { owner: string; repo: string };
+  params: Promise<{ owner: string; repo: string }>;
+}) {
+  const { owner, repo } = await params;
+
+  return <RepositoryScansContent owner={owner} repo={repo} />;
+}
+
+function RepositoryScansContent({
+  owner,
+  repo,
+}: {
+  owner: string;
+  repo: string;
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -90,8 +107,6 @@ export default function RepositoryScansPage({
   const [scans, setScans] = useState<ScanJobSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const { owner, repo } = params;
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -103,7 +118,7 @@ export default function RepositoryScansPage({
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await fetch(`/api/scans/by-repo/${owner}/${repo}`);
       const data = await response.json();
 
@@ -114,7 +129,9 @@ export default function RepositoryScansPage({
       setSummary(data.summary);
       setScans(data.scans);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unexpected error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
       setLoading(false);
     }
@@ -127,12 +144,12 @@ export default function RepositoryScansPage({
   }, [session, owner, repo, fetchRepositoryScans]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -230,8 +247,12 @@ export default function RepositoryScansPage({
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Total Vulnerabilities</p>
-                    <p className="text-2xl font-bold">{summary.totalVulnerabilities}</p>
+                    <p className="text-sm text-gray-400">
+                      Total Vulnerabilities
+                    </p>
+                    <p className="text-2xl font-bold">
+                      {summary.totalVulnerabilities}
+                    </p>
                   </div>
                   <Bug className="h-8 w-8 text-red-400" />
                 </div>
@@ -243,7 +264,9 @@ export default function RepositoryScansPage({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-400">Completed</p>
-                    <p className="text-2xl font-bold text-green-400">{summary.completedScans}</p>
+                    <p className="text-2xl font-bold text-green-400">
+                      {summary.completedScans}
+                    </p>
                   </div>
                   <CheckCircle className="h-8 w-8 text-green-400" />
                 </div>
@@ -255,7 +278,9 @@ export default function RepositoryScansPage({
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-400">Critical Issues</p>
-                    <p className="text-2xl font-bold text-red-400">{summary.severityCounts.CRITICAL}</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      {summary.severityCounts.CRITICAL}
+                    </p>
                   </div>
                   <AlertCircle className="h-8 w-8 text-red-400" />
                 </div>
@@ -275,16 +300,24 @@ export default function RepositoryScansPage({
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-5 gap-4">
-                {Object.entries(summary.severityCounts).map(([severity, count]) => (
-                  <div key={severity} className="text-center">
-                    <div className={`text-2xl font-bold ${severityColors[severity as keyof typeof severityColors]}`}>
-                      {count}
+                {Object.entries(summary.severityCounts).map(
+                  ([severity, count]) => (
+                    <div key={severity} className="text-center">
+                      <div
+                        className={`text-2xl font-bold ${
+                          severityColors[
+                            severity as keyof typeof severityColors
+                          ]
+                        }`}
+                      >
+                        {count}
+                      </div>
+                      <div className="text-sm text-gray-400 capitalize">
+                        {severity.toLowerCase()}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-400 capitalize">
-                      {severity.toLowerCase()}
-                    </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </CardContent>
           </Card>
@@ -294,23 +327,34 @@ export default function RepositoryScansPage({
         <div className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">Scan History</h2>
           {scans.map((scan) => {
-            const StatusIcon = statusIcons[scan.status as keyof typeof statusIcons];
+            const StatusIcon =
+              statusIcons[scan.status as keyof typeof statusIcons];
             return (
-              <Card key={scan.id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+              <Card
+                key={scan.id}
+                className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors"
+              >
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
-                        <StatusIcon 
-                          className={`h-5 w-5 ${scan.status === 'IN_PROGRESS' ? 'animate-spin' : ''}`} 
+                        <StatusIcon
+                          className={`h-5 w-5 ${
+                            scan.status === "IN_PROGRESS" ? "animate-spin" : ""
+                          }`}
                         />
                         Scan #{scan.id.slice(-8)}
-                        <Badge 
-                          variant="outline" 
-                          className={`${scan.status === 'COMPLETED' ? 'text-green-400 border-green-400' : 
-                                      scan.status === 'FAILED' ? 'text-red-400 border-red-400' :
-                                      scan.status === 'IN_PROGRESS' ? 'text-blue-400 border-blue-400' :
-                                      'text-yellow-400 border-yellow-400'} border-current`}
+                        <Badge
+                          variant="outline"
+                          className={`${
+                            scan.status === "COMPLETED"
+                              ? "text-green-400 border-green-400"
+                              : scan.status === "FAILED"
+                              ? "text-red-400 border-red-400"
+                              : scan.status === "IN_PROGRESS"
+                              ? "text-blue-400 border-blue-400"
+                              : "text-yellow-400 border-yellow-400"
+                          } border-current`}
                         >
                           {scan.status}
                         </Badge>
@@ -319,12 +363,15 @@ export default function RepositoryScansPage({
                         <div className="flex items-center gap-4">
                           <span>Started: {formatDate(scan.createdAt)}</span>
                           {scan.finishedAt && (
-                            <span>Duration: {formatDuration(scan.startedAt, scan.finishedAt)}</span>
+                            <span>
+                              Duration:{" "}
+                              {formatDuration(scan.startedAt, scan.finishedAt)}
+                            </span>
                           )}
                         </div>
                       </CardDescription>
                     </div>
-                    {scan.status === 'COMPLETED' && (
+                    {scan.status === "COMPLETED" && (
                       <Button asChild>
                         <Link href={`/vulnerabilities/${scan.id}`}>
                           View Vulnerabilities
@@ -334,33 +381,55 @@ export default function RepositoryScansPage({
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {scan.status === 'COMPLETED' && (
+                  {scan.status === "COMPLETED" && (
                     <div className="space-y-4">
                       {/* Vulnerability counts */}
                       <div className="flex flex-wrap gap-4">
-                        {Object.entries(scan.vulnerabilityCounts).map(([severity, count]) => (
-                          count > 0 && (
-                            <div key={severity} className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full bg-current ${severityColors[severity as keyof typeof severityColors]}`}></div>
-                              <span className={`text-sm ${severityColors[severity as keyof typeof severityColors]}`}>
-                                {severity}: {count}
-                              </span>
-                            </div>
-                          )
-                        ))}
+                        {Object.entries(scan.vulnerabilityCounts).map(
+                          ([severity, count]) =>
+                            count > 0 && (
+                              <div
+                                key={severity}
+                                className="flex items-center gap-2"
+                              >
+                                <div
+                                  className={`w-3 h-3 rounded-full bg-current ${
+                                    severityColors[
+                                      severity as keyof typeof severityColors
+                                    ]
+                                  }`}
+                                ></div>
+                                <span
+                                  className={`text-sm ${
+                                    severityColors[
+                                      severity as keyof typeof severityColors
+                                    ]
+                                  }`}
+                                >
+                                  {severity}: {count}
+                                </span>
+                              </div>
+                            )
+                        )}
                       </div>
 
                       {/* Top categories */}
                       {Object.keys(scan.categoryCounts).length > 0 && (
                         <div>
-                          <p className="text-sm text-gray-400 mb-2">Top Categories:</p>
+                          <p className="text-sm text-gray-400 mb-2">
+                            Top Categories:
+                          </p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(scan.categoryCounts)
-                              .sort(([,a], [,b]) => b - a)
+                              .sort(([, a], [, b]) => b - a)
                               .slice(0, 3)
                               .map(([category, count]) => (
-                                <Badge key={category} variant="outline" className="text-xs">
-                                  {category.replace('_', ' ')}: {count}
+                                <Badge
+                                  key={category}
+                                  variant="outline"
+                                  className="text-xs"
+                                >
+                                  {category.replace("_", " ")}: {count}
                                 </Badge>
                               ))}
                           </div>
@@ -369,19 +438,19 @@ export default function RepositoryScansPage({
                     </div>
                   )}
 
-                  {scan.status === 'FAILED' && scan.error && (
+                  {scan.status === "FAILED" && scan.error && (
                     <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">
                       <strong>Error:</strong> {scan.error}
                     </div>
                   )}
 
-                  {scan.status === 'IN_PROGRESS' && (
+                  {scan.status === "IN_PROGRESS" && (
                     <div className="text-blue-400 text-sm">
                       Scan in progress... This may take a few minutes.
                     </div>
                   )}
 
-                  {scan.status === 'PENDING' && (
+                  {scan.status === "PENDING" && (
                     <div className="text-yellow-400 text-sm">
                       Scan is queued and will start shortly.
                     </div>
