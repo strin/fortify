@@ -32,6 +32,9 @@ COPY scan-agent/ .
 # Copy the db
 COPY db/ /db
 
+# Pip install scan_agent
+RUN pip install -e .
+
 # Expose the port the app runs on
 EXPOSE 8000
 
