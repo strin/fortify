@@ -4,13 +4,14 @@ import os
 import sys
 import logging
 from typing import Optional, List
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, HttpUrl, ValidationError
 from datetime import datetime
 import uvicorn
+import json
 
 # Configure logging
 logging.basicConfig(
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 from scan_agent.models.job import JobType, JobStatus, ScanJobData
 from scan_agent.utils.queue import JobQueue
 from scan_agent.workers.scanner import ScanWorker
+from scan_agent.github.webhooks import GitHubWebhookProcessor, WebhookEvent
 
 # Initialize FastAPI app
 app = FastAPI(title="Vulnerability Scan Orchestrator", version="1.0.0")
@@ -67,6 +69,12 @@ app.add_middleware(
 # Initialize job queue and worker
 job_queue = JobQueue()
 scan_worker = ScanWorker()
+
+# Initialize GitHub webhook processor
+webhook_secret = os.environ.get("GITHUB_WEBHOOK_SECRET", "")
+github_webhook_processor = (
+    GitHubWebhookProcessor(webhook_secret) if webhook_secret else None
+)
 
 
 # Background task to process a specific job
@@ -144,7 +152,9 @@ async def scan_repository(request: ScanRepoRequest, background_tasks: Background
         logger.debug(f"Created scan data: {scan_data.to_dict()}")
 
         # Add job to queue
-        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict(), request.job_id)
+        job_id = job_queue.add_job(
+            JobType.SCAN_REPO, scan_data.to_dict(), request.job_id
+        )
         logger.info(f"Created job with ID: {job_id}")
 
         # Trigger background processing of the job
@@ -234,6 +244,87 @@ async def cancel_job(job_id: str):
     job_queue.fail_job(job_id, "Job cancelled by user")
 
     return {"message": f"Job {job_id} cancelled"}
+
+
+# GitHub webhook endpoints
+@app.post("/webhooks/github")
+async def github_webhook(
+    request: Request,
+    x_github_delivery: str = Header(None),
+    x_github_event: str = Header(None),
+    x_hub_signature_256: str = Header(None),
+):
+    """Handle GitHub webhook events."""
+
+    if not github_webhook_processor:
+        raise HTTPException(
+            status_code=503, detail="GitHub webhook processing not configured"
+        )
+
+    # Get request body
+    body = await request.body()
+
+    # Verify signature
+    if not github_webhook_processor.verify_signature(body, x_hub_signature_256 or ""):
+        logger.warning(f"Invalid webhook signature for delivery {x_github_delivery}")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        # Parse payload
+        payload = json.loads(body.decode("utf-8"))
+
+        # Extract event information
+        event = WebhookEvent(
+            delivery_id=x_github_delivery or "unknown",
+            event_type=x_github_event or "unknown",
+            event_action=payload.get("action"),
+            installation_id=payload.get("installation", {}).get("id"),
+            repository_full_name=payload.get("repository", {}).get("full_name"),
+            payload=payload,
+        )
+
+        logger.info(
+            f"Received GitHub webhook: {event.event_type}.{event.event_action} from {event.repository_full_name}"
+        )
+
+        # Process event
+        result = await github_webhook_processor.process_event(event)
+
+        return result
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    except Exception as e:
+        logger.error(f"Error processing GitHub webhook: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health/github")
+async def github_health():
+    """Health check for GitHub integration."""
+
+    if not github_webhook_processor:
+        return {
+            "status": "disabled",
+            "message": "GitHub webhook processing not configured",
+        }
+
+    # Check required environment variables
+    missing_vars = []
+    required_vars = ["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY", "GITHUB_WEBHOOK_SECRET"]
+
+    for var in required_vars:
+        if not os.environ.get(var):
+            missing_vars.append(var)
+
+    if missing_vars:
+        return {"status": "misconfigured", "missing_variables": missing_vars}
+
+    return {
+        "status": "healthy",
+        "webhook_processor": "configured",
+        "timestamp": datetime.utcnow().isoformat(),
+    }
 
 
 if __name__ == "__main__":
