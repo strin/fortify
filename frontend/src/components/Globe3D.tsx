@@ -9,7 +9,10 @@ type Globe3DProps = {
 
 // Lightweight Three.js globe loaded at runtime from a CDN to avoid bundling deps.
 // Renders a rotating sphere with subtle lighting. Cleans up on unmount.
-export default function Globe3D({ className, backgroundColor = "transparent" }: Globe3DProps) {
+export default function Globe3D({
+  className,
+  backgroundColor = "transparent",
+}: Globe3DProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -20,27 +23,35 @@ export default function Globe3D({ className, backgroundColor = "transparent" }: 
     let globeMesh: any;
     let resizeObserver: ResizeObserver | null = null;
     let disposed = false;
+    let handleResize: (() => void) | null = null;
 
     const init = async () => {
       // Dynamically import Three.js in the browser only
-      const THREE: any = await import("https://cdn.skypack.dev/three@0.161.0");
+      const THREE: any = await import("three");
 
       if (!containerRef.current) return;
 
       scene = new THREE.Scene();
 
-      camera = new THREE.PerspectiveCamera(
-        45,
-        1,
-        0.1,
-        100
-      );
+      camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
       camera.position.z = 3.2;
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setClearColor(backgroundColor, backgroundColor === "transparent" ? 0 : 1);
+      if (backgroundColor === "transparent") {
+        // Avoid passing the CSS keyword "transparent" to Three.Color
+        renderer.setClearColor(0x000000, 0);
+      } else {
+        renderer.setClearColor(backgroundColor, 1);
+      }
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      if (renderer.outputColorSpace !== undefined && THREE.SRGBColorSpace) {
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+      } else if (
+        (renderer as any).outputEncoding !== undefined &&
+        (THREE as any).sRGBEncoding
+      ) {
+        (renderer as any).outputEncoding = (THREE as any).sRGBEncoding;
+      }
       containerRef.current.appendChild(renderer.domElement);
 
       const sphereGeometry = new THREE.SphereGeometry(1, 64, 64);
@@ -77,6 +88,9 @@ export default function Globe3D({ className, backgroundColor = "transparent" }: 
       // Observe container resizes to keep canvas crisp
       resizeObserver = new ResizeObserver(() => setSize());
       resizeObserver.observe(containerRef.current);
+      // Fallback: also respond to window resizes
+      handleResize = setSize;
+      window.addEventListener("resize", handleResize);
 
       const animate = () => {
         if (disposed) return;
@@ -96,6 +110,7 @@ export default function Globe3D({ className, backgroundColor = "transparent" }: 
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       try {
         if (resizeObserver) resizeObserver.disconnect();
+        if (handleResize) window.removeEventListener("resize", handleResize);
         if (scene && globeMesh) scene.remove(globeMesh);
         if (globeMesh?.geometry) globeMesh.geometry.dispose();
         if (globeMesh?.material) globeMesh.material.dispose();
@@ -119,5 +134,3 @@ export default function Globe3D({ className, backgroundColor = "transparent" }: 
     />
   );
 }
-
-
