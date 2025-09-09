@@ -4,7 +4,7 @@ import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -13,9 +13,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const scanTarget = await prisma.scanTarget.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
       include: {
@@ -46,7 +48,9 @@ export async function GET(
     }
 
     // Parse repository owner/name from repoUrl
-    const repoUrlMatch = scanTarget.repoUrl.match(/github\.com\/([^\/]+)\/([^\/\.]+)/);
+    const repoUrlMatch = scanTarget.repoUrl.match(
+      /github\.com\/([^\/]+)\/([^\/\.]+)/
+    );
     const owner = repoUrlMatch?.[1] || "";
     const repo = repoUrlMatch?.[2] || "";
 
@@ -69,7 +73,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -78,13 +82,14 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { name, description, branch, subPath, isActive } = body;
 
     // Verify ownership
     const existingScanTarget = await prisma.scanTarget.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     });
@@ -97,7 +102,7 @@ export async function PUT(
     }
 
     const scanTarget = await prisma.scanTarget.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(name && { name }),
         ...(description !== undefined && { description }),
@@ -119,7 +124,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession();
@@ -128,10 +133,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Verify ownership
     const existingScanTarget = await prisma.scanTarget.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: session.user.id,
       },
     });
@@ -144,7 +151,7 @@ export async function DELETE(
     }
 
     await prisma.scanTarget.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export default function ScanTargetsPage() {
     }
   }, [status]);
 
-  const fetchScanTargets = async () => {
+  const fetchScanTargets = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -109,13 +109,13 @@ export default function ScanTargetsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
 
   useEffect(() => {
     if (session) {
       fetchScanTargets();
     }
-  }, [session, searchTerm]);
+  }, [session, searchTerm, fetchScanTargets]);
 
   const handleTriggerScan = async (scanTargetId: string) => {
     try {

@@ -23,7 +23,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   GitBranch,
-  ExternalLink,
   RefreshCw,
   CheckCircle,
   AlertCircle,

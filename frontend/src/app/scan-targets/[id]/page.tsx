@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   RefreshCw, 
   AlertCircle,
   GitBranch,
-  Calendar,
   Shield,
   ExternalLink,
   Play,
@@ -83,7 +82,7 @@ export default function ScanTargetDetailPage({
     }
   }, [status]);
 
-  const fetchScanTarget = async () => {
+  const fetchScanTarget = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -105,7 +104,7 @@ export default function ScanTargetDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [params.id, router]);
 
   const handleTriggerScan = async () => {
     try {
@@ -141,7 +140,7 @@ export default function ScanTargetDetailPage({
     if (session) {
       fetchScanTarget();
     }
-  }, [session, params.id]);
+  }, [session, params.id, fetchScanTarget]);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Never";

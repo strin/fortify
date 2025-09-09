@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { 
   Shield, 
-  Clock,
   Search,
   RefreshCw,
   AlertCircle,

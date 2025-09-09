@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,6 @@ import {
   XCircle,
   Loader2,
   ArrowLeft,
-  Play,
-  Pause,
-  Calendar,
   BarChart3
 } from "lucide-react";
 
@@ -66,12 +63,6 @@ interface RepositorySummary {
   lastScanned?: string;
 }
 
-const statusColors = {
-  PENDING: "bg-yellow-500",
-  IN_PROGRESS: "bg-blue-500",
-  COMPLETED: "bg-green-500",
-  FAILED: "bg-red-500",
-};
 
 const statusIcons = {
   PENDING: Clock,
@@ -108,7 +99,7 @@ export default function RepositoryScansPage({
     }
   }, [status]);
 
-  const fetchRepositoryScans = async () => {
+  const fetchRepositoryScans = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -127,13 +118,13 @@ export default function RepositoryScansPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [owner, repo]);
 
   useEffect(() => {
     if (session) {
       fetchRepositoryScans();
     }
-  }, [session, owner, repo]);
+  }, [session, owner, repo, fetchRepositoryScans]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -406,7 +397,7 @@ export default function RepositoryScansPage({
             <Shield className="h-16 w-16 mx-auto mb-4 text-gray-400" />
             <h2 className="text-xl font-semibold mb-2">No Scans Found</h2>
             <p className="text-gray-400 text-lg mb-6">
-              This repository hasn't been scanned yet.
+              This repository hasn&apos;t been scanned yet.
             </p>
             <Button asChild>
               <Link href="/repositories">

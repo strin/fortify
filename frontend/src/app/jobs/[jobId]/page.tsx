@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  XCircle, 
-  ArrowLeft, 
+import {
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  XCircle,
+  ArrowLeft,
   RefreshCw,
   FileSearch,
   Shield,
-  Bug
+  Bug,
 } from "lucide-react";
 
 interface JobStatus {
@@ -46,32 +52,32 @@ const statusConfig = {
     bgColor: "bg-yellow-50",
     textColor: "text-yellow-700",
     label: "Pending",
-    description: "Scan job is queued and waiting to start"
+    description: "Scan job is queued and waiting to start",
   },
   IN_PROGRESS: {
     icon: RefreshCw,
-    color: "bg-blue-500", 
+    color: "bg-blue-500",
     bgColor: "bg-blue-50",
     textColor: "text-blue-700",
     label: "In Progress",
-    description: "Actively scanning your code for vulnerabilities"
+    description: "Actively scanning your code for vulnerabilities",
   },
   COMPLETED: {
     icon: CheckCircle,
     color: "bg-green-500",
-    bgColor: "bg-green-50", 
+    bgColor: "bg-green-50",
     textColor: "text-green-700",
     label: "Completed",
-    description: "Scan completed successfully"
+    description: "Scan completed successfully",
   },
   FAILED: {
     icon: XCircle,
     color: "bg-red-500",
     bgColor: "bg-red-50",
-    textColor: "text-red-700", 
+    textColor: "text-red-700",
     label: "Failed",
-    description: "Scan encountered an error"
-  }
+    description: "Scan encountered an error",
+  },
 };
 
 export default function ScanJobPage() {
@@ -83,13 +89,13 @@ export default function ScanJobPage() {
 
   const jobId = params?.jobId as string;
 
-  const fetchJobStatus = async () => {
+  const fetchJobStatus = useCallback(async () => {
     if (!jobId) return;
-    
+
     try {
       setError(null);
       const response = await fetch(`/api/jobs/${jobId}`);
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           setError("Job not found");
@@ -97,38 +103,48 @@ export default function ScanJobPage() {
         }
         throw new Error("Failed to fetch job status");
       }
-      
+
       const data = await response.json();
       setJobStatus(data);
     } catch (err) {
       console.error("Error fetching job status:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch job status");
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch job status"
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId]);
 
   useEffect(() => {
     fetchJobStatus();
-    
+
     // Poll for updates if job is still running
     const interval = setInterval(() => {
-      if (jobStatus?.status === "PENDING" || jobStatus?.status === "IN_PROGRESS") {
+      if (
+        jobStatus?.status === "PENDING" ||
+        jobStatus?.status === "IN_PROGRESS"
+      ) {
         fetchJobStatus();
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [jobId, jobStatus?.status]);
+  }, [jobId, jobStatus?.status, fetchJobStatus]);
 
   const getProgress = () => {
     if (!jobStatus) return 0;
     switch (jobStatus.status) {
-      case "PENDING": return 10;
-      case "IN_PROGRESS": return 50;
-      case "COMPLETED": return 100;
-      case "FAILED": return 100;
-      default: return 0;
+      case "PENDING":
+        return 10;
+      case "IN_PROGRESS":
+        return 50;
+      case "COMPLETED":
+        return 100;
+      case "FAILED":
+        return 100;
+      default:
+        return 0;
     }
   };
 
@@ -138,7 +154,7 @@ export default function ScanJobPage() {
     const diff = end.getTime() - start.getTime();
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
-    
+
     if (minutes > 0) {
       return `${minutes}m ${seconds % 60}s`;
     }
@@ -147,12 +163,18 @@ export default function ScanJobPage() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
-      case "critical": return "bg-red-100 text-red-800";
-      case "high": return "bg-orange-100 text-orange-800";
-      case "medium": return "bg-yellow-100 text-yellow-800";
-      case "low": return "bg-blue-100 text-blue-800";
-      case "info": return "bg-gray-100 text-gray-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "critical":
+        return "bg-red-100 text-red-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "low":
+        return "bg-blue-100 text-blue-800";
+      case "info":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -167,7 +189,7 @@ export default function ScanJobPage() {
               <Skeleton className="h-4 w-96" />
             </div>
           </div>
-          
+
           <Card>
             <CardHeader>
               <Skeleton className="h-6 w-32" />
@@ -192,8 +214,8 @@ export default function ScanJobPage() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
           <div className="mt-6">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.back()}
               className="flex items-center space-x-2"
             >
@@ -217,8 +239,8 @@ export default function ScanJobPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => router.back()}
               className="flex items-center space-x-2"
@@ -228,12 +250,14 @@ export default function ScanJobPage() {
             </Button>
             <div>
               <h1 className="text-3xl font-bold">Scan Job</h1>
-              <p className="text-muted-foreground">Job ID: {jobStatus.job_id}</p>
+              <p className="text-muted-foreground">
+                Job ID: {jobStatus.job_id}
+              </p>
             </div>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             size="sm"
             onClick={fetchJobStatus}
             disabled={loading}
@@ -254,9 +278,7 @@ export default function ScanJobPage() {
               <div className="flex-1">
                 <div className="flex items-center space-x-3">
                   <CardTitle className="text-xl">{config.label}</CardTitle>
-                  <Badge 
-                    className={`${config.color} text-white`}
-                  >
+                  <Badge className={`${config.color} text-white`}>
                     {jobStatus.status}
                   </Badge>
                 </div>
@@ -266,7 +288,7 @@ export default function ScanJobPage() {
               </div>
             </div>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -283,20 +305,26 @@ export default function ScanJobPage() {
                   {new Date(jobStatus.created_at).toLocaleString()}
                 </p>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium">Duration</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDuration(jobStatus.created_at, 
-                    jobStatus.status === "COMPLETED" ? jobStatus.updated_at : undefined
+                  {formatDuration(
+                    jobStatus.created_at,
+                    jobStatus.status === "COMPLETED"
+                      ? jobStatus.updated_at
+                      : undefined
                   )}
                 </p>
               </div>
-              
+
               <div className="space-y-1">
                 <p className="text-sm font-medium">Type</p>
                 <p className="text-sm text-muted-foreground">
-                  {jobStatus.type.replace("_", " ").toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                  {jobStatus.type
+                    .replace("_", " ")
+                    .toLowerCase()
+                    .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </p>
               </div>
             </div>
@@ -314,7 +342,9 @@ export default function ScanJobPage() {
             </CardHeader>
             <CardContent>
               <div className="bg-red-50 p-4 rounded-lg">
-                <p className="text-red-800 font-mono text-sm">{jobStatus.error}</p>
+                <p className="text-red-800 font-mono text-sm">
+                  {jobStatus.error}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -339,10 +369,12 @@ export default function ScanJobPage() {
                     <p className="text-2xl font-bold">
                       {jobStatus.result.files_scanned || 0}
                     </p>
-                    <p className="text-sm text-muted-foreground">Files Scanned</p>
+                    <p className="text-sm text-muted-foreground">
+                      Files Scanned
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   <div className="p-3 rounded-full bg-red-50">
                     <Bug className="h-6 w-6 text-red-600" />
@@ -351,53 +383,73 @@ export default function ScanJobPage() {
                     <p className="text-2xl font-bold">
                       {jobStatus.result.vulnerabilities_found || 0}
                     </p>
-                    <p className="text-sm text-muted-foreground">Vulnerabilities Found</p>
+                    <p className="text-sm text-muted-foreground">
+                      Vulnerabilities Found
+                    </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-3">
                   <div className="p-3 rounded-full bg-green-50">
                     <Clock className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
                     <p className="text-2xl font-bold">
-                      {Math.round((jobStatus.result.scan_duration || 0) / 1000)}s
+                      {Math.round((jobStatus.result.scan_duration || 0) / 1000)}
+                      s
                     </p>
-                    <p className="text-sm text-muted-foreground">Scan Duration</p>
+                    <p className="text-sm text-muted-foreground">
+                      Scan Duration
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {jobStatus.result.vulnerabilities && jobStatus.result.vulnerabilities.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="font-semibold mb-3">Recent Vulnerabilities</h4>
-                  <div className="space-y-2">
-                    {jobStatus.result.vulnerabilities.slice(0, 5).map((vuln, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{vuln.title}</p>
-                          <p className="text-xs text-muted-foreground">{vuln.file_path}</p>
-                        </div>
-                        <Badge className={getSeverityColor(vuln.severity)}>
-                          {vuln.severity}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {jobStatus.result.vulnerabilities.length > 5 && (
-                    <div className="mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push(`/vulnerabilities/${jobStatus.job_id}`)}
-                      >
-                        View All {jobStatus.result.vulnerabilities.length} Vulnerabilities
-                      </Button>
+              {jobStatus.result.vulnerabilities &&
+                jobStatus.result.vulnerabilities.length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-semibold mb-3">
+                      Recent Vulnerabilities
+                    </h4>
+                    <div className="space-y-2">
+                      {jobStatus.result.vulnerabilities
+                        .slice(0, 5)
+                        .map((vuln, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                {vuln.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {vuln.file_path}
+                              </p>
+                            </div>
+                            <Badge className={getSeverityColor(vuln.severity)}>
+                              {vuln.severity}
+                            </Badge>
+                          </div>
+                        ))}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {jobStatus.result.vulnerabilities.length > 5 && (
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            router.push(`/vulnerabilities/${jobStatus.job_id}`)
+                          }
+                        >
+                          View All {jobStatus.result.vulnerabilities.length}{" "}
+                          Vulnerabilities
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
             </CardContent>
           </Card>
         )}
@@ -405,14 +457,16 @@ export default function ScanJobPage() {
         {/* Actions */}
         {jobStatus.status === "COMPLETED" && (
           <div className="flex space-x-4">
-            <Button 
-              onClick={() => router.push(`/vulnerabilities/${jobStatus.job_id}`)}
+            <Button
+              onClick={() =>
+                router.push(`/vulnerabilities/${jobStatus.job_id}`)
+              }
               className="flex items-center space-x-2"
             >
               <Bug className="h-4 w-4" />
               <span>View Vulnerabilities</span>
             </Button>
-            <Button 
+            <Button
               variant="outline"
               onClick={() => router.push("/scan-targets")}
             >
