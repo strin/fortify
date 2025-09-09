@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import ExitIntentPopup from "./ExitIntentPopup";
+import Globe3D from "./Globe3D";
 import SampleScanReport from "./SampleScanReport";
 
 export default function LandingPage() {
@@ -78,12 +79,11 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Right: Decorative blob */}
+              {/* Right: Rotating 3D Globe */}
               <div className="md:col-span-5">
-                <div className="relative mx-auto h-72 w-72 md:h-[420px] md:w-[420px]">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/30 via-purple-500/25 to-cyan-400/30 blur-0"></div>
-                  <div className="absolute inset-6 rounded-full bg-gradient-to-tr from-purple-500/20 via-cyan-400/20 to-blue-500/20 blur-xl"></div>
-                  <div className="absolute inset-0 animate-pulse rounded-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent"></div>
+                <div className="relative mx-auto h-72 w-72 md:h-[420px] md:w-[420px] rounded-full overflow-hidden">
+                  <Globe3D className="h-full w-full" />
+                  <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-cyan-400/20 mix-blend-screen"></div>
                 </div>
               </div>
             </div>
