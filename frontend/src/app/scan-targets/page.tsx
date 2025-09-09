@@ -80,6 +80,19 @@ export default function ScanTargetsPage() {
     new Set()
   );
 
+  // Debounced search term to prevent API calls on every keystroke
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       redirect("/login");
@@ -92,7 +105,7 @@ export default function ScanTargetsPage() {
       setError(null);
 
       const params = new URLSearchParams();
-      if (searchTerm) params.append("search", searchTerm);
+      if (debouncedSearchTerm) params.append("search", debouncedSearchTerm);
 
       const response = await fetch(`/api/scan-targets?${params}`);
       const data = await response.json();
@@ -109,13 +122,13 @@ export default function ScanTargetsPage() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   useEffect(() => {
     if (session) {
       fetchScanTargets();
     }
-  }, [session, searchTerm, fetchScanTargets]);
+  }, [session, debouncedSearchTerm, fetchScanTargets]);
 
   const handleTriggerScan = async (scanTargetId: string) => {
     try {
