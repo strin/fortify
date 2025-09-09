@@ -1,9 +1,0 @@
-.file_container {
-  position: relative;
-  width: 100%;
-  flex-grow: 1;
-  overflow: auto;
-  will-change: transform;
-  direction: ltr;
-  overflow-y: scroll;
-}
