@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -73,9 +73,9 @@ interface ScanTarget {
 export default function ScanTargetDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = React.use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
