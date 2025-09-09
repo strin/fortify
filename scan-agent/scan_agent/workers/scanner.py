@@ -769,25 +769,32 @@ Please begin the security audit now."""
                 db_url = getattr(db, "_database_url", None)
                 logger.info(f"Database URL (from db): {db_url}")
 
-                # Create scan job record matching the test_db_fix.py approach
-                scan_job_record = await db.scanjob.create(
+                # Upsert scan job record: if created by frontend as PENDING, update it to IN_PROGRESS; otherwise create it
+                scan_job_record = await db.scanjob.upsert(
+                    where={"id": job.id},
                     data={
-                        "id": job.id,  # Use the existing job ID
-                        "type": 'SCAN_REPO',
-                        "status": "IN_PROGRESS",
-                        "data": json.dumps(job.data),
-                    }
+                        "update": {
+                            "status": "IN_PROGRESS",
+                            "data": json.dumps(job.data),
+                        },
+                        "create": {
+                            "id": job.id,
+                            "type": "SCAN_REPO",
+                            "status": "IN_PROGRESS",
+                            "data": json.dumps(job.data),
+                        },
+                    },
                 )
 
                 logger.info(
-                    f"✅ Created ScanJob record in database: {scan_job_record.id}"
+                    f"✅ Upserted ScanJob record in database: {scan_job_record.id}"
                 )
-                print(f"✅ Created ScanJob record in database: {scan_job_record.id}")
+                print(f"✅ Upserted ScanJob record in database: {scan_job_record.id}")
 
             except Exception as db_error:
-                logger.error(f"Failed to create ScanJob record: {db_error}")
-                print(f"❌ Failed to create ScanJob record: {db_error}")
-                # Continue with scan even if DB record creation fails
+                logger.error(f"Failed to upsert ScanJob record: {db_error}")
+                print(f"❌ Failed to upsert ScanJob record: {db_error}")
+                # Continue with scan even if DB record upsert fails
 
             # Create temporary directory for cloning
             temp_dir = tempfile.mkdtemp(prefix="scan_")
@@ -915,9 +922,9 @@ Please begin the security audit now."""
 
             logger.info(f"Scan completed successfully for job {job.id}")
             logger.debug(f"Final result keys: {list(result.keys())}")
-            logger.info("=== FINAL SCAN RESULT ===")
-            logger.info(json.dumps(result, indent=2, default=str))
-            logger.info("=== END FINAL SCAN RESULT ===")
+            # logger.info("=== FINAL SCAN RESULT ===")
+            # logger.info(json.dumps(result, indent=2, default=str))
+            # logger.info("=== END FINAL SCAN RESULT ===")
             print(f"✅ Scan completed for job {job.id}")
             await close_database()
 
@@ -931,6 +938,29 @@ Please begin the security audit now."""
                 shutil.rmtree(temp_dir)
             else:
                 logger.debug("No temporary directory to clean up")
+
+    async def _update_failed_job_status(self, job_id: str, error_msg: str):
+        """Update the database status for a failed job."""
+        try:
+            await init_database()
+            db = await get_db()
+            await db.scanjob.update(
+                where={"id": job_id},
+                data={
+                    "status": "FAILED",
+                    "error": error_msg,
+                    "finishedAt": datetime.now(),
+                },
+            )
+            logger.info(f"Updated ScanJob {job_id} status to FAILED")
+            print(f"💾 Updated ScanJob {job_id} status to FAILED")
+        except Exception as update_error:
+            logger.error(f"Failed to update ScanJob status to FAILED: {update_error}")
+        finally:
+            try:
+                await close_database()
+            except Exception as close_error:
+                logger.error(f"Failed to close database connection: {close_error}")
 
     def process_job(self, job: Job):
         """Process a single job."""
@@ -977,28 +1007,8 @@ Please begin the security audit now."""
             logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
             print(f"❌ Job {job.id} failed: {error_msg}")
 
-            # Update ScanJob status to FAILED in database
-            try:
-                import asyncio
-
-                async def update_failed_job():
-                    db = await get_db()
-                    await db.scanjob.update(
-                        where={"id": job.id},
-                        data={
-                            "status": "FAILED",
-                            "error": error_msg,
-                            "finishedAt": datetime.now(),
-                        },
-                    )
-
-                anyio.run(update_failed_job)
-                logger.info(f"Updated ScanJob {job.id} status to FAILED")
-                print(f"💾 Updated ScanJob {job.id} status to FAILED")
-            except Exception as update_error:
-                logger.error(
-                    f"Failed to update ScanJob status to FAILED: {update_error}"
-                )
+            # Update ScanJob status to FAILED in database using a separate async context
+            anyio.run(self._update_failed_job_status, job.id, error_msg)
 
             self.job_queue.fail_job(job.id, error_msg)
 

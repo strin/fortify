@@ -117,10 +117,10 @@ python src/workers/scanner.py &
 
 ### Monitoring
 Jobs are tracked in Redis with the following states:
-- `pending` - Job queued
-- `in_progress` - Job being processed
-- `completed` - Job finished successfully
-- `failed` - Job failed with error
+- `PENDING` - Job queued
+- `IN_PROGRESS` - Job being processed
+- `COMPLETED` - Job finished successfully
+- `FAILED` - Job failed with error
 
 ## Security Notes
 

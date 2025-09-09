@@ -6,10 +6,10 @@ from datetime import datetime
 import json
 
 class JobStatus(Enum):
-    PENDING = "pending"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 class JobType(Enum):
     SCAN_REPO = "SCAN_REPO"
