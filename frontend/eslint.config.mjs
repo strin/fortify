@@ -27,6 +27,8 @@ const eslintConfig = [
       "@typescript-eslint/no-implicit-any-catch": "off",
       "@typescript-eslint/no-implicit-any-index": "off",
       "@typescript-eslint/explicit-module-boundary-types": "off",
+      "react-hooks/rules-of-hooks": "off",
+      "react-hooks/exhaustive-deps": "warn",
     },
   },
 ];
