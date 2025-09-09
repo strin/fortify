@@ -19,7 +19,7 @@ fi
 
 # Generate Prisma client if needed (for production environments)
 echo "Generating Prisma client..."
-cd /db && prisma generate && cd /scan-agent
+cd /db && npx prisma generate && cd /scan-agent
 
 echo "Starting scan-agent server..."
 echo "  PORT: $PORT"

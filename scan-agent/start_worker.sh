@@ -26,7 +26,7 @@ fi
 
 # Generate Prisma client if needed (for production environments)
 echo "Generating Prisma client..."
-cd /db && prisma generate && cd /scan-agent
+cd /db && npx prisma generate && cd /scan-agent
 
 # Start the worker using the same command as the original run-worker-local.sh
 python -m scan_agent.workers.scanner
