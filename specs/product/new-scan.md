@@ -251,96 +251,133 @@ This PRD defines the user experience for creating new scans from the project pag
 - Scan duration: 3m 42s
 - Analysis engine: Claude Code v2.1
 
+### Below the summary cards is the full list of vulnerabilities
+
+See 3. Vulnerability Display (Completed Scans) 
+
 #### Actions
-- **View All Vulnerabilities**: Navigate to full vulnerability list
 - **Download Report**: Export in multiple formats
 - **Schedule Follow-up**: Set reminder to re-scan
 - **Share Results**: Send to team members
 
 ## 3. Vulnerability Display (Completed Scans)
 
-### 3.1 Vulnerability List Page
-**URL**: `/scans/[jobId]/vulnerabilities`
+#### Current Implementation Features
 
-#### Page Layout
-**Header:**
-- Scan information (repository, branch, date)
-- Vulnerability count and summary
-- Filter and export controls
+**Page Header:**
+- **Navigation**: Back button with router.back() functionality
+- **Title**: "Vulnerabilities" with bug icon
+- **Scan Context**: Displays scan creation date and repository name
+- **Actions**: 
+  - Refresh button to reload vulnerabilities
+  - "All Repositories" link to navigate to scans page
 
-**Filters:**
-- **Severity**: All, Critical, High, Medium, Low, Info
-- **Category**: Injection, Authentication, Authorization, etc.
-- **File**: Filter by file path or extension
-- **Status**: All, New, Acknowledged, Fixed, False Positive
+**Vulnerability Summary Dashboard:**
+- **Total Issues Card**: Shows total vulnerability count with bug icon
+- **Critical Issues Card**: Displays critical severity count in red
+- **High Issues Card**: Shows high severity count in orange  
+- **Affected Files Card**: Shows number of unique files with vulnerabilities
 
-**Sort Options:**
-- Severity (high to low)
-- File path (alphabetical)
-- Line number (ascending)
-- Category (alphabetical)
+**Advanced Filtering System:**
+- **Search Input**: Full-text search across title, description, and file paths
+- **Severity Filter**: Dropdown with All, Critical, High, Medium, Low, Info options
+- **Category Filter**: Dropdown with comprehensive vulnerability categories:
+  - Injection, Authentication, Authorization, Cryptography
+  - Data Exposure, Business Logic, Configuration, Dependency
+  - Input Validation, Output Encoding, Session Management, Other
+- **File Filter**: Dropdown populated with files that have vulnerabilities (shows count per file)
+- **Real-time Filtering**: Server-side filtering with URL parameters
+- **Client-side Search**: Additional local filtering for search terms
 
-#### Vulnerability Cards
-**Card Layout:**
-- **Title**: Vulnerability name/description
-- **Severity Badge**: Color-coded severity indicator
-- **Location**: File path and line numbers
-- **Category**: Vulnerability classification
-- **Code Snippet**: Relevant code with syntax highlighting
-- **Recommendation**: Fix suggestion and remediation steps
+**Vulnerability Cards (Detailed Layout):**
+- **Header Section**:
+  - Alert icon with vulnerability title
+  - Color-coded severity badge (Critical: red, High: orange, Medium: yellow, Low: blue, Info: gray)
+  - Category badge with human-readable labels
+- **Location Information**:
+  - File path with intelligent truncation (shows last 2 path segments)
+  - Line number range (start-end if applicable)
+  - File and location icons for visual clarity
+- **Content Sections**:
+  - **Description**: Full vulnerability description
+  - **Code Snippet**: Syntax-highlighted code in dark theme with scroll
+  - **Recommendation**: Detailed remediation guidance
+  - **Additional Information**: Metadata displayed as badges when available
 
-**Card Actions:**
-- **View Details**: Expand for full description
-- **Mark as Fixed**: Update vulnerability status
-- **Mark as False Positive**: Dismiss finding
-- **Copy Link**: Share specific vulnerability
-- **View in Repository**: Open file in GitHub/provider
+**Pagination System:**
+- **Server-side Pagination**: 20 vulnerabilities per page
+- **Navigation Controls**: Previous/Next buttons with disabled states
+- **Page Information**: "Showing X to Y of Z vulnerabilities" counter
+- **Current Page Indicator**: "Page X of Y" display
 
-### 3.2 Vulnerability Detail Modal/Page
+**Empty States:**
+- **No Vulnerabilities**: Green check icon with congratulatory message
+- **No Filter Results**: Explains that filters don't match any vulnerabilities
+- **Loading State**: Centered spinner with "Loading vulnerabilities..." message
+- **Error State**: Alert icon with error message and retry button
 
-#### Detailed Information
-**Vulnerability Overview:**
-- Full title and description
-- CWE/OWASP mapping (if available)
-- Risk assessment and impact
+### 3.2 Missing Features for Future Enhancement
 
-**Location Details:**
-- File path with breadcrumb navigation
-- Line numbers and affected code range
-- Context lines (before/after affected code)
-- Syntax-highlighted code view
-
-**Remediation Guidance:**
-- Step-by-step fix instructions
-- Code examples (before/after)
-- Related documentation links
-- Similar vulnerabilities in codebase
-
-**Metadata:**
-- Confidence level
-- First detected date
-- Last seen date
-- Fix priority ranking
-
-#### Actions
-- **Mark as Acknowledged**: Acknowledge but don't fix immediately
+#### Vulnerability Management Actions
+**Individual Vulnerability Actions** (Not Yet Implemented):
+- **Mark as Acknowledged**: Track that vulnerability is known but not yet fixed
 - **Mark as Fixed**: Indicate vulnerability has been resolved
-- **Mark as False Positive**: Dismiss as incorrect finding
-- **Create Issue**: Generate GitHub issue with details
-- **Export**: Download vulnerability details
+- **Mark as False Positive**: Dismiss incorrect findings
+- **Copy Link**: Share direct links to specific vulnerabilities
+- **View in Repository**: Deep link to source code in GitHub/provider
+- **Create Issue**: Generate GitHub issues with vulnerability details
 
-### 3.3 Bulk Actions
-
-**Select Multiple Vulnerabilities:**
+#### Bulk Operations (Future Enhancement)
+**Multi-select Capabilities:**
 - Checkbox selection for bulk operations
 - Select all/none toggles
 - Filter-based selection
 
-**Bulk Operations:**
-- Mark selected as acknowledged
-- Mark selected as false positive
+**Bulk Actions:**
+- Mark multiple vulnerabilities as acknowledged/fixed/false positive
 - Export selected vulnerabilities
 - Create bulk GitHub issues
+- Assign to team members
+
+#### Enhanced Vulnerability Details (Future)
+**Expandable Detail View:**
+- **CWE/OWASP Mapping**: Industry standard vulnerability classifications
+- **Risk Assessment**: Impact and likelihood scoring
+- **Context Lines**: Show code before/after vulnerable section
+- **Similar Vulnerabilities**: Find related issues in same codebase
+- **Fix Examples**: Before/after code examples
+- **External Documentation**: Links to security resources
+
+#### Export and Reporting (Future)
+**Export Options:**
+- **PDF Report**: Professional vulnerability report
+- **CSV Export**: Spreadsheet-friendly format
+- **JSON Export**: Machine-readable format for integrations
+- **SARIF Export**: Industry-standard format for security tools
+
+#### Advanced Filtering (Future Enhancement)
+**Additional Filter Options:**
+- **Date Range**: Filter by discovery date
+- **Confidence Level**: Filter by analysis confidence
+- **Fix Status**: Filter by resolution status
+- **Assignee**: Filter by responsible team member
+
+### 3.3 User Experience Strengths
+
+**Current UX Excellence:**
+- **Responsive Design**: Works well on desktop and mobile devices
+- **Dark Theme**: Consistent with application design language
+- **Clear Visual Hierarchy**: Easy to scan and understand vulnerability data
+- **Intuitive Navigation**: Logical flow from scans to vulnerabilities
+- **Real-time Feedback**: Loading states and error handling
+- **Performance**: Fast filtering and pagination
+- **Accessibility**: Proper semantic HTML and keyboard navigation
+
+**Information Architecture:**
+- **Progressive Disclosure**: Summary first, details on demand
+- **Contextual Information**: Scan metadata always visible
+- **Logical Grouping**: Related information grouped together
+- **Visual Cues**: Icons and color coding for quick comprehension
 
 ## 4. Technical Requirements
 
