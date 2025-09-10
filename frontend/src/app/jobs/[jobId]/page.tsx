@@ -469,7 +469,7 @@ export default function ScanJobPage() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => router.push("/scan-targets")}
+              onClick={() => router.push("/projects")}
             >
               Back to Scan Projects
             </Button>

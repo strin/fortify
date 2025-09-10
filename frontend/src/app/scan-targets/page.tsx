@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   Search,
@@ -219,10 +220,65 @@ export default function ScanTargetsPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scan projects...</p>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <Skeleton className="h-9 w-48 mb-2" />
+              <Skeleton className="h-5 w-80" />
+            </div>
+            <div className="flex gap-4">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-24" />
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <Skeleton className="h-10 w-64" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="hover:bg-accent/50 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-full" />
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-6 w-18" />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Skeleton className="h-8 flex-1" />
+                      <Skeleton className="h-8 w-24" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );

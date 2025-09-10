@@ -28,7 +28,7 @@ export default function AuthForm({ type }: AuthFormProps) {
   const searchParams = useSearchParams();
 
   // Get the callback URL from search params
-  const callbackUrl = searchParams.get("callbackUrl") || "/scan-targets";
+  const callbackUrl = searchParams.get("callbackUrl") || "/projects";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -25,7 +25,7 @@ export default function PromoBanner() {
             onClick={handleGetFreeScan}
             variant="secondary" 
             size="sm"
-            className="bg-white text-blue-600 hover:bg-gray-100"
+            className="bg-background text-primary hover:bg-accent"
           >
             Claim Offer
           </Button>

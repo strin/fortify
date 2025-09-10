@@ -131,19 +131,19 @@
     width: 6px;
   }
   
-  .scrollbar-track-gray-800::-webkit-scrollbar-track {
-    background: rgb(31 41 55);
+  .scrollbar-track-muted::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
     border-radius: 3px;
   }
   
-  .scrollbar-thumb-gray-600::-webkit-scrollbar-thumb {
-    background: rgb(75 85 99);
+  .scrollbar-thumb-muted-foreground::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
     border-radius: 3px;
   }
   
-  .scrollbar-thumb-gray-600:hover::-webkit-scrollbar-thumb,
-  .hover\:scrollbar-thumb-gray-500:hover::-webkit-scrollbar-thumb {
-    background: rgb(107 114 128);
+  .scrollbar-thumb-muted-foreground:hover::-webkit-scrollbar-thumb,
+  .hover\:scrollbar-thumb-border:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
   }
 
   /* Line clamp utilities */
@@ -154,13 +154,13 @@
     overflow: hidden;
   }
 
-  /* Custom gray-850 background */
-  .bg-gray-850 {
-    background-color: rgb(23 29 37);
+  /* Custom darker background variant */
+  .bg-card-dark {
+    background-color: hsl(var(--card) / 0.8);
   }
   
-  .hover\:bg-gray-850:hover {
-    background-color: rgb(23 29 37);
+  .hover\:bg-card-dark:hover {
+    background-color: hsl(var(--card) / 0.8);
   }
 
   /* Improved transitions for repository cards */

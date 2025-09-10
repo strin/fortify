@@ -165,7 +165,7 @@ function RepositoryScansContent({
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading repository scans...</p>
@@ -176,7 +176,7 @@ function RepositoryScansContent({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Repository Scans</h1>
@@ -200,7 +200,7 @@ function RepositoryScansContent({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Navigation */}
         <nav className="flex justify-between items-center mb-8">
@@ -332,7 +332,7 @@ function RepositoryScansContent({
             return (
               <Card
                 key={scan.id}
-                className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors"
+                className="bg-card border-border hover:bg-accent transition-colors"
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">
