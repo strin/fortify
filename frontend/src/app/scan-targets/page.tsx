@@ -350,10 +350,10 @@ export default function ScanTargetsPage() {
         {/* Scan Projects Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {scanTargets.map((target) => (
-            <Card
-              key={target.id}
-              className="hover:bg-accent/50 transition-colors"
-            >
+            <Link href={`/scan-targets/${target.id}`} key={target.id}>
+              <Card
+                className="hover:bg-accent/50 transition-colors cursor-pointer"
+              >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
@@ -384,20 +384,23 @@ export default function ScanTargetsPage() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link href={`/scan-targets/${target.id}`}>
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View Details
+                        <Link href={`/scan-targets/${target.id}/settings`}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
                         </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Configure
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Star className="h-4 w-4 mr-2" />
@@ -439,7 +442,11 @@ export default function ScanTargetsPage() {
                     <Button
                       size="sm"
                       className="flex-1"
-                      onClick={() => handleTriggerScan(target.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleTriggerScan(target.id);
+                      }}
                       disabled={
                         !target.isActive || scanningTargets.has(target.id)
                       }
@@ -453,11 +460,6 @@ export default function ScanTargetsPage() {
                         ? "Scanning..."
                         : "Scan Now"}
                     </Button>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/scan-targets/${target.id}`}>
-                        View Scans
-                      </Link>
-                    </Button>
                   </div>
 
                   {/* Stats */}
@@ -468,6 +470,7 @@ export default function ScanTargetsPage() {
                 </div>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
 

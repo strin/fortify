@@ -20,16 +20,28 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
   Check,
+  FolderOpen,
   GitBranch,
   Github,
   Loader2,
   Search,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  RepositoryConflictDialog, 
+  type ProjectConflict 
+} from "@/components/project/repository-conflict-dialog";
 
 interface Repository {
   id: number;
@@ -78,6 +90,10 @@ function NewProjectForm() {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Conflict handling
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [projectConflict, setProjectConflict] = useState<ProjectConflict | null>(null);
 
   // Check authentication and handle redirect
   useEffect(() => {
@@ -142,17 +158,69 @@ function NewProjectForm() {
     }
   };
 
+  // Check for repository conflict
+  const checkRepositoryConflict = async (repo: Repository) => {
+    try {
+      const response = await fetch("/api/repositories/check-conflict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: repo.full_name,
+          provider: "GITHUB",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check repository conflict");
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error checking repository conflict:", err);
+      setError(err instanceof Error ? err.message : "Failed to check repository");
+      return null;
+    }
+  };
+
   // Handle repository selection
   const handleRepositorySelect = async (repo: Repository) => {
-    setSelectedRepo(repo);
-    setProjectName(repo.name); // Default project name to repository name
-    setSelectedBranch(repo.default_branch);
+    try {
+      setLoading(true);
+      setError(null);
 
-    if (repo.owner && repo.owner.login) {
-      await fetchBranches(repo.owner.login, repo.name);
+      // Check for conflicts first
+      const conflictCheck = await checkRepositoryConflict(repo);
+      
+      if (!conflictCheck) {
+        return; // Error already set by checkRepositoryConflict
+      }
+
+      if (conflictCheck.hasConflict) {
+        // Show conflict dialog
+        setProjectConflict(conflictCheck.conflict);
+        setShowConflictDialog(true);
+        return;
+      }
+
+      // No conflict, proceed with selection
+      setSelectedRepo(repo);
+      setProjectName(repo.name); // Default project name to repository name
+      setSelectedBranch(repo.default_branch);
+
+      if (repo.owner && repo.owner.login) {
+        await fetchBranches(repo.owner.login, repo.name);
+      }
+
+      setStep(2);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to select repository");
+    } finally {
+      setLoading(false);
     }
-
-    setStep(2);
   };
 
   // Handle project creation
@@ -303,14 +371,22 @@ function NewProjectForm() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-3xl font-bold">Create New Project</h1>
+            </div>
+            <Link href="/projects">
               <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                <FolderOpen className="h-4 w-4 mr-2" />
+                View All Projects
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold">Create New Project</h1>
           </div>
 
           {/* Progress indicator */}
@@ -467,7 +543,7 @@ function NewProjectForm() {
             <CardContent>
               <div className="space-y-6">
                 {/* Selected Repository Info */}
-                <div className="p-4 rounded-lg bg-gray-700 border border-gray-600">
+                <div className="p-4 rounded-lg bg-secondary border border-border">
                   <h4 className="font-medium mb-2">Selected Repository</h4>
                   <div className="flex items-center gap-2">
                     <Github className="h-4 w-4" />
@@ -517,18 +593,21 @@ function NewProjectForm() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="branch">Default Branch</Label>
-                      <select
-                        id="branch"
+                      <Select
                         value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white"
+                        onValueChange={setSelectedBranch}
                       >
-                        {branches.map((branch) => (
-                          <option key={branch.name} value={branch.name}>
-                            {branch.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map((branch) => (
+                            <SelectItem key={branch.name} value={branch.name}>
+                              {branch.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
@@ -554,6 +633,19 @@ function NewProjectForm() {
           </Card>
         )}
       </div>
+
+      {/* Repository Conflict Dialog */}
+      <RepositoryConflictDialog
+        open={showConflictDialog}
+        onOpenChange={setShowConflictDialog}
+        conflict={projectConflict}
+        onGoToProject={() => {
+          if (projectConflict?.existingProject.id) {
+            router.push(`/projects/${projectConflict.existingProject.id}`);
+          }
+        }}
+        showCreateNewOption={false}
+      />
     </div>
   );
 }
