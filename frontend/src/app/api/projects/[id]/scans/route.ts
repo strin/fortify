@@ -102,15 +102,17 @@ export async function POST(
     const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
     
     try {
-      const workerResponse = await fetch(`${scanWorkerUrl}/submit-job`, {
+      const workerResponse = await fetch(`${scanWorkerUrl}/scan/repo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          repo_url: repoUrl,
+          branch: branch,
+          claude_cli_args: null,
+          scan_options: normalizedPath === "/" ? {} : { sub_path: normalizedPath },
           job_id: scanJob.id,
-          job_type: "SCAN_REPO",
-          job_data: scanJobData,
         }),
       });
 
