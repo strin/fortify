@@ -22,13 +22,10 @@ import {
   FileText,
   GitBranch,
   Github,
-  Loader2,
-  Play,
   Settings,
   Shield,
   Target,
 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { CreateScanDialog } from "@/components/scan/create-scan-dialog";
 
 interface Repository {
@@ -432,9 +429,13 @@ export default function ProjectDetailPage({
                   <div className="text-center py-8">
                     <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <p className="text-muted-foreground">No scans yet</p>
-                    <Button className="mt-4">
-                      <Play className="h-4 w-4 mr-2" />
-                      Run Your First Scan
+                    <Button 
+                      className="mt-4"
+                      onClick={() => setShowCreateScanDialog(true)}
+                      disabled={!project || project.repositories.length === 0}
+                    >
+                      <Target className="h-4 w-4 mr-2" />
+                      Create Your First Scan
                     </Button>
                   </div>
                 ) : (

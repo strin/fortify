@@ -125,7 +125,9 @@ export function CreateScanDialog({
     setError(null);
     
     try {
-      const [owner, repo] = repository.fullName.split("/");
+      const parts = repository.fullName.split("/");
+      const owner = parts[0];
+      const repo = parts.slice(1).join("/");
       const response = await fetch(`/api/repositories/branches/${owner}/${repo}`);
       
       if (!response.ok) {

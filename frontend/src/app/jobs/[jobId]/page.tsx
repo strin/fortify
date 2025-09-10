@@ -51,6 +51,7 @@ interface JobStatus {
     vulnerabilities_found?: number;
     files_scanned?: number;
     scan_duration?: number;
+    engine_version?: string;
     vulnerabilities?: Array<{
       severity: string;
       title: string;
@@ -646,7 +647,9 @@ export default function ScanJobPage() {
                       <Shield className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-xl font-bold">Claude v2.1</p>
+                      <p className="text-xl font-bold">
+                        {jobStatus.result?.engine_version || "Claude v2.1"}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         Analysis Engine
                       </p>
