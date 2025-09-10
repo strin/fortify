@@ -9,10 +9,16 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { signIn } from "next-auth/react";
+import { usePageVisibility } from "@/hooks/usePageVisibility";
+import { SessionStorage } from "@/lib/session-storage";
 
 export default function ExitIntentPopup() {
   const [showPopup, setShowPopup] = useState(false);
-  const [hasShown, setHasShown] = useState(false);
+  const [hasShown, setHasShown] = useState(() => {
+    // Check if we've already shown the popup in this session
+    return SessionStorage.load<boolean>('exitIntentShown') || false;
+  });
+  const isPageVisible = usePageVisibility();
 
   useEffect(() => {
     const handleMouseLeave = (e: MouseEvent) => {
@@ -37,6 +43,8 @@ export default function ExitIntentPopup() {
   const handleGetFreeScan = () => {
     signIn("github", { callbackUrl: "/dashboard" });
     setShowPopup(false);
+    setHasShown(true);
+    SessionStorage.save('exitIntentShown', true);
   };
 
   return (
@@ -72,7 +80,11 @@ export default function ExitIntentPopup() {
 
             <Button
               variant="ghost"
-              onClick={() => setShowPopup(false)}
+              onClick={() => {
+                setShowPopup(false);
+                setHasShown(true);
+                SessionStorage.save('exitIntentShown', true);
+              }}
               className="text-gray-400 hover:text-white"
             >
               No thanks, I&apos;ll take the risk

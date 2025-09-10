@@ -24,6 +24,20 @@ export default function Globe3D({
     let resizeObserver: ResizeObserver | null = null;
     let disposed = false;
     let handleResize: (() => void) | null = null;
+    let isVisible = true;
+
+    // Handle page visibility to pause/resume animation and reduce memory usage
+    const handleVisibilityChange = () => {
+      isVisible = !document.hidden;
+      if (!isVisible && animationFrameId) {
+        // Pause animation when tab is not visible
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+      } else if (isVisible && !animationFrameId && !disposed) {
+        // Resume animation when tab becomes visible
+        animate();
+      }
+    };
 
     const init = async () => {
       // Dynamically import Three.js in the browser only
@@ -93,7 +107,7 @@ export default function Globe3D({
       window.addEventListener("resize", handleResize);
 
       const animate = () => {
-        if (disposed) return;
+        if (disposed || !isVisible) return;
         globeMesh.rotation.y += 0.0035;
         globeMesh.rotation.x = Math.sin(Date.now() * 0.00015) * 0.08;
         renderer.render(scene, camera);
@@ -101,6 +115,9 @@ export default function Globe3D({
       };
 
       animate();
+      
+      // Add page visibility listener to pause/resume animation
+      document.addEventListener("visibilitychange", handleVisibilityChange);
     };
 
     init();
@@ -109,6 +126,7 @@ export default function Globe3D({
       disposed = true;
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       try {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
         if (resizeObserver) resizeObserver.disconnect();
         if (handleResize) window.removeEventListener("resize", handleResize);
         if (scene && globeMesh) scene.remove(globeMesh);
