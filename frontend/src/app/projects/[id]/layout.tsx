@@ -109,7 +109,7 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
 
   const handleScanCreated = (scanJobId: string) => {
     // Redirect to the scan job page to monitor progress
-    router.push(`/jobs/${scanJobId}`);
+    router.push(`/scans/${scanJobId}`);
   };
 
   const getCurrentTab = () => {

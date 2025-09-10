@@ -135,7 +135,7 @@ export default function ScanTargetDetailPage({
 
       // Redirect to the job page if we got a job ID
       if (data.scanJobId) {
-        router.push(`/jobs/${data.scanJobId}`);
+        router.push(`/scans/${data.scanJobId}`);
         return;
       }
 
