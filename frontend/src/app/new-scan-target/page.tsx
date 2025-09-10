@@ -440,12 +440,12 @@ function NewScanTargetForm() {
                         </Button>
                       )}
                     </div>
-                    
-                    {/* Gradient fade at bottom to indicate more content when scrollable */}
-                    {filteredRepositories.length > 5 && (
-                      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-800/80 to-transparent pointer-events-none rounded-b-lg" />
-                    )}
-                  </div>
+                  )}
+                  
+                  {/* Gradient fade at bottom to indicate more content when scrollable */}
+                  {filteredRepositories.length > 5 && (
+                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-800/80 to-transparent pointer-events-none rounded-b-lg" />
+                  )}
                 </div>
               )}
             </CardContent>

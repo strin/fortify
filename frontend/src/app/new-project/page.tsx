@@ -135,9 +135,7 @@ function NewProjectForm() {
 
       setBranches(data.branches);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch branches"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch branches");
     } finally {
       setLoading(false);
     }
@@ -158,8 +156,19 @@ function NewProjectForm() {
 
   // Handle project creation
   const handleCreateProject = async () => {
-    if (!selectedRepo || !selectedBranch || !projectName.trim()) {
-      setError("Please complete all required fields");
+    // More detailed validation with specific error messages
+    if (!selectedRepo) {
+      setError("Please select a repository");
+      return;
+    }
+
+    if (!projectName.trim()) {
+      setError("Please enter a project name");
+      return;
+    }
+
+    if (!selectedBranch) {
+      setError("Please select a branch");
       return;
     }
 
@@ -167,38 +176,47 @@ function NewProjectForm() {
       setLoading(true);
       setError(null);
 
+      const projectData = {
+        name: projectName,
+        description: description || null,
+        repository: {
+          fullName: selectedRepo.full_name,
+          description: selectedRepo.description,
+          repoUrl: selectedRepo.clone_url,
+          defaultBranch: selectedBranch,
+          isPrivate: selectedRepo.private,
+          externalId: selectedRepo.id.toString(),
+          provider: "GITHUB",
+        },
+      };
+
+      console.log("Creating project with data:", projectData);
+
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: projectName,
-          description: description || null,
-          repository: {
-            fullName: selectedRepo.full_name,
-            description: selectedRepo.description,
-            repoUrl: selectedRepo.clone_url,
-            defaultBranch: selectedBranch,
-            isPrivate: selectedRepo.private,
-            externalId: selectedRepo.id.toString(),
-            provider: "GITHUB",
-          },
-        }),
+        body: JSON.stringify(projectData),
       });
 
       const data = await response.json();
+      console.log("Project creation response:", {
+        status: response.status,
+        data,
+      });
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create project");
+        throw new Error(
+          data.error || `Failed to create project (${response.status})`
+        );
       }
 
       // Redirect to project detail page
       router.push(`/projects/${data.id}`);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create project"
-      );
+      console.error("Project creation error:", err);
+      setError(err instanceof Error ? err.message : "Failed to create project");
     } finally {
       setLoading(false);
     }
@@ -246,15 +264,31 @@ function NewProjectForm() {
 
           {/* Progress indicator */}
           <div className="flex items-center gap-4 mb-6">
-            <div className={`flex items-center gap-2 ${step >= 1 ? "text-blue-400" : "text-gray-500"}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? "bg-blue-600" : "bg-gray-600"}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                step >= 1 ? "text-blue-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 1 ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
                 {step > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
               <span>Select Repository</span>
             </div>
             <ArrowRight className="h-4 w-4 text-gray-500" />
-            <div className={`flex items-center gap-2 ${step >= 2 ? "text-blue-400" : "text-gray-500"}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? "bg-blue-600" : "bg-gray-600"}`}>
+            <div
+              className={`flex items-center gap-2 ${
+                step >= 2 ? "text-blue-400" : "text-gray-500"
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  step >= 2 ? "bg-blue-600" : "bg-gray-600"
+                }`}
+              >
                 {step > 2 ? <Check className="h-4 w-4" /> : "2"}
               </div>
               <span>Configure Project</span>
@@ -341,9 +375,7 @@ function NewProjectForm() {
                               </span>
                             </div>
                           </div>
-                          <Button size="sm">
-                            Select
-                          </Button>
+                          <Button size="sm">Select</Button>
                         </div>
                       </div>
                     ))

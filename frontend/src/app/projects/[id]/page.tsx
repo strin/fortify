@@ -472,7 +472,7 @@ export default function ProjectDetailPage({
                 <div className="text-center py-8">
                   <Shield className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                   <p className="text-gray-400 mb-4">
-                    Compliance reporting is coming soon. You'll be able to generate evidence for SOC2, ISO, and HIPAA directly from your scan history.
+                    Compliance reporting is coming soon. You&apos;ll be able to generate evidence for SOC2, ISO, and HIPAA directly from your scan history.
                   </p>
                 </div>
               </CardContent>
@@ -492,7 +492,7 @@ export default function ProjectDetailPage({
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                   <p className="text-gray-400 mb-4">
-                    Project settings are coming soon. You'll be able to configure automatic scans, notifications, and security policies.
+                    Project settings are coming soon. You&apos;ll be able to configure automatic scans, notifications, and security policies.
                   </p>
                 </div>
               </CardContent>

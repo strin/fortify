@@ -55,9 +55,9 @@ export async function GET() {
       );
     }
 
-    // Fetch public repositories from GitHub API
+    // Fetch all repositories (public and private) from GitHub API
     const response = await fetch(
-      "https://api.github.com/user/repos?type=public&sort=updated&per_page=50",
+      "https://api.github.com/user/repos?type=all&sort=updated&per_page=50",
       {
         headers: {
           Authorization: `Bearer ${user.githubAccessToken}`,
@@ -82,22 +82,22 @@ export async function GET() {
     const formattedRepos = repos.map((repo: GitHubRepository) => ({
       id: repo.id,
       name: repo.name,
-      fullName: repo.full_name,
+      full_name: repo.full_name, // Keep consistent with frontend expectations
       description: repo.description,
       language: repo.language,
-      stars: repo.stargazers_count,
-      forks: repo.forks_count,
-      updatedAt: repo.updated_at,
-      htmlUrl: repo.html_url,
-      cloneUrl: repo.clone_url,
+      stargazers_count: repo.stargazers_count, // Keep consistent with frontend expectations
+      forks_count: repo.forks_count, // Keep consistent with frontend expectations
+      updated_at: repo.updated_at,
+      html_url: repo.html_url,
+      clone_url: repo.clone_url,
       size: repo.size,
-      defaultBranch: repo.default_branch,
+      default_branch: repo.default_branch, // Keep consistent with frontend expectations
       private: repo.visibility === "private",
       visibility: repo.visibility,
       topics: repo.topics || [],
       owner: {
         login: repo.owner.login,
-        avatarUrl: repo.owner.avatar_url,
+        avatar_url: repo.owner.avatar_url, // Keep consistent with frontend expectations
       },
     }));
 

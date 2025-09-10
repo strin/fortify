@@ -82,7 +82,10 @@ export async function POST(request: NextRequest) {
 
     if (!name || !fullName || !repoUrl) {
       return NextResponse.json(
-        { error: "Project name, repository full name, and repository URL are required" },
+        {
+          error:
+            "Project name, repository full name, and repository URL are required",
+        },
         { status: 400 }
       );
     }
@@ -185,6 +188,27 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating project:", error);
+
+    // Handle specific Prisma errors
+    if (error instanceof Error) {
+      if (error.message.includes("Unique constraint failed")) {
+        if (error.message.includes("userId_name")) {
+          return NextResponse.json(
+            { error: "A project with this name already exists" },
+            { status: 409 }
+          );
+        }
+        if (error.message.includes("provider_externalId")) {
+          return NextResponse.json(
+            {
+              error: "This repository is already connected to another project",
+            },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

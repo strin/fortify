@@ -38,8 +38,9 @@ export async function GET(
       `https://api.github.com/repos/${owner}/${repo}/branches`,
       {
         headers: {
-          Authorization: `token ${user.githubAccessToken}`,
+          Authorization: `Bearer ${user.githubAccessToken}`,
           Accept: "application/vnd.github.v3+json",
+          "User-Agent": "Fortify-AI",
         },
       }
     );
