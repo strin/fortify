@@ -198,7 +198,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading vulnerabilities...</p>
@@ -209,7 +209,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Vulnerabilities</h1>
@@ -238,7 +238,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Navigation */}
         <nav className="flex justify-between items-center mb-8">

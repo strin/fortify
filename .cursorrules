@@ -37,6 +37,7 @@ The `specs/` directory contains the source of truth for all architectural decisi
 - **Styling**: Tailwind CSS + shadcn/ui components.
   - Use the shadcn/ui component library for all UI components.
   - Use the Tailwind CSS theme classes for styling.
+- **Loading State**: By default, create skeleton UI using shadcn/ui components. Fallback: use the `Loader2` component from shadcn/ui for loading states.
 - **Authentication**: NextAuth.js with GitHub OAuth
 - **Database**: Prisma client for PostgreSQL
 
