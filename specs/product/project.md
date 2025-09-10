@@ -49,10 +49,10 @@ A **Project** in Fortify is the central unit in the system.
 The starting point for every user. Provides a high-level snapshot of project health.
 
 **Features:**
-- Last scan result (status + timestamp).
-- Issues summary (Critical / High / Medium / Low).
+- Vulnerabilities summary (Critical / High / Medium / Low) for main/master branch.
+- Stats of scans (total, completed, failed, pending, in progress).
+- List of recent scans and their high-level status, with links to details and option to view all scans.
 - Quick actions: **Run Scan**, etc.
-- Recent issues preview (top 3, link to details).
 
 ---
 
@@ -61,15 +61,15 @@ Comprehensive list of all scan runs (manual, PR-triggered, or scheduled).
 
 **Table Columns:**
 - **Scan ID** – unique identifier, clickable for full detail.
-- **Branch / Path** – where the scan was executed (e.g., `main`, `dev/infra`).
-- **Summary** – # of issues found, scan duration.
-- **Issues Preview** – top 2–3 issues inline (+ link to “view more”).
+- **Repo / Branch / Path** – where the scan was executed (e.g., `main`, `dev/infra`).
+- **Summary** – # of vulnerabilities found (Critical / High / Medium / Low), scan duration.
 - **Date / Trigger** – when the scan ran and why (manual, push, PR).
 
 **Filters:**
+- By keyword.
 - Branch
-- Severity
-- Status (pass/fail)
+- Path.
+- Status (completed, failed, pending, in progress).
 
 ---
 
