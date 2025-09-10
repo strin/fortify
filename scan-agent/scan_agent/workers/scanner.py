@@ -911,7 +911,8 @@ Please begin the security audit now."""
                     data={
                         "status": "COMPLETED",
                         "result": result,
-                        "finishedAt": datetime.now(),
+                        "finishedAt": datetime.now().isoformat(),
+                        "vulnerabilitiesFound": result.get("vulnerabilities_stored", 0),
                     },
                 )
                 logger.info(f"✅ Updated ScanJob {job.id} status to COMPLETED")
@@ -949,7 +950,7 @@ Please begin the security audit now."""
                 data={
                     "status": "FAILED",
                     "error": error_msg,
-                    "finishedAt": datetime.now(),
+                    "finishedAt": datetime.now().isoformat(),
                 },
             )
             logger.info(f"Updated ScanJob {job_id} status to FAILED")
