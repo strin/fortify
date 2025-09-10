@@ -11,7 +11,7 @@ import SampleScanReport from "./SampleScanReport";
 
 export default function LandingPage() {
   const handleGitHubScan = () => {
-    signIn("github", { callbackUrl: "/new-scan-target" });
+    signIn("github", { callbackUrl: "/new-project" });
   };
 
   return (

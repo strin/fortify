@@ -119,7 +119,7 @@ export default function ScannedRepositoriesPage() {
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Scanned Repositories</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Projects</Link>
+              <Link href="/projects">Back to Projects</Link>
             </Button>
           </nav>
 
@@ -151,7 +151,7 @@ export default function ScannedRepositoriesPage() {
               <Link href="/repositories">Scan New Repository</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Scan Projects</Link>
+              <Link href="/projects">Projects</Link>
             </Button>
           </div>
         </nav>
