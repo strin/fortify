@@ -159,52 +159,54 @@ export default function ProjectOverviewPage() {
           {project.scanJobs && project.scanJobs.length > 0 ? (
             <div className="space-y-4">
               {project.scanJobs.slice(0, 5).map((scan) => (
-                <div key={scan.id} className="flex items-center justify-between p-4 border rounded-lg bg-card/50">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-sm">
-                          {scan.data?.repo_url ? new URL(scan.data.repo_url).pathname.substring(1) : 'Repository Scan'}
-                        </span>
-                        <Badge 
-                          variant={
-                            scan.status === 'COMPLETED' ? 'default' : 
-                            scan.status === 'FAILED' ? 'destructive' : 
-                            scan.status === 'IN_PROGRESS' ? 'secondary' : 
-                            'outline'
-                          }
-                        >
-                          {scan.status.toLowerCase()}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>{formatTimeAgo(scan.createdAt)}</span>
-                        {scan.status === 'COMPLETED' && (
-                          <span className="flex items-center gap-1">
-                            <Shield className="h-3 w-3" />
-                            {scan.vulnerabilitiesFound} vulnerabilities
+                <Link key={scan.id} href={`/jobs/${scan.id}`} className="block">
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-sm">
+                            {scan.data?.repo_url ? new URL(scan.data.repo_url).pathname.substring(1) : 'Repository Scan'}
                           </span>
-                        )}
+                          <Badge 
+                            variant={
+                              scan.status === 'COMPLETED' ? 'default' : 
+                              scan.status === 'FAILED' ? 'destructive' : 
+                              scan.status === 'IN_PROGRESS' ? 'secondary' : 
+                              'outline'
+                            }
+                          >
+                            {scan.status.toLowerCase()}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>{formatTimeAgo(scan.createdAt)}</span>
+                          {scan.status === 'COMPLETED' && (
+                            <span className="flex items-center gap-1">
+                              <Shield className="h-3 w-3" />
+                              {scan.vulnerabilitiesFound} vulnerabilities
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {scan.status === 'COMPLETED' && scan.vulnerabilities && scan.vulnerabilities.length > 0 && (
+                        <div className="flex gap-1">
+                          {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((severity) => {
+                            const count = scan.vulnerabilities.filter(v => v.severity === severity).length;
+                            if (count === 0) return null;
+                            return (
+                              <Badge 
+                                key={severity} 
+                                className={`text-xs px-1 py-0 ${getSeverityColor(severity)}`}
+                              >
+                                {count}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    {scan.status === 'COMPLETED' && scan.vulnerabilities && scan.vulnerabilities.length > 0 && (
-                      <div className="flex gap-1">
-                        {['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((severity) => {
-                          const count = scan.vulnerabilities.filter(v => v.severity === severity).length;
-                          if (count === 0) return null;
-                          return (
-                            <Badge 
-                              key={severity} 
-                              className={`text-xs px-1 py-0 ${getSeverityColor(severity)}`}
-                            >
-                              {count}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
-                </div>
+                </Link>
               ))}
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm text-muted-foreground">

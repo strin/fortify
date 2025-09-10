@@ -219,95 +219,89 @@ export default function ProjectScansPage() {
           {scans.length > 0 ? (
             <div className="space-y-4">
               {scans.map((scan) => (
-                <Card key={scan.id} className="bg-card/50">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          {getStatusIcon(scan.status)}
-                          <div>
-                            <h3 className="font-medium">
-                              {scan.scanTarget?.name || 
-                               (scan.data?.repo_url ? new URL(scan.data.repo_url).pathname.substring(1) : 'Repository Scan')
-                              }
-                            </h3>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <span className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDate(scan.createdAt)}
-                              </span>
-                              {scan.scanTarget && (
-                                <>
-                                  <span className="flex items-center gap-1">
-                                    <GitBranch className="h-3 w-3" />
-                                    {scan.scanTarget.branch}
-                                  </span>
-                                  {scan.scanTarget.subPath !== "/" && (
-                                    <span className="text-xs bg-muted px-2 py-1 rounded">
-                                      {scan.scanTarget.subPath}
-                                    </span>
-                                  )}
-                                </>
-                              )}
-                              {scan.finishedAt && scan.startedAt && (
+                <Link key={scan.id} href={`/jobs/${scan.id}`} className="block">
+                  <Card className="bg-card/50 hover:bg-card/70 transition-colors cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            {getStatusIcon(scan.status)}
+                            <div>
+                              <h3 className="font-medium">
+                                {scan.scanTarget?.name || 
+                                 (scan.data?.repo_url ? new URL(scan.data.repo_url).pathname.substring(1) : 'Repository Scan')
+                                }
+                              </h3>
+                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                 <span className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {formatDuration(scan.startedAt, scan.finishedAt)}
+                                  <Calendar className="h-3 w-3" />
+                                  {formatDate(scan.createdAt)}
                                 </span>
-                              )}
+                                {scan.scanTarget && (
+                                  <>
+                                    <span className="flex items-center gap-1">
+                                      <GitBranch className="h-3 w-3" />
+                                      {scan.scanTarget.branch}
+                                    </span>
+                                    {scan.scanTarget.subPath !== "/" && (
+                                      <span className="text-xs bg-muted px-2 py-1 rounded">
+                                        {scan.scanTarget.subPath}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
+                                {scan.finishedAt && scan.startedAt && (
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatDuration(scan.startedAt, scan.finishedAt)}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <Badge variant={getStatusVariant(scan.status)}>
-                            {scan.status.toLowerCase()}
-                          </Badge>
                           
-                          {scan.status === "COMPLETED" && (
-                            <>
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <Shield className="h-3 w-3" />
-                                <span>{scan.totalVulnerabilities} vulnerabilities</span>
-                              </div>
-                              
-                              {scan.totalVulnerabilities > 0 && (
-                                <div className="flex gap-1">
-                                  {["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((severity) => {
-                                    const count = scan.vulnerabilityCounts[severity as keyof typeof scan.vulnerabilityCounts];
-                                    if (count === 0) return null;
-                                    return (
-                                      <Badge 
-                                        key={severity} 
-                                        className={`text-xs px-2 py-1 ${getSeverityColor(severity)}`}
-                                      >
-                                        {count} {severity.toLowerCase()}
-                                      </Badge>
-                                    );
-                                  })}
+                          <div className="flex items-center gap-3">
+                            <Badge variant={getStatusVariant(scan.status)}>
+                              {scan.status.toLowerCase()}
+                            </Badge>
+                            
+                            {scan.status === "COMPLETED" && (
+                              <>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Shield className="h-3 w-3" />
+                                  <span>{scan.totalVulnerabilities} vulnerabilities</span>
                                 </div>
-                              )}
-                            </>
-                          )}
-                          
-                          {scan.status === "FAILED" && scan.error && (
-                            <span className="text-sm text-destructive">
-                              {scan.error}
-                            </span>
-                          )}
+                                
+                                {scan.totalVulnerabilities > 0 && (
+                                  <div className="flex gap-1">
+                                    {["CRITICAL", "HIGH", "MEDIUM", "LOW"].map((severity) => {
+                                      const count = scan.vulnerabilityCounts[severity as keyof typeof scan.vulnerabilityCounts];
+                                      if (count === 0) return null;
+                                      return (
+                                        <Badge 
+                                          key={severity} 
+                                          className={`text-xs px-2 py-1 ${getSeverityColor(severity)}`}
+                                        >
+                                          {count} {severity.toLowerCase()}
+                                        </Badge>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            
+                            {scan.status === "FAILED" && scan.error && (
+                              <span className="text-sm text-destructive">
+                                {scan.error}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/jobs/${scan.id}`}>
-                            View Details
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
               
               <div className="text-center py-4 text-sm text-muted-foreground">
