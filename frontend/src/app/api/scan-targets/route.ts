@@ -139,9 +139,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize subPath: empty string or undefined becomes null
+    // Normalize subPath: empty string or undefined becomes empty string
     const normalizedSubPath =
-      subPath && subPath.trim() !== "" ? subPath.trim() : null;
+      subPath && subPath.trim() !== "" ? subPath.trim() : "";
 
     // Check if scan target already exists for this user
     const existingScanTarget = await prisma.scanTarget.findFirst({

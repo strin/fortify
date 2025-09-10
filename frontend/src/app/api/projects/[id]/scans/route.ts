@@ -52,6 +52,9 @@ export async function POST(
 
     const repository = project.repositories[0];
 
+    // Normalize the path - use empty string for root directory instead of null
+    const normalizedPath = (path && path !== '/') ? path : '';
+
     // Create or find existing scan target
     const scanTarget = await prisma.scanTarget.upsert({
       where: {
@@ -59,17 +62,17 @@ export async function POST(
           userId: session.user.id,
           repoUrl: repoUrl,
           branch: branch,
-          subPath: path || null,
+          subPath: normalizedPath,
         },
       },
       create: {
         userId: session.user.id,
         repositoryId: repository.id,
-        name: `${repository.fullName} (${branch}${path && path !== '/' ? path : ''})`,
-        description: `Scan target for ${repository.fullName} on branch ${branch}${path && path !== '/' ? ` at path ${path}` : ''}`,
+        name: `${repository.fullName} (${branch}${normalizedPath ? normalizedPath : ''})`,
+        description: `Scan target for ${repository.fullName} on branch ${branch}${normalizedPath ? ` at path ${normalizedPath}` : ''}`,
         repoUrl: repoUrl,
         branch: branch,
-        subPath: path && path !== '/' ? path : null,
+        subPath: normalizedPath,
       },
       update: {
         // Update last scan time will be set when scan completes
@@ -80,7 +83,7 @@ export async function POST(
     const scanJobData = {
       repo_url: repoUrl,
       branch: branch,
-      path: path && path !== '/' ? path : undefined,
+      path: normalizedPath || undefined, // Use undefined for root directory in scan job data
       user_id: session.user.id,
     };
 
