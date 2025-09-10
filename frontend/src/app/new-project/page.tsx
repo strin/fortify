@@ -31,6 +31,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  FolderOpen,
   GitBranch,
   Github,
   Loader2,
@@ -370,14 +371,22 @@ function NewProjectForm() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              </Link>
+              <h1 className="text-3xl font-bold">Create New Project</h1>
+            </div>
+            <Link href="/projects">
               <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                <FolderOpen className="h-4 w-4 mr-2" />
+                View All Projects
               </Button>
             </Link>
-            <h1 className="text-3xl font-bold">Create New Project</h1>
           </div>
 
           {/* Progress indicator */}
