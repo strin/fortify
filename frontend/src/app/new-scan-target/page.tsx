@@ -185,14 +185,14 @@ function NewScanTargetForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create scan target");
+        throw new Error(data.error || "Failed to create scan project");
       }
 
       // Redirect to scan target detail page
       router.push(`/scan-targets/${data.id}`);
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create scan target"
+        err instanceof Error ? err.message : "Failed to create scan project"
       );
     } finally {
       setLoading(false);
@@ -240,7 +240,7 @@ function NewScanTargetForm() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
               </Button>
-              <h1 className="text-3xl font-bold">Create New Scan Target</h1>
+              <h1 className="text-3xl font-bold">Create New Scan Project</h1>
             </div>
           </div>
 
@@ -388,6 +388,7 @@ function NewScanTargetForm() {
                                 Updated {new Date(repo.updatedAt).toLocaleDateString()}
                               </span>
                             </div>
+
                           </div>
                           <ArrowRight className="h-4 w-4 text-gray-500 group-hover:text-blue-400 mt-1 flex-shrink-0 transition-colors" />
                         </div>
@@ -439,7 +440,12 @@ function NewScanTargetForm() {
                         </Button>
                       )}
                     </div>
-                  )}
+                    
+                    {/* Gradient fade at bottom to indicate more content when scrollable */}
+                    {filteredRepositories.length > 5 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-800/80 to-transparent pointer-events-none rounded-b-lg" />
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -450,7 +456,7 @@ function NewScanTargetForm() {
         {step === 2 && selectedRepo && (
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-              <CardTitle>Configure Scan Target</CardTitle>
+              <CardTitle>Configure Scan Project</CardTitle>
               <CardDescription>
                 Set up the scanning parameters for {selectedRepo.name}.
               </CardDescription>
@@ -458,7 +464,7 @@ function NewScanTargetForm() {
             <CardContent className="space-y-6">
               {/* Scan Target Name */}
               <div>
-                <Label htmlFor="name">Scan Target Name *</Label>
+                <Label htmlFor="name">Scan Project Name *</Label>
                 <Input
                   id="name"
                   value={scanTargetName}
@@ -513,7 +519,7 @@ function NewScanTargetForm() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-gray-900 border-gray-600 mt-2"
-                  placeholder="Add notes about this scan target..."
+                  placeholder="Add notes about this scan project..."
                   rows={3}
                 />
               </div>
@@ -543,9 +549,9 @@ function NewScanTargetForm() {
         {step === 3 && selectedRepo && (
           <Card className="bg-gray-800/50 border-gray-700">
             <CardHeader>
-              <CardTitle>Review Scan Target</CardTitle>
+              <CardTitle>Review Scan Project</CardTitle>
               <CardDescription>
-                Please review your scan target configuration before creating.
+                Please review your scan project configuration before creating.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -616,7 +622,7 @@ function NewScanTargetForm() {
                       Creating...
                     </>
                   ) : (
-                    "Create Scan Target"
+                    "Create Scan Project"
                   )}
                 </Button>
               </div>

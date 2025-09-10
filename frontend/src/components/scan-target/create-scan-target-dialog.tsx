@@ -177,7 +177,7 @@ export function CreateScanTargetDialog({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to create scan target");
+        throw new Error(data.error || "Failed to create scan project");
       }
 
       onSuccess();
@@ -185,7 +185,7 @@ export function CreateScanTargetDialog({
       resetForm();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create scan target"
+        err instanceof Error ? err.message : "Failed to create scan project"
       );
     } finally {
       setLoading(false);
@@ -228,12 +228,12 @@ export function CreateScanTargetDialog({
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {step === "select" ? "Select Repository" : "Configure Scan Target"}
+            {step === "select" ? "Select Repository" : "Configure Scan Project"}
           </DialogTitle>
           <DialogDescription>
             {step === "select"
-              ? "Choose a repository to create a new scan target"
-              : "Configure your scan target settings"}
+              ? "Choose a repository to create a new scan project"
+              : "Configure your scan project settings"}
           </DialogDescription>
         </DialogHeader>
 
@@ -350,7 +350,7 @@ export function CreateScanTargetDialog({
             <div className="grid gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="name">
-                  Scan Target Name
+                  Scan Project Name
                 </Label>
                 <Input
                   id="name"
@@ -375,7 +375,7 @@ export function CreateScanTargetDialog({
                       description: e.target.value,
                     }))
                   }
-                  placeholder="Describe what this scan target covers"
+                  placeholder="Describe what this scan project covers"
                   rows={3}
                 />
               </div>
@@ -447,7 +447,7 @@ export function CreateScanTargetDialog({
               ) : (
                 <CheckCircle className="h-4 w-4 mr-2" />
               )}
-              Create Scan Target
+              Create Scan Project
             </Button>
           )}
         </DialogFooter>

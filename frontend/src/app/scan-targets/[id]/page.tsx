@@ -104,7 +104,7 @@ export default function ScanTargetDetailPage({
           router.push("/scan-targets");
           return;
         }
-        throw new Error(data.error || "Failed to fetch scan target");
+        throw new Error(data.error || "Failed to fetch scan project");
       }
 
       setScanTarget(data);
@@ -225,7 +225,7 @@ export default function ScanTargetDetailPage({
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scan target...</p>
+          <p>Loading scan project...</p>
         </div>
       </div>
     );
@@ -238,7 +238,7 @@ export default function ScanTargetDetailPage({
           <div className="max-w-2xl mx-auto text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
             <h2 className="text-2xl font-bold mb-4">
-              Error Loading Scan Target
+              Error Loading Scan Project
             </h2>
             <p className="text-gray-300 mb-6">{error}</p>
             <div className="flex gap-4 justify-center">
@@ -247,7 +247,7 @@ export default function ScanTargetDetailPage({
                 Try Again
               </Button>
               <Button asChild variant="outline">
-                <Link href="/scan-targets">Back to Scan Targets</Link>
+                <Link href="/scan-targets">Back to Scan Projects</Link>
               </Button>
             </div>
           </div>
@@ -269,7 +269,7 @@ export default function ScanTargetDetailPage({
             <Button asChild variant="ghost" size="sm">
               <Link href="/scan-targets">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Scan Targets
+                Back to Scan Projects
               </Link>
             </Button>
             <div>
@@ -323,7 +323,7 @@ export default function ScanTargetDetailPage({
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-400">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Target
+                  Delete Project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -426,7 +426,7 @@ export default function ScanTargetDetailPage({
           <CardHeader>
             <CardTitle className="text-white">Recent Scans</CardTitle>
             <CardDescription className="text-gray-400">
-              Latest scan results for this target
+              Latest scan results for this project
             </CardDescription>
           </CardHeader>
           <CardContent>
