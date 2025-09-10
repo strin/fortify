@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
           description: `Default scan target for ${fullName} on ${defaultBranch} branch`,
           repoUrl,
           branch: defaultBranch,
-          subPath: null,
+          subPath: "/",
         },
       });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, createContext, useContext } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
@@ -11,8 +11,9 @@ import {
   AlertCircle,
   ArrowLeft,
   Github,
-  Play,
+  Target,
 } from "lucide-react";
+import { CreateScanDialog } from "@/components/scan/create-scan-dialog";
 
 interface Repository {
   id: string;
@@ -43,6 +44,21 @@ interface ProjectLayoutProps {
   params: Promise<{ id: string }>;
 }
 
+interface ProjectContextType {
+  project: Project | null;
+  showCreateScanDialog: () => void;
+}
+
+const ProjectContext = createContext<ProjectContextType | null>(null);
+
+export const useProject = () => {
+  const context = useContext(ProjectContext);
+  if (!context) {
+    throw new Error("useProject must be used within a ProjectLayout");
+  }
+  return context;
+};
+
 export default function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -52,6 +68,7 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string>("");
+  const [showCreateScanDialog, setShowCreateScanDialog] = useState(false);
 
   // Get project ID from params
   useEffect(() => {
@@ -88,6 +105,11 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleScanCreated = (scanJobId: string) => {
+    // Redirect to the scan job page to monitor progress
+    router.push(`/jobs/${scanJobId}`);
   };
 
   const getCurrentTab = () => {
@@ -230,9 +252,13 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
                 )}
               </div>
             </div>
-            <Button variant="cta">
-              <Play className="h-4 w-4 mr-2" />
-              Run Scan
+            <Button 
+              variant="cta" 
+              onClick={() => setShowCreateScanDialog(true)}
+              disabled={!project || project.repositories.length === 0}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Create Scan
             </Button>
           </div>
 
@@ -245,8 +271,23 @@ export default function ProjectLayout({ children, params }: ProjectLayoutProps) 
         {getTabNavigation()}
 
         {/* Tab Content */}
-        <div className="mt-6">{children}</div>
+        <ProjectContext.Provider value={{ 
+          project, 
+          showCreateScanDialog: () => setShowCreateScanDialog(true) 
+        }}>
+          <div className="mt-6">{children}</div>
+        </ProjectContext.Provider>
       </div>
+
+      {/* Create Scan Dialog */}
+      {project && (
+        <CreateScanDialog
+          open={showCreateScanDialog}
+          onOpenChange={setShowCreateScanDialog}
+          project={project}
+          onScanCreated={handleScanCreated}
+        />
+      )}
     </div>
   );
 }

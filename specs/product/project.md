@@ -153,3 +153,6 @@ Configuration options for integrations and notifications.
 - The conflict check should happen on repository selection, not just on final project creation
 - For MVP, prioritize the "Go to Existing Project" option since we currently enforce one-repository-per-project
 
+## Edge Cases
+
+If the project for repo already exists, we should ask the user if they want to go to the corresponding project page or create a new project.

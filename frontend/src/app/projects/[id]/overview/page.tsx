@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useProject } from "../layout";
 import Link from "next/link";
 import {
   Card,
@@ -14,76 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
-  Play,
   Shield,
   Target,
 } from "lucide-react";
 
-interface VulnerabilitySummary {
-  CRITICAL: number;
-  HIGH: number;
-  MEDIUM: number;
-  LOW: number;
-  INFO: number;
-}
+// Use the Project interface from the layout context
 
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  lastScanAt: string | null;
-  repositories: any[];
-  scanJobs: any[];
-  totalScans: number;
-  totalRepositories: number;
-  vulnerabilitySummary: VulnerabilitySummary;
-}
-
-export default function ProjectOverviewPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const router = useRouter();
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [projectId, setProjectId] = useState<string>("");
-
-  // Get project ID from params
-  useEffect(() => {
-    params.then((p) => setProjectId(p.id));
-  }, [params]);
-
-  // Fetch project data
-  useEffect(() => {
-    if (projectId) {
-      fetchProject();
-    }
-  }, [projectId]);
-
-  const fetchProject = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`/api/projects/${projectId}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch project");
-      }
-
-      setProject(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch project");
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function ProjectOverviewPage() {
+  const { project, showCreateScanDialog } = useProject();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -123,43 +60,6 @@ export default function ProjectOverviewPage({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="animate-pulse">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                  <div className="h-8 bg-muted rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse">
-              <div className="h-6 bg-muted rounded w-1/3 mb-4"></div>
-              <div className="h-32 bg-muted rounded w-full"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-destructive">{error}</p>
-        <Button onClick={fetchProject} className="mt-4">
-          Try Again
-        </Button>
-      </div>
-    );
-  }
 
   if (!project) {
     return null;
@@ -178,26 +78,11 @@ export default function ProjectOverviewPage({
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(project.vulnerabilitySummary).map(
-                ([severity, count]) => (
-                  <div
-                    key={severity}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${getSeverityColor(
-                          severity
-                        )}`}
-                      />
-                      <span className="text-sm capitalize">
-                        {severity.toLowerCase()}
-                      </span>
-                    </div>
-                    <span className="font-medium">{count}</span>
-                  </div>
-                )
-              )}
+              <div className="text-center py-4">
+                <span className="text-sm text-muted-foreground">
+                  Vulnerability summary coming soon
+                </span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -213,12 +98,12 @@ export default function ProjectOverviewPage({
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Scans</span>
-                <span className="font-medium">{project.totalScans}</span>
+                <span className="font-medium">0</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Repositories</span>
                 <span className="font-medium">
-                  {project.totalRepositories}
+                  {project.repositories.length}
                 </span>
               </div>
               <div className="flex justify-between">
@@ -271,60 +156,18 @@ export default function ProjectOverviewPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {project.scanJobs.length === 0 ? (
-            <div className="text-center py-8">
-              <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No scans yet</p>
-              <Button className="mt-4">
-                <Play className="h-4 w-4 mr-2" />
-                Run Your First Scan
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {project.scanJobs.slice(0, 8).map((job) => (
-                <div
-                  key={job.id}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-accent transition-colors"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Badge
-                        variant={
-                          job.status === "COMPLETED" ? "default" : "secondary"
-                        }
-                      >
-                        {job.status}
-                      </Badge>
-                      <span className="text-sm text-muted-foreground">
-                        {job.finishedAt
-                          ? formatDate(job.finishedAt)
-                          : "In progress..."}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      Vulnerabilities found:{" "}
-                      <span className="font-medium">
-                        {job.vulnerabilitiesFound || 0}
-                      </span>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" asChild>
-                    <Link href={`/scans/${job.id}`}>View Details</Link>
-                  </Button>
-                </div>
-              ))}
-              {project.scanJobs.length > 8 && (
-                <div className="text-center pt-4">
-                  <Button variant="outline" asChild>
-                    <Link href={`/projects/${project.id}/scans`}>
-                      View All Scans ({project.totalScans})
-                    </Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="text-center py-8">
+            <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">No scans yet</p>
+            <Button 
+              className="mt-4"
+              onClick={showCreateScanDialog}
+              disabled={!project || project.repositories.length === 0}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Create Your First Scan
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
