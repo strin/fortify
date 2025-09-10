@@ -24,6 +24,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  FolderOpen,
   GitBranch,
   Github,
   Loader2,
@@ -308,6 +309,12 @@ function NewProjectForm() {
               <Button variant="outline" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
+              </Button>
+            </Link>
+            <Link href="/projects">
+              <Button variant="outline" size="sm">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                View All Projects
               </Button>
             </Link>
             <h1 className="text-3xl font-bold">Create New Project</h1>
