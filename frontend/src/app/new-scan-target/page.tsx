@@ -333,52 +333,79 @@ function NewScanTargetForm() {
                   <p className="text-gray-400">Loading repositories...</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredRepositories.map((repo) => (
-                    <div
-                      key={repo.id}
-                      className="p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer transition-colors"
-                      onClick={() => handleRepositorySelect(repo)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-white">
-                              {repo.name}
-                            </h3>
-                            {repo.private && (
-                              <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
-                                Private
-                              </span>
-                            )}
-                            {repo.language && (
-                              <span className="px-2 py-1 text-xs bg-blue-900 text-blue-300 rounded">
-                                {repo.language}
-                              </span>
-                            )}
-                          </div>
-                          {repo.description && (
-                            <p className="text-gray-400 text-sm mb-2">
-                              {repo.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>⭐ {repo.stars}</span>
-                            <span>
-                              Updated{" "}
-                              {new Date(repo.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-gray-500 mt-1" />
-                      </div>
-                    </div>
-                  ))}
-                  {filteredRepositories.length === 0 && !loading && (
-                    <div className="text-center py-8 text-gray-400">
-                      <p>No repositories found matching your search.</p>
+                <div className="relative">
+                  {/* Show total count and scroll hint when there are many repositories */}
+                  {filteredRepositories.length > 5 && (
+                    <div className="flex justify-between items-center mb-3 text-sm text-gray-400">
+                      <span>{filteredRepositories.length} repositories found</span>
+                      <span className="text-xs">Scroll to see more</span>
                     </div>
                   )}
+                  
+                  {/* Scrollable repository container */}
+                  <div className={`
+                    relative space-y-3 overflow-y-auto border border-gray-700/50 rounded-lg
+                    ${filteredRepositories.length > 5 
+                      ? 'min-h-32 max-h-96' 
+                      : filteredRepositories.length > 0 
+                        ? 'max-h-fit' 
+                        : 'min-h-32'
+                    }
+                  `}>
+                    <div className="p-1">
+                      {filteredRepositories.map((repo) => (
+                        <div
+                          key={repo.id}
+                          className="p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer transition-colors mb-3 last:mb-0"
+                          onClick={() => handleRepositorySelect(repo)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-white">
+                                  {repo.name}
+                                </h3>
+                                {repo.private && (
+                                  <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
+                                    Private
+                                  </span>
+                                )}
+                                {repo.language && (
+                                  <span className="px-2 py-1 text-xs bg-blue-900 text-blue-300 rounded">
+                                    {repo.language}
+                                  </span>
+                                )}
+                              </div>
+                              {repo.description && (
+                                <p className="text-gray-400 text-sm mb-2">
+                                  {repo.description}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-4 text-xs text-gray-500">
+                                <span>⭐ {repo.stars}</span>
+                                <span>
+                                  Updated{" "}
+                                  {new Date(repo.updatedAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                            <ArrowRight className="h-4 w-4 text-gray-500 mt-1" />
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {filteredRepositories.length === 0 && !loading && (
+                        <div className="text-center py-8 text-gray-400">
+                          <p>No repositories found matching your search.</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Gradient fade at bottom to indicate more content when scrollable */}
+                    {filteredRepositories.length > 5 && (
+                      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-800/80 to-transparent pointer-events-none rounded-b-lg" />
+                    )}
+                  </div>
                 </div>
               )}
             </CardContent>
