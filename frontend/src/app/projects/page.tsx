@@ -163,7 +163,7 @@ export default function ProjectsPage() {
           <div className="mt-4 sm:mt-0 flex gap-3">
             <Button
               onClick={() => setIsCreateDialogOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
+              variant="cta"
             >
               <Plus className="h-4 w-4 mr-2" />
               New Project
@@ -217,7 +217,7 @@ export default function ProjectsPage() {
               </p>
               <Button
                 onClick={() => setIsCreateDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700"
+                variant="cta"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Project

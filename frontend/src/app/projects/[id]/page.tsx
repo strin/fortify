@@ -37,6 +37,7 @@ interface Repository {
   defaultBranch: string;
   isPrivate: boolean;
   lastScanAt: string | null;
+  repoUrl: string;
   scanTargets: ScanTarget[];
   totalScanTargets: number;
 }
@@ -124,9 +125,7 @@ export default function ProjectDetailPage({
 
       setProject(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch project"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch project");
     } finally {
       setLoading(false);
     }
@@ -157,11 +156,16 @@ export default function ProjectDetailPage({
 
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
-      case "critical": return "bg-red-600";
-      case "high": return "bg-orange-600";
-      case "medium": return "bg-yellow-600";
-      case "low": return "bg-blue-600";
-      default: return "bg-gray-600";
+      case "critical":
+        return "bg-red-600";
+      case "high":
+        return "bg-orange-600";
+      case "medium":
+        return "bg-yellow-600";
+      case "low":
+        return "bg-blue-600";
+      default:
+        return "bg-gray-600";
     }
   };
 
@@ -214,6 +218,31 @@ export default function ProjectDetailPage({
             </Link>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-bold">{project.name}</h1>
+              {project.repositories.length > 0 && (
+                <div className="flex items-center gap-2">
+                  {project.repositories.map((repo, index) => (
+                    <div key={repo.id} className="flex items-center gap-1">
+                      {index > 0 && <span className="text-gray-500">•</span>}
+                      <a
+                        href={
+                          repo.provider === "GITHUB"
+                            ? `https://github.com/${repo.fullName}`
+                            : repo.repoUrl
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors text-sm text-gray-300 hover:text-white"
+                        title={`Open ${
+                          repo.fullName
+                        } on ${repo.provider.toLowerCase()}`}
+                      >
+                        <Github className="h-3 w-3" />
+                        <span>{repo.fullName}</span>
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
               <Badge variant={project.isActive ? "default" : "secondary"}>
                 {project.isActive ? "Active" : "Inactive"}
               </Badge>
@@ -226,7 +255,7 @@ export default function ProjectDetailPage({
 
           {/* Quick Actions */}
           <div className="flex gap-3 mt-6">
-            <Button className="bg-blue-600 hover:bg-blue-700">
+            <Button variant="cta">
               <Play className="h-4 w-4 mr-2" />
               Run Scan
             </Button>
@@ -258,15 +287,26 @@ export default function ProjectDetailPage({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {Object.entries(project.vulnerabilitySummary).map(([severity, count]) => (
-                      <div key={severity} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className={`w-3 h-3 rounded-full ${getSeverityColor(severity)}`} />
-                          <span className="text-sm capitalize">{severity.toLowerCase()}</span>
+                    {Object.entries(project.vulnerabilitySummary).map(
+                      ([severity, count]) => (
+                        <div
+                          key={severity}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`w-3 h-3 rounded-full ${getSeverityColor(
+                                severity
+                              )}`}
+                            />
+                            <span className="text-sm capitalize">
+                              {severity.toLowerCase()}
+                            </span>
+                          </div>
+                          <span className="font-medium">{count}</span>
                         </div>
-                        <span className="font-medium">{count}</span>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -286,12 +326,16 @@ export default function ProjectDetailPage({
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Repositories</span>
-                      <span className="font-medium">{project.totalRepositories}</span>
+                      <span className="font-medium">
+                        {project.totalRepositories}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400">Last Scan</span>
                       <span className="font-medium">
-                        {project.lastScanAt ? formatTimeAgo(project.lastScanAt) : "Never"}
+                        {project.lastScanAt
+                          ? formatTimeAgo(project.lastScanAt)
+                          : "Never"}
                       </span>
                     </div>
                   </div>
@@ -324,62 +368,7 @@ export default function ProjectDetailPage({
               </Card>
             </div>
 
-            {/* Repositories */}
-            <Card className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Github className="h-5 w-5" />
-                  Repositories
-                </CardTitle>
-                <CardDescription>
-                  Repositories included in this project
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {project.repositories.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Github className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                    <p className="text-gray-400">No repositories configured</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {project.repositories.map((repo) => (
-                      <div
-                        key={repo.id}
-                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Github className="h-4 w-4" />
-                            <span className="font-medium">{repo.fullName}</span>
-                            {repo.isPrivate && (
-                              <Badge variant="secondary" className="text-xs">
-                                Private
-                              </Badge>
-                            )}
-                            <div className="flex items-center gap-1 text-sm text-gray-400">
-                              <GitBranch className="h-3 w-3" />
-                              {repo.defaultBranch}
-                            </div>
-                          </div>
-                          {repo.description && (
-                            <p className="text-gray-400 text-sm">{repo.description}</p>
-                          )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                            <span>Scan Targets: {repo.totalScanTargets}</span>
-                            {repo.lastScanAt && (
-                              <span>Last Scan: {formatTimeAgo(repo.lastScanAt)}</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recent Scans */}
+            {/* Recent Scans - Now prominently displayed */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -395,40 +384,56 @@ export default function ProjectDetailPage({
                   <div className="text-center py-8">
                     <Target className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                     <p className="text-gray-400">No scans yet</p>
-                    <Button className="mt-4 bg-blue-600 hover:bg-blue-700">
+                    <Button className="mt-4">
                       <Play className="h-4 w-4 mr-2" />
                       Run Your First Scan
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {project.scanJobs.slice(0, 5).map((job) => (
+                    {project.scanJobs.slice(0, 8).map((job) => (
                       <div
                         key={job.id}
-                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg"
+                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg hover:border-gray-500 transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <Badge
-                              variant={job.status === "COMPLETED" ? "default" : "secondary"}
+                              variant={
+                                job.status === "COMPLETED"
+                                  ? "default"
+                                  : "secondary"
+                              }
                             >
                               {job.status}
                             </Badge>
                             <span className="text-sm text-gray-400">
-                              {job.finishedAt ? formatDate(job.finishedAt) : "In progress..."}
+                              {job.finishedAt
+                                ? formatDate(job.finishedAt)
+                                : "In progress..."}
                             </span>
                           </div>
                           <div className="text-sm">
-                            Vulnerabilities found: <span className="font-medium">{job.vulnerabilitiesFound || 0}</span>
+                            Vulnerabilities found:{" "}
+                            <span className="font-medium">
+                              {job.vulnerabilitiesFound || 0}
+                            </span>
                           </div>
                         </div>
                         <Button size="sm" variant="outline" asChild>
-                          <Link href={`/scans/${job.id}`}>
-                            View Details
-                          </Link>
+                          <Link href={`/scans/${job.id}`}>View Details</Link>
                         </Button>
                       </div>
                     ))}
+                    {project.scanJobs.length > 8 && (
+                      <div className="text-center pt-4">
+                        <Button variant="outline" asChild>
+                          <Link href={`/projects/${project.id}?tab=scans`}>
+                            View All Scans ({project.totalScans})
+                          </Link>
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -466,7 +471,9 @@ export default function ProjectDetailPage({
                 <div className="text-center py-8">
                   <Shield className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                   <p className="text-gray-400 mb-4">
-                    Compliance reporting is coming soon. You&apos;ll be able to generate evidence for SOC2, ISO, and HIPAA directly from your scan history.
+                    Compliance reporting is coming soon. You&apos;ll be able to
+                    generate evidence for SOC2, ISO, and HIPAA directly from
+                    your scan history.
                   </p>
                 </div>
               </CardContent>
@@ -474,19 +481,114 @@ export default function ProjectDetailPage({
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings">
+          <TabsContent value="settings" className="space-y-6">
+            {/* Repositories Configuration */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <CardTitle>Project Settings</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Github className="h-5 w-5" />
+                  Repository Configuration
+                </CardTitle>
                 <CardDescription>
-                  Configure integrations, notifications, and policies
+                  Manage repositories included in this project
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {project.repositories.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Github className="h-12 w-12 mx-auto mb-4 text-gray-500" />
+                    <p className="text-gray-400 mb-4">
+                      No repositories configured
+                    </p>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Github className="h-4 w-4 mr-2" />
+                      Add Repository
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-400">
+                        {project.repositories.length} repositories configured
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Github className="h-4 w-4 mr-2" />
+                        Add Repository
+                      </Button>
+                    </div>
+                    {project.repositories.map((repo) => (
+                      <div
+                        key={repo.id}
+                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Github className="h-4 w-4" />
+                            <span className="font-medium">{repo.fullName}</span>
+                            {repo.isPrivate && (
+                              <Badge variant="secondary" className="text-xs">
+                                Private
+                              </Badge>
+                            )}
+                            <div className="flex items-center gap-1 text-sm text-gray-400">
+                              <GitBranch className="h-3 w-3" />
+                              {repo.defaultBranch}
+                            </div>
+                          </div>
+                          {repo.description && (
+                            <p className="text-gray-400 text-sm">
+                              {repo.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                            <span>Scan Targets: {repo.totalScanTargets}</span>
+                            {repo.lastScanAt && (
+                              <span>
+                                Last Scan: {formatTimeAgo(repo.lastScanAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline">
+                            Configure
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-red-400 hover:text-red-300"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Project Settings */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Project Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure project behavior and notifications
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
                   <Settings className="h-12 w-12 mx-auto mb-4 text-gray-500" />
                   <p className="text-gray-400 mb-4">
-                    Project settings are coming soon. You&apos;ll be able to configure automatic scans, notifications, and security policies.
+                    Advanced settings are coming soon. You&apos;ll be able to
+                    configure automatic scans, notifications, and security
+                    policies.
                   </p>
                 </div>
               </CardContent>

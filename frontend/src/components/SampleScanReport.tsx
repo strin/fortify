@@ -82,7 +82,7 @@ export default function SampleScanReport() {
                 <div className="flex items-center gap-2">
                   <GitBranch className="w-4 h-4 text-green-400" />
                   <span className="text-green-400 text-sm">Auto-fix available</span>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" variant="success">
                     Apply Fix
                   </Button>
                 </div>
@@ -116,7 +116,7 @@ export default function SampleScanReport() {
                 <div className="flex items-center gap-2">
                   <GitBranch className="w-4 h-4 text-green-400" />
                   <span className="text-green-400 text-sm">Auto-fix available</span>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" variant="success">
                     Apply Fix
                   </Button>
                 </div>
@@ -150,7 +150,7 @@ export default function SampleScanReport() {
                 <div className="flex items-center gap-2">
                   <GitBranch className="w-4 h-4 text-green-400" />
                   <span className="text-green-400 text-sm">Auto-fix available - Update to 4.17.21</span>
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" variant="success">
                     Apply Fix
                   </Button>
                 </div>
