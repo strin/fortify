@@ -524,17 +524,6 @@ export default function ScanTargetDetailPage({
                   );
                 })}
 
-                {scanTarget.totalScans > scanTarget.scanJobs.length && (
-                  <div className="text-center pt-4">
-                    <Button asChild variant="outline">
-                      <Link
-                        href={`/scans/${scanTarget.owner}/${scanTarget.repo}`}
-                      >
-                        View All Scans ({scanTarget.totalScans})
-                      </Link>
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>

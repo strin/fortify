@@ -398,7 +398,7 @@ export default function ScanTargetsPage() {
                         : "Scan Now"}
                     </Button>
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/scans/${target.owner}/${target.repo}`}>
+                      <Link href={`/scan-targets/${target.id}`}>
                         View Scans
                       </Link>
                     </Button>
