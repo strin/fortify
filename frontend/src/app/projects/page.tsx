@@ -310,45 +310,50 @@ export default function ProjectsPage() {
         {!loading && filteredProjects.length > 0 && (
           <div className="space-y-6">
             {filteredProjects.map((project) => (
-              <Card
-                key={project.id}
-                className="bg-card border-border hover:border-muted transition-colors"
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl">
-                          <Link
-                            href={`/projects/${project.id}`}
-                            className="hover:text-primary transition-colors"
-                          >
+              <Link href={`/projects/${project.id}`} key={project.id}>
+                <Card className="bg-card border-border hover:border-muted hover:bg-accent/50 transition-colors cursor-pointer">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CardTitle className="text-xl">
                             {project.name}
-                          </Link>
-                        </CardTitle>
-                        <Badge
-                          variant={project.isActive ? "default" : "secondary"}
-                        >
-                          {project.isActive ? "Active" : "Inactive"}
-                        </Badge>
+                          </CardTitle>
+                          <Badge
+                            variant={project.isActive ? "default" : "secondary"}
+                          >
+                            {project.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <CardDescription>
+                          {project.description || "No description provided"}
+                        </CardDescription>
                       </div>
-                      <CardDescription>
-                        {project.description || "No description provided"}
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/projects/${project.id}`}>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
                           <Shield className="h-4 w-4 mr-2" />
                           View Scans
-                        </Link>
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Settings className="h-4 w-4" />
-                      </Button>
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
+                  </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {/* Stats */}
@@ -421,7 +426,8 @@ export default function ProjectsPage() {
                     )}
                   </div>
                 </CardContent>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         )}
