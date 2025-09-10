@@ -20,6 +20,13 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
@@ -467,7 +474,7 @@ function NewProjectForm() {
             <CardContent>
               <div className="space-y-6">
                 {/* Selected Repository Info */}
-                <div className="p-4 rounded-lg bg-gray-700 border border-gray-600">
+                <div className="p-4 rounded-lg bg-secondary border border-border">
                   <h4 className="font-medium mb-2">Selected Repository</h4>
                   <div className="flex items-center gap-2">
                     <Github className="h-4 w-4" />
@@ -517,18 +524,21 @@ function NewProjectForm() {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="branch">Default Branch</Label>
-                      <select
-                        id="branch"
+                      <Select
                         value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white"
+                        onValueChange={setSelectedBranch}
                       >
-                        {branches.map((branch) => (
-                          <option key={branch.name} value={branch.name}>
-                            {branch.name}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a branch" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {branches.map((branch) => (
+                            <SelectItem key={branch.name} value={branch.name}>
+                              {branch.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </div>
