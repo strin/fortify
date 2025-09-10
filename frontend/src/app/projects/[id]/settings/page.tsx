@@ -21,8 +21,6 @@ interface Repository {
   isPrivate: boolean;
   lastScanAt: string | null;
   repoUrl: string;
-  scanTargets: any[];
-  totalScanTargets: number;
 }
 
 interface Project {

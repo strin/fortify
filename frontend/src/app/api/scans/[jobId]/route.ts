@@ -24,11 +24,6 @@ export async function GET(
       },
       include: {
         project: true,
-        scanTarget: {
-          include: {
-            repository: true,
-          },
-        },
         vulnerabilities: {
           select: {
             severity: true,
@@ -86,18 +81,13 @@ export async function GET(
         name: scanJob.project.name,
         description: scanJob.project.description,
       } : null,
-      scanTarget: scanJob.scanTarget ? {
-        id: scanJob.scanTarget.id,
-        name: scanJob.scanTarget.name,
-        description: scanJob.scanTarget.description,
-        repoUrl: scanJob.scanTarget.repoUrl,
-        branch: scanJob.scanTarget.branch,
-        subPath: scanJob.scanTarget.subPath,
-        repository: scanJob.scanTarget.repository ? {
-          id: scanJob.scanTarget.repository.id,
-          fullName: scanJob.scanTarget.repository.fullName,
-          description: scanJob.scanTarget.repository.description,
-        } : null,
+      scanTarget: scanJob.data ? {
+        repoUrl: scanJob.data.repo_url,
+        branch: scanJob.data.branch || 'main',
+        subPath: scanJob.data.path || '/',
+        repository: {
+          fullName: scanJob.data.repo_url ? scanJob.data.repo_url.replace(/.*github\.com[\/:]/, '').replace(/\.git$/, '') : 'unknown',
+        },
       } : null,
     };
 

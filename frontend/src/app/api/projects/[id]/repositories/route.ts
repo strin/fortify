@@ -35,40 +35,10 @@ export async function GET(
         projectId,
         isActive: true,
       },
-      include: {
-        scanTargets: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            branch: true,
-            subPath: true,
-            lastScanAt: true,
-            scanJobs: {
-              orderBy: { createdAt: "desc" },
-              take: 1,
-              select: {
-                id: true,
-                status: true,
-                vulnerabilitiesFound: true,
-                finishedAt: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            scanTargets: true,
-          },
-        },
-      },
       orderBy: { updatedAt: "desc" },
     });
 
-    const formattedRepositories = repositories.map((repo) => ({
-      ...repo,
-      totalScanTargets: repo._count.scanTargets,
-    }));
+    const formattedRepositories = repositories;
 
     return NextResponse.json({ repositories: formattedRepositories });
   } catch (error) {

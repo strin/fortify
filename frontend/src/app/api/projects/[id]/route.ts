@@ -23,23 +23,6 @@ export async function GET(
       include: {
         repositories: {
           where: { isActive: true },
-          include: {
-            scanTargets: {
-              where: { isActive: true },
-              select: {
-                id: true,
-                name: true,
-                branch: true,
-                subPath: true,
-                lastScanAt: true,
-              },
-            },
-            _count: {
-              select: {
-                scanTargets: true,
-              },
-            },
-          },
         },
         scanJobs: {
           orderBy: { createdAt: "desc" },
