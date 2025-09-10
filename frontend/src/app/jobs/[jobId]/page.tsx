@@ -471,7 +471,7 @@ export default function ScanJobPage() {
               variant="outline"
               onClick={() => router.push("/scan-targets")}
             >
-              Back to Scan Targets
+              Back to Scan Projects
             </Button>
           </div>
         )}

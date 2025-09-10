@@ -98,7 +98,7 @@ export default function ScanTargetsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch scan targets");
+        throw new Error(data.error || "Failed to fetch scan projects");
       }
 
       setScanTargets(data.scanTargets);
@@ -222,7 +222,7 @@ export default function ScanTargetsPage() {
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scan targets...</p>
+          <p>Loading scan projects...</p>
         </div>
       </div>
     );
@@ -233,16 +233,16 @@ export default function ScanTargetsPage() {
       <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
-            <h1 className="text-2xl font-bold">Fortify - Scan Targets</h1>
+            <h1 className="text-2xl font-bold">Fortify - Scan Projects</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Targets</Link>
+              <Link href="/scan-targets">Back to Scan Projects</Link>
             </Button>
           </nav>
 
           <div className="max-w-2xl mx-auto text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-2xl font-bold mb-4">
-              Error Loading Scan Targets
+              Error Loading Scan Projects
             </h2>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={fetchScanTargets} className="mr-4">
@@ -261,7 +261,7 @@ export default function ScanTargetsPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Scan Targets</h1>
+            <h1 className="text-3xl font-bold mb-2">Scan Projects</h1>
             <p className="text-muted-foreground">
               Manage your code security scanning projects
             </p>
@@ -291,7 +291,7 @@ export default function ScanTargetsPage() {
           </div>
         </div>
 
-        {/* Scan Targets Grid */}
+        {/* Scan Projects Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {scanTargets.map((target) => (
             <Card
@@ -419,19 +419,19 @@ export default function ScanTargetsPage() {
         {scanTargets.length === 0 && !loading && (
           <div className="text-center py-16">
             <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No Scan Targets Yet</h3>
+            <h3 className="text-xl font-semibold mb-2">No Scan Projects Yet</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Get started by creating your first scan target. Connect a
+              Get started by creating your first scan project. Connect a
               repository and configure security scanning for your codebase.
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Scan Target
+              Create Your First Scan Project
             </Button>
           </div>
         )}
 
-        {/* Create Scan Target Dialog */}
+        {/* Create Scan Project Dialog */}
         <CreateScanTargetDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}
