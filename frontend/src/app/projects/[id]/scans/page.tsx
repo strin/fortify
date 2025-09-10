@@ -60,6 +60,7 @@ interface ProcessedScan {
 interface ScansResponse {
   scans: ProcessedScan[];
   totalScans: number;
+  error?: string;
 }
 
 export default function ProjectScansPage() {
