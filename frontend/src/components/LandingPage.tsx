@@ -101,7 +101,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-gray-800/70 border-red-500/20 hover:border-red-400/40 transition-colors">
+            <Card className="bg-card/70 border-destructive/20 hover:border-destructive/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">🚨</div>
                 <CardTitle className="text-red-400">
@@ -116,7 +116,7 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/70 border-yellow-500/20 hover:border-yellow-400/40 transition-colors">
+            <Card className="bg-card/70 border-chart-4/20 hover:border-chart-4/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">⏰</div>
                 <CardTitle className="text-yellow-400">
@@ -131,7 +131,7 @@ export default function LandingPage() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/70 border-red-500/20 hover:border-red-400/40 transition-colors">
+            <Card className="bg-card/70 border-destructive/20 hover:border-destructive/40 transition-colors">
               <CardHeader className="text-center">
                 <div className="text-4xl mb-4">💸</div>
                 <CardTitle className="text-red-400">

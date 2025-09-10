@@ -523,7 +523,6 @@ export default function ScanTargetDetailPage({
                     </div>
                   );
                 })}
-
               </div>
             )}
           </CardContent>

@@ -223,7 +223,7 @@ export function CreateProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-gray-800 border-gray-700">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col bg-popover border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Github className="h-5 w-5" />
@@ -237,7 +237,7 @@ export function CreateProjectDialog({
         </DialogHeader>
 
         {error && (
-          <Alert className="border-red-500 bg-red-500/10">
+          <Alert className="border-destructive bg-destructive/10">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -248,12 +248,12 @@ export function CreateProjectDialog({
             <div className="space-y-4 flex flex-col h-full">
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search repositories..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600"
+                  className="pl-10 bg-secondary border-border"
                 />
               </div>
 
@@ -262,17 +262,17 @@ export function CreateProjectDialog({
                 {loading ? (
                   <div className="text-center py-8">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                    <p className="text-gray-400">Loading repositories...</p>
+                    <p className="text-muted-foreground">Loading repositories...</p>
                   </div>
                 ) : filteredRepositories.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">No repositories found</p>
+                    <p className="text-muted-foreground">No repositories found</p>
                   </div>
                 ) : (
                   filteredRepositories.map((repo) => (
                     <div
                       key={repo.id}
-                      className="p-4 rounded-lg border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors"
+                      className="p-4 rounded-lg border border-border hover:border-muted cursor-pointer transition-colors"
                       onClick={() => handleSelectRepository(repo)}
                     >
                       <div className="flex items-start justify-between">
@@ -291,11 +291,11 @@ export function CreateProjectDialog({
                             )}
                           </div>
                           {repo.description && (
-                            <p className="text-gray-400 text-sm mb-2">
+                            <p className="text-muted-foreground text-sm mb-2">
                               {repo.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span>★ {repo.stargazers_count}</span>
                             <span>⚡ {repo.forks_count}</span>
                             <span className="flex items-center gap-1">
@@ -318,7 +318,7 @@ export function CreateProjectDialog({
           {step === "configure" && selectedRepo && (
             <div className="space-y-6">
               {/* Selected Repository Info */}
-              <div className="p-4 rounded-lg bg-gray-700 border border-gray-600">
+              <div className="p-4 rounded-lg bg-secondary border border-gray-600">
                 <h4 className="font-medium mb-2">Selected Repository</h4>
                 <div className="flex items-center gap-2">
                   <Github className="h-4 w-4" />
@@ -330,7 +330,7 @@ export function CreateProjectDialog({
                   )}
                 </div>
                 {selectedRepo.description && (
-                  <p className="text-gray-400 text-sm mt-2">
+                  <p className="text-muted-foreground text-sm mt-2">
                     {selectedRepo.description}
                   </p>
                 )}
@@ -350,7 +350,7 @@ export function CreateProjectDialog({
                         setFormData((prev) => ({ ...prev, name: e.target.value }))
                       }
                       placeholder="Enter project name"
-                      className="bg-gray-700 border-gray-600"
+                      className="bg-secondary border-border"
                     />
                   </div>
 
@@ -363,7 +363,7 @@ export function CreateProjectDialog({
                         setFormData((prev) => ({ ...prev, description: e.target.value }))
                       }
                       placeholder="Optional project description"
-                      className="bg-gray-700 border-gray-600"
+                      className="bg-secondary border-border"
                       rows={3}
                     />
                   </div>
@@ -378,7 +378,7 @@ export function CreateProjectDialog({
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, defaultBranch: e.target.value }))
                       }
-                      className="w-full p-2 rounded-md bg-gray-700 border border-gray-600 text-white"
+                      className="w-full p-2 rounded-md bg-secondary border border-gray-600 text-white"
                     >
                       {branches.map((branch) => (
                         <option key={branch.name} value={branch.name}>

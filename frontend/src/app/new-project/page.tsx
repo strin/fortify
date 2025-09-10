@@ -233,10 +233,10 @@ function NewProjectForm() {
   // Show loading state while checking authentication
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-300">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -248,7 +248,7 @@ function NewProjectForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -266,27 +266,27 @@ function NewProjectForm() {
           <div className="flex items-center gap-4 mb-6">
             <div
               className={`flex items-center gap-2 ${
-                step >= 1 ? "text-blue-400" : "text-gray-500"
+                step >= 1 ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 1 ? "bg-blue-600" : "bg-gray-600"
+                  step >= 1 ? "bg-primary" : "bg-muted"
                 }`}
               >
                 {step > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
               <span>Select Repository</span>
             </div>
-            <ArrowRight className="h-4 w-4 text-gray-500" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <div
               className={`flex items-center gap-2 ${
-                step >= 2 ? "text-blue-400" : "text-gray-500"
+                step >= 2 ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 2 ? "bg-blue-600" : "bg-gray-600"
+                  step >= 2 ? "bg-primary" : "bg-muted"
                 }`}
               >
                 {step > 2 ? <Check className="h-4 w-4" /> : "2"}
@@ -297,7 +297,7 @@ function NewProjectForm() {
         </div>
 
         {error && (
-          <Alert className="mb-6 border-red-500 bg-red-500/10">
+          <Alert className="mb-6 border-destructive bg-destructive/10">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -305,7 +305,7 @@ function NewProjectForm() {
 
         {/* Step 1: Repository Selection */}
         {step === 1 && (
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Github className="h-5 w-5" />
@@ -319,12 +319,12 @@ function NewProjectForm() {
               <div className="space-y-6">
                 {/* Search */}
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search repositories..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-gray-700 border-gray-600"
+                    className="pl-10 bg-secondary border-border"
                   />
                 </div>
 
@@ -333,17 +333,17 @@ function NewProjectForm() {
                   {loading ? (
                     <div className="text-center py-8">
                       <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-gray-400">Loading repositories...</p>
+                      <p className="text-muted-foreground">Loading repositories...</p>
                     </div>
                   ) : filteredRepositories.length === 0 ? (
                     <div className="text-center py-8">
-                      <p className="text-gray-400">No repositories found</p>
+                      <p className="text-muted-foreground">No repositories found</p>
                     </div>
                   ) : (
                     filteredRepositories.map((repo) => (
                       <div
                         key={repo.id}
-                        className="p-4 rounded-lg border border-gray-600 hover:border-gray-500 cursor-pointer transition-colors"
+                        className="p-4 rounded-lg border border-border hover:border-muted cursor-pointer transition-colors"
                         onClick={() => handleRepositorySelect(repo)}
                       >
                         <div className="flex items-start justify-between">
@@ -362,11 +362,11 @@ function NewProjectForm() {
                               )}
                             </div>
                             {repo.description && (
-                              <p className="text-gray-400 text-sm mb-2">
+                              <p className="text-muted-foreground text-sm mb-2">
                                 {repo.description}
                               </p>
                             )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
                               <span>★ {repo.stargazers_count}</span>
                               <span>⚡ {repo.forks_count}</span>
                               <span className="flex items-center gap-1">
@@ -388,7 +388,7 @@ function NewProjectForm() {
 
         {/* Step 2: Configuration */}
         {step === 2 && selectedRepo && (
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle>Configure Project</CardTitle>
               <CardDescription>
@@ -410,13 +410,13 @@ function NewProjectForm() {
                     )}
                   </div>
                   {selectedRepo.description && (
-                    <p className="text-gray-400 text-sm mt-2">
+                    <p className="text-muted-foreground text-sm mt-2">
                       {selectedRepo.description}
                     </p>
                   )}
                 </div>
 
-                <Separator className="bg-gray-600" />
+                <Separator className="bg-muted" />
 
                 {/* Project Configuration */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -428,7 +428,7 @@ function NewProjectForm() {
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         placeholder="Enter project name"
-                        className="bg-gray-700 border-gray-600"
+                        className="bg-secondary border-border"
                       />
                     </div>
 
@@ -439,7 +439,7 @@ function NewProjectForm() {
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         placeholder="Optional project description"
-                        className="bg-gray-700 border-gray-600"
+                        className="bg-secondary border-border"
                         rows={3}
                       />
                     </div>

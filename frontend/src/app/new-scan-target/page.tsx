@@ -210,10 +210,10 @@ function NewScanTargetForm() {
   // Show loading state while checking authentication
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-300">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -225,7 +225,7 @@ function NewScanTargetForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
@@ -235,7 +235,7 @@ function NewScanTargetForm() {
                 variant="ghost"
                 size="sm"
                 onClick={() => (step > 1 ? setStep(step - 1) : router.back())}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-white"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
@@ -248,42 +248,42 @@ function NewScanTargetForm() {
           <div className="flex items-center gap-4 mb-6">
             <div
               className={`flex items-center gap-2 ${
-                step >= 1 ? "text-blue-400" : "text-gray-500"
+                step >= 1 ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 1 ? "bg-blue-600" : "bg-gray-600"
+                  step >= 1 ? "bg-primary" : "bg-muted"
                 }`}
               >
                 {step > 1 ? <Check className="h-4 w-4" /> : "1"}
               </div>
               <span>Repository</span>
             </div>
-            <ArrowRight className="h-4 w-4 text-gray-500" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <div
               className={`flex items-center gap-2 ${
-                step >= 2 ? "text-blue-400" : "text-gray-500"
+                step >= 2 ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 2 ? "bg-blue-600" : "bg-gray-600"
+                  step >= 2 ? "bg-primary" : "bg-muted"
                 }`}
               >
                 {step > 2 ? <Check className="h-4 w-4" /> : "2"}
               </div>
               <span>Configuration</span>
             </div>
-            <ArrowRight className="h-4 w-4 text-gray-500" />
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
             <div
               className={`flex items-center gap-2 ${
-                step >= 3 ? "text-blue-400" : "text-gray-500"
+                step >= 3 ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  step >= 3 ? "bg-blue-600" : "bg-gray-600"
+                  step >= 3 ? "bg-primary" : "bg-muted"
                 }`}
               >
                 3
@@ -295,16 +295,16 @@ function NewScanTargetForm() {
 
         {/* Error display */}
         {error && (
-          <Card className="mb-6 bg-red-900/20 border-red-500/50">
+          <Card className="mb-6 bg-destructive/20 border-destructive/50">
             <CardContent className="pt-6">
-              <p className="text-red-400">{error}</p>
+              <p className="text-destructive">{error}</p>
             </CardContent>
           </Card>
         )}
 
         {/* Step 1: Repository Selection */}
         {step === 1 && (
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Github className="h-5 w-5" />
@@ -319,22 +319,22 @@ function NewScanTargetForm() {
               {/* Search */}
               <div className="mb-6">
                 <div className="relative">
-                  <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search repositories by name or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="bg-gray-900 border-gray-600 pl-10 pr-16 sm:pr-20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="bg-popover border-border pl-10 pr-16 sm:pr-20 focus:border-primary focus:ring-1 focus:ring-ring"
                   />
                   {repositories.length > 0 && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 hidden sm:block">
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground hidden sm:block">
                       {filteredRepositories.length} of {repositories.length}
                     </div>
                   )}
                 </div>
                 {/* Mobile counter */}
                 {repositories.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500 text-center sm:hidden">
+                  <div className="mt-2 text-xs text-muted-foreground text-center sm:hidden">
                     {filteredRepositories.length} of {repositories.length} repositories
                   </div>
                 )}
@@ -343,45 +343,45 @@ function NewScanTargetForm() {
               {/* Repository list */}
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-blue-500" />
-                  <p className="text-gray-400 text-lg">Loading repositories...</p>
-                  <p className="text-gray-500 text-sm mt-1">This may take a moment</p>
+                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                  <p className="text-muted-foreground text-lg">Loading repositories...</p>
+                  <p className="text-muted-foreground text-sm mt-1">This may take a moment</p>
                 </div>
               ) : (
                 <div className="relative">
                   {/* Repository list container with dynamic height */}
-                  <div className="space-y-3 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-500 pr-1 sm:pr-2">
+                  <div className="space-y-3 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-muted scrollbar-thumb-muted-foreground hover:scrollbar-thumb-border pr-1 sm:pr-2">
                     {filteredRepositories.map((repo, index) => (
                       <div
                         key={repo.id}
-                        className="group repository-card p-3 sm:p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 hover:bg-gray-850 cursor-pointer"
+                        className="group repository-card p-3 sm:p-4 bg-popover rounded-lg border border-border hover:border-muted hover:bg-card-dark cursor-pointer"
                         onClick={() => handleRepositorySelect(repo)}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate text-sm sm:text-base">
+                              <h3 className="font-semibold text-white group-hover:text-primary transition-colors truncate text-sm sm:text-base">
                                 {repo.name}
                               </h3>
                               {repo.private && (
-                                <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded flex-shrink-0">
+                                <span className="px-2 py-1 text-xs bg-secondary text-muted-foreground rounded flex-shrink-0">
                                   Private
                                 </span>
                               )}
                               {repo.language && (
-                                <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded flex-shrink-0">
+                                <span className="px-2 py-1 text-xs bg-chart-2/50 text-chart-2 rounded flex-shrink-0">
                                   {repo.language}
                                 </span>
                               )}
                             </div>
                             {repo.description && (
-                              <p className="text-gray-400 text-sm mb-3 line-clamp-2 leading-relaxed">
+                              <p className="text-muted-foreground text-sm mb-3 line-clamp-2 leading-relaxed">
                                 {repo.description}
                               </p>
                             )}
-                            <div className="flex items-center gap-3 sm:gap-4 text-xs text-gray-500 flex-wrap">
+                            <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
-                                <span className="text-yellow-500">⭐</span>
+                                <span className="text-chart-4">⭐</span>
                                 {repo.stars.toLocaleString()}
                               </span>
                               <span className="truncate">
@@ -390,7 +390,7 @@ function NewScanTargetForm() {
                             </div>
 
                           </div>
-                          <ArrowRight className="h-4 w-4 text-gray-500 group-hover:text-blue-400 mt-1 flex-shrink-0 transition-colors" />
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary mt-1 flex-shrink-0 transition-colors" />
                         </div>
                       </div>
                     ))}
@@ -399,15 +399,15 @@ function NewScanTargetForm() {
                   {/* Scroll indicator fade effects */}
                   {filteredRepositories.length > 3 && (
                     <>
-                      <div className="absolute bottom-0 left-0 right-2 h-6 bg-gradient-to-t from-gray-800/50 to-transparent pointer-events-none" />
-                      <div className="absolute top-0 left-0 right-2 h-6 bg-gradient-to-b from-gray-800/50 to-transparent pointer-events-none" />
+                      <div className="absolute bottom-0 left-0 right-2 h-6 bg-gradient-to-t from-card/50 to-transparent pointer-events-none" />
+                      <div className="absolute top-0 left-0 right-2 h-6 bg-gradient-to-b from-card/50 to-transparent pointer-events-none" />
                     </>
                   )}
                   
                   {/* Scroll hint for large lists */}
                   {filteredRepositories.length > 6 && (
                     <div className="text-center mt-4 px-2">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         <span className="hidden sm:inline">
                           Showing {Math.min(6, filteredRepositories.length)} of {filteredRepositories.length} repositories
                           {filteredRepositories.length > 6 && " • Scroll to see more"}
@@ -422,9 +422,9 @@ function NewScanTargetForm() {
                   {/* Enhanced empty state */}
                   {filteredRepositories.length === 0 && !loading && (
                     <div className="text-center py-12">
-                      <Github className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400 text-lg mb-2">No repositories found</p>
-                      <p className="text-gray-500 text-sm">
+                      <Github className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground text-lg mb-2">No repositories found</p>
+                      <p className="text-muted-foreground text-sm">
                         {searchTerm 
                           ? `Try adjusting your search term "${searchTerm}"` 
                           : "Make sure you have repositories in your GitHub account"}
@@ -434,7 +434,7 @@ function NewScanTargetForm() {
                           variant="ghost" 
                           size="sm" 
                           onClick={() => setSearchTerm("")}
-                          className="mt-3 text-blue-400 hover:text-blue-300"
+                          className="mt-3 text-primary hover:text-primary/80"
                         >
                           Clear search
                         </Button>
@@ -444,7 +444,7 @@ function NewScanTargetForm() {
                   
                   {/* Gradient fade at bottom to indicate more content when scrollable */}
                   {filteredRepositories.length > 5 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-gray-800/80 to-transparent pointer-events-none rounded-b-lg" />
+                    <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-card/80 to-transparent pointer-events-none rounded-b-lg" />
                   )}
                 </div>
               )}
@@ -454,7 +454,7 @@ function NewScanTargetForm() {
 
         {/* Step 2: Configuration */}
         {step === 2 && selectedRepo && (
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader>
               <CardTitle>Configure Scan Project</CardTitle>
               <CardDescription>
@@ -469,7 +469,7 @@ function NewScanTargetForm() {
                   id="name"
                   value={scanTargetName}
                   onChange={(e) => setScanTargetName(e.target.value)}
-                  className="bg-gray-900 border-gray-600 mt-2"
+                  className="bg-popover border-border mt-2"
                   placeholder="Enter a descriptive name"
                 />
               </div>
@@ -481,10 +481,10 @@ function NewScanTargetForm() {
                   value={selectedBranch}
                   onValueChange={setSelectedBranch}
                 >
-                  <SelectTrigger className="bg-gray-900 border-gray-600 mt-2">
+                  <SelectTrigger className="bg-popover border-border mt-2">
                     <SelectValue placeholder="Select branch" />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 border-gray-600">
+                  <SelectContent className="bg-popover border-border">
                     {branches.map((branch) => (
                       <SelectItem key={branch.name} value={branch.name}>
                         {branch.name}
@@ -503,10 +503,10 @@ function NewScanTargetForm() {
                   id="subpath"
                   value={subPath}
                   onChange={(e) => setSubPath(e.target.value)}
-                  className="bg-gray-900 border-gray-600 mt-2"
+                  className="bg-popover border-border mt-2"
                   placeholder="e.g., src/, backend/ (leave empty for entire repository)"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Specify a subdirectory to scan only part of the repository
                 </p>
               </div>
@@ -518,7 +518,7 @@ function NewScanTargetForm() {
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="bg-gray-900 border-gray-600 mt-2"
+                  className="bg-popover border-border mt-2"
                   placeholder="Add notes about this scan project..."
                   rows={3}
                 />
@@ -547,7 +547,7 @@ function NewScanTargetForm() {
 
         {/* Step 3: Review */}
         {step === 3 && selectedRepo && (
-          <Card className="bg-gray-800/50 border-gray-700">
+          <Card className="bg-card/50 border-border">
             <CardHeader>
               <CardTitle>Review Scan Project</CardTitle>
               <CardDescription>
@@ -559,13 +559,13 @@ function NewScanTargetForm() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-semibold mb-3">Repository</h4>
-                  <div className="bg-gray-900 p-4 rounded border border-gray-700">
+                  <div className="bg-popover p-4 rounded border border-border">
                     <p className="font-medium">{selectedRepo.name}</p>
-                    <p className="text-sm text-gray-400">
+                    <p className="text-sm text-muted-foreground">
                       {selectedRepo.fullName}
                     </p>
                     {selectedRepo.description && (
-                      <p className="text-sm text-gray-300 mt-2">
+                      <p className="text-sm text-muted-foreground mt-2">
                         {selectedRepo.description}
                       </p>
                     )}
@@ -574,24 +574,24 @@ function NewScanTargetForm() {
 
                 <div>
                   <h4 className="font-semibold mb-3">Scan Configuration</h4>
-                  <div className="bg-gray-900 p-4 rounded border border-gray-700 space-y-2">
+                  <div className="bg-popover p-4 rounded border border-border space-y-2">
                     <div>
-                      <span className="text-sm text-gray-400">Name:</span>
+                      <span className="text-sm text-muted-foreground">Name:</span>
                       <p className="font-medium">{scanTargetName}</p>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-400">Branch:</span>
+                      <span className="text-sm text-muted-foreground">Branch:</span>
                       <p className="font-medium">{selectedBranch}</p>
                     </div>
                     {subPath && (
                       <div>
-                        <span className="text-sm text-gray-400">Subpath:</span>
+                        <span className="text-sm text-muted-foreground">Subpath:</span>
                         <p className="font-medium">{subPath}</p>
                       </div>
                     )}
                     {description && (
                       <div>
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-muted-foreground">
                           Description:
                         </span>
                         <p className="text-sm">{description}</p>
@@ -638,10 +638,10 @@ export default function NewScanTargetPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-            <p className="text-gray-300">Loading...</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading...</p>
           </div>
         </div>
       }

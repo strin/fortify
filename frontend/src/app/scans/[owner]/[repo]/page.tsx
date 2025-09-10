@@ -332,7 +332,7 @@ function RepositoryScansContent({
             return (
               <Card
                 key={scan.id}
-                className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors"
+                className="bg-card border-border hover:bg-accent transition-colors"
               >
                 <CardHeader>
                   <div className="flex justify-between items-start">

@@ -91,9 +91,7 @@ export default function ProjectsPage() {
 
       setProjects(data.projects);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch projects"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch projects");
     } finally {
       setLoading(false);
     }
@@ -136,10 +134,10 @@ export default function ProjectsPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-300">Loading...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -150,21 +148,18 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Projects</h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               Manage your security scanning projects and repositories
             </p>
           </div>
           <div className="mt-4 sm:mt-0 flex gap-3">
-            <Button
-              onClick={() => setIsCreateDialogOpen(true)}
-              variant="cta"
-            >
+            <Button onClick={() => setIsCreateDialogOpen(true)} variant="cta">
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
@@ -174,15 +169,15 @@ export default function ProjectsPage() {
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search projects and repositories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-700"
+              className="pl-10 bg-card border-border"
             />
           </div>
-          <Button variant="outline" className="border-gray-700">
+          <Button variant="outline" className="border-border">
             <Filter className="h-4 w-4 mr-2" />
             Filters
           </Button>
@@ -190,7 +185,7 @@ export default function ProjectsPage() {
 
         {/* Error State */}
         {error && (
-          <Alert className="mb-6 border-red-500 bg-red-500/10">
+          <Alert className="mb-6 border-destructive bg-destructive/10">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -199,26 +194,23 @@ export default function ProjectsPage() {
         {/* Loading State */}
         {loading && (
           <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-            <p className="text-gray-400">Loading projects...</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading projects...</p>
           </div>
         )}
 
         {/* Empty State */}
         {!loading && filteredProjects.length === 0 && (
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <CardContent className="text-center py-12">
-              <FolderOpen className="h-16 w-16 mx-auto mb-6 text-gray-500" />
+              <FolderOpen className="h-16 w-16 mx-auto mb-6 text-muted-foreground" />
               <h2 className="text-xl font-semibold mb-2">No projects found</h2>
-              <p className="text-gray-400 mb-6">
+              <p className="text-muted-foreground mb-6">
                 {searchTerm
                   ? "No projects match your search criteria."
                   : "Get started by creating your first project."}
               </p>
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
-                variant="cta"
-              >
+              <Button onClick={() => setIsCreateDialogOpen(true)} variant="cta">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Project
               </Button>
@@ -232,7 +224,7 @@ export default function ProjectsPage() {
             {filteredProjects.map((project) => (
               <Card
                 key={project.id}
-                className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-colors"
+                className="bg-card border-border hover:border-muted transition-colors"
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -241,7 +233,7 @@ export default function ProjectsPage() {
                         <CardTitle className="text-xl">
                           <Link
                             href={`/projects/${project.id}`}
-                            className="hover:text-blue-400 transition-colors"
+                            className="hover:text-primary transition-colors"
                           >
                             {project.name}
                           </Link>
@@ -274,25 +266,39 @@ export default function ProjectsPage() {
                     {/* Stats */}
                     <div className="flex flex-wrap gap-6 text-sm">
                       <div className="flex items-center gap-2">
-                        <Github className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-400">Repositories:</span>
-                        <span className="font-medium">{project.totalRepositories}</span>
+                        <Github className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Repositories:
+                        </span>
+                        <span className="font-medium">
+                          {project.totalRepositories}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Target className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-400">Total Scans:</span>
-                        <span className="font-medium">{project.totalScans}</span>
+                        <Target className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">
+                          Total Scans:
+                        </span>
+                        <span className="font-medium">
+                          {project.totalScans}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-400">Created:</span>
-                        <span className="font-medium">{formatDate(project.createdAt)}</span>
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Created:</span>
+                        <span className="font-medium">
+                          {formatDate(project.createdAt)}
+                        </span>
                       </div>
                       {project.lastScanAt && (
                         <div className="flex items-center gap-2">
-                          <Shield className="h-4 w-4 text-gray-400" />
-                          <span className="text-gray-400">Last Scan:</span>
-                          <span className="font-medium">{formatTimeAgo(project.lastScanAt)}</span>
+                          <Shield className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">
+                            Last Scan:
+                          </span>
+                          <span className="font-medium">
+                            {formatTimeAgo(project.lastScanAt)}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -300,12 +306,14 @@ export default function ProjectsPage() {
                     {/* Repositories */}
                     {project.repositories.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-medium text-gray-400 mb-2">Repositories</h4>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">
+                          Repositories
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                           {project.repositories.map((repo) => (
                             <div
                               key={repo.id}
-                              className="flex items-center gap-2 px-3 py-1.5 bg-gray-700 rounded-md text-sm"
+                              className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-md text-sm"
                             >
                               <Github className="h-3 w-3" />
                               <span>{repo.fullName}</span>
@@ -314,7 +322,7 @@ export default function ProjectsPage() {
                                   Private
                                 </Badge>
                               )}
-                              <div className="flex items-center gap-1 text-xs text-gray-400">
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <GitBranch className="h-3 w-3" />
                                 {repo.defaultBranch}
                               </div>

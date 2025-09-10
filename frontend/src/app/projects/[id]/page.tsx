@@ -157,15 +157,15 @@ export default function ProjectDetailPage({
   const getSeverityColor = (severity: string) => {
     switch (severity.toLowerCase()) {
       case "critical":
-        return "bg-red-600";
+        return "bg-destructive";
       case "high":
         return "bg-orange-600";
       case "medium":
-        return "bg-yellow-600";
+        return "bg-chart-4";
       case "low":
-        return "bg-blue-600";
+        return "bg-chart-2";
       default:
-        return "bg-gray-600";
+        return "bg-muted";
     }
   };
 
@@ -173,7 +173,7 @@ export default function ProjectDetailPage({
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Loading project...</p>
         </div>
       </div>
@@ -184,7 +184,7 @@ export default function ProjectDetailPage({
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
+          <AlertCircle className="h-8 w-8 mx-auto mb-4 text-destructive" />
           <h2 className="text-xl font-semibold mb-2 text-foreground">
             {error || "Access Denied"}
           </h2>
@@ -209,58 +209,54 @@ export default function ProjectDetailPage({
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/projects">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Projects
-              </Button>
-            </Link>
-            <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold">{project.name}</h1>
-              {project.repositories.length > 0 && (
-                <div className="flex items-center gap-2">
-                  {project.repositories.map((repo, index) => (
-                    <div key={repo.id} className="flex items-center gap-1">
-                      {index > 0 && <span className="text-muted-foreground">•</span>}
-                      <a
-                        href={
-                          repo.provider === "GITHUB"
-                            ? `https://github.com/${repo.fullName}`
-                            : repo.repoUrl
-                        }
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted hover:bg-accent transition-colors text-sm text-muted-foreground hover:text-foreground"
-                        title={`Open ${
-                          repo.fullName
-                        } on ${repo.provider.toLowerCase()}`}
-                      >
-                        <Github className="h-3 w-3" />
-                        <span>{repo.fullName}</span>
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              )}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link href="/projects">
+                <Button variant="outline" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Projects
+                </Button>
+              </Link>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">{project.name}</h1>
+                {project.repositories.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {project.repositories.map((repo, index) => (
+                      <div key={repo.id} className="flex items-center gap-1">
+                        {index > 0 && (
+                          <span className="text-muted-foreground">•</span>
+                        )}
+                        <a
+                          href={
+                            repo.provider === "GITHUB"
+                              ? `https://github.com/${repo.fullName}`
+                              : repo.repoUrl
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted hover:bg-accent transition-colors text-sm text-muted-foreground hover:text-foreground"
+                          title={`Open ${
+                            repo.fullName
+                          } on ${repo.provider.toLowerCase()}`}
+                        >
+                          <Github className="h-3 w-3" />
+                          <span>{repo.fullName}</span>
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+            <Button variant="cta">
+              <Play className="h-4 w-4 mr-2" />
+              Run Scan
+            </Button>
           </div>
 
           {project.description && (
             <p className="text-muted-foreground">{project.description}</p>
           )}
-
-          {/* Quick Actions */}
-          <div className="flex gap-3 mt-6">
-            <Button variant="cta">
-              <Play className="h-4 w-4 mr-2" />
-              Run Scan
-            </Button>
-            <Button variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -278,7 +274,7 @@ export default function ProjectDetailPage({
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Shield className="h-5 w-5 text-blue-500" />
+                    <Shield className="h-5 w-5 text-primary" />
                     Security Summary
                   </CardTitle>
                 </CardHeader>
@@ -311,7 +307,7 @@ export default function ProjectDetailPage({
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="h-5 w-5 text-green-500" />
+                    <Target className="h-5 w-5 text-chart-1" />
                     Scan Activity
                   </CardTitle>
                 </CardHeader>
@@ -501,7 +497,7 @@ export default function ProjectDetailPage({
                     <p className="text-muted-foreground mb-4">
                       No repositories configured
                     </p>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button className="bg-primary hover:bg-primary/90">
                       <Github className="h-4 w-4 mr-2" />
                       Add Repository
                     </Button>
@@ -514,7 +510,7 @@ export default function ProjectDetailPage({
                       </p>
                       <Button
                         size="sm"
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         <Github className="h-4 w-4 mr-2" />
                         Add Repository
@@ -560,7 +556,7 @@ export default function ProjectDetailPage({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-400 hover:text-red-300"
+                            className="text-destructive hover:text-destructive/80"
                           >
                             Remove
                           </Button>

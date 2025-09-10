@@ -103,7 +103,7 @@ export default function ScannedRepositoriesPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading scanned repositories...</p>
@@ -114,7 +114,7 @@ export default function ScannedRepositoriesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Scanned Repositories</h1>
@@ -138,7 +138,7 @@ export default function ScannedRepositoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         <nav className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Scanned Repositories</h1>
@@ -229,7 +229,7 @@ export default function ScannedRepositoriesPage() {
         {/* Repository List */}
         <div className="space-y-4">
           {filteredRepositories.map((repo) => (
-            <Card key={repo.fullName} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+            <Card key={repo.fullName} className="bg-card border-border hover:bg-accent transition-colors">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
