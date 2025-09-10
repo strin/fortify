@@ -11,7 +11,6 @@ import {
   GitFork, 
   Star, 
   ExternalLink, 
-  Shield, 
   Clock,
   Search,
   RefreshCw,
@@ -227,18 +226,8 @@ export default function RepositoriesPage() {
                     </div>
                   </div>
 
-                  {/* Scan Button */}
+                  {/* View Scan History */}
                   <div className="space-y-2">
-                    <Button 
-                      className="w-full" 
-                      onClick={() => {
-                        // TODO: Implement scan functionality
-                        alert(`Scanning ${repo.name} - This feature will be implemented in the next step!`);
-                      }}
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Scan for Vulnerabilities
-                    </Button>
                     <Button 
                       asChild
                       variant="outline"

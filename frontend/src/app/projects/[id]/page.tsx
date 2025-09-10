@@ -372,12 +372,6 @@ export default function ProjectDetailPage({
                             )}
                           </div>
                         </div>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline">
-                            <Play className="h-4 w-4 mr-2" />
-                            Scan
-                          </Button>
-                        </div>
                       </div>
                     ))}
                   </div>
