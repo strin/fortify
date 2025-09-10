@@ -29,6 +29,7 @@ import {
   Target,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreateScanDialog } from "@/components/scan/create-scan-dialog";
 
 interface Repository {
   id: string;
@@ -94,6 +95,7 @@ export default function ProjectDetailPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string>("");
+  const [showCreateScanDialog, setShowCreateScanDialog] = useState(false);
 
   // Get project ID from params
   useEffect(() => {
@@ -140,6 +142,11 @@ export default function ProjectDetailPage({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleScanCreated = (scanJobId: string) => {
+    // Redirect to the scan job page to monitor progress
+    router.push(`/jobs/${scanJobId}`);
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -290,9 +297,13 @@ export default function ProjectDetailPage({
                 )}
               </div>
             </div>
-            <Button variant="cta">
-              <Play className="h-4 w-4 mr-2" />
-              Run Scan
+            <Button 
+              variant="cta" 
+              onClick={() => setShowCreateScanDialog(true)}
+              disabled={!project || project.repositories.length === 0}
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Create Scan
             </Button>
           </div>
 
@@ -635,6 +646,16 @@ export default function ProjectDetailPage({
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Create Scan Dialog */}
+      {project && (
+        <CreateScanDialog
+          open={showCreateScanDialog}
+          onOpenChange={setShowCreateScanDialog}
+          project={project}
+          onScanCreated={handleScanCreated}
+        />
+      )}
     </div>
   );
 }
