@@ -69,7 +69,7 @@ export async function POST(
     // Trigger actual scan worker
     try {
       const scanWorkerUrl =
-        process.env.SCAN_WORKER_URL || "http://localhost:8000";
+        process.env.SCAN_AGENT_URL || "http://localhost:8000";
 
       const response = await fetch(`${scanWorkerUrl}/scan/repo`, {
         method: "POST",
