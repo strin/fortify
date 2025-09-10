@@ -151,7 +151,10 @@ export default function ScannedRepositoriesPage() {
               <Link href="/repositories">Scan New Repository</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Scan Projects</Link>
+              <Link href="/projects">Projects</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/scan-targets">Scan Targets</Link>
             </Button>
           </div>
         </nav>

@@ -27,6 +27,7 @@ import {
   Settings,
   Star,
   Play,
+  FolderOpen,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -270,6 +271,12 @@ export default function ScanTargetsPage() {
             <Button onClick={fetchScanTargets} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/projects">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                Projects
+              </Link>
             </Button>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
