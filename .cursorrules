@@ -46,6 +46,12 @@ The `specs/` directory contains the source of truth for all architectural decisi
 
 ## Development Guidelines
 
+### Architecture & Specification Design
+- When designing architecture or writing specification documents, stay high-level and do not write code
+- Focus on conceptual design, system interactions, data flows, and requirements rather than implementation details
+- This applies to all work in the `specs/` directory and architectural planning discussions
+- Save implementation details for actual development phases, not specification phases
+
 ### Code Quality
 - Always use TypeScript for frontend code
 - Follow Python type hints for backend code
