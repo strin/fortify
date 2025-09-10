@@ -183,7 +183,7 @@ export function CreateScanDialog({
         body: JSON.stringify({
           repositoryId: scanConfig.repositoryId,
           branch: scanConfig.branch,
-          path: scanConfig.path === "/" ? null : scanConfig.path,
+          path: scanConfig.path,
           repoUrl: selectedRepository.repoUrl,
         }),
       });
