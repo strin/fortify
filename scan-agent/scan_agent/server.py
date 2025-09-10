@@ -113,6 +113,8 @@ class JobStatusResponse(BaseModel):
     type: str
     created_at: datetime
     updated_at: datetime
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
     result: Optional[dict] = None
     error: Optional[str] = None
 
@@ -173,12 +175,30 @@ async def get_job_status(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    # Get timing information from database
+    started_at = None
+    finished_at = None
+    try:
+        from scan_agent.utils.database import get_db
+        db = await get_db()
+        scan_job = await db.scanjob.find_unique(
+            where={"id": job_id},
+            select={"startedAt": True, "finishedAt": True}
+        )
+        if scan_job:
+            started_at = scan_job.startedAt
+            finished_at = scan_job.finishedAt
+    except Exception as e:
+        logger.warning(f"Failed to fetch timing info from database: {e}")
+
     return JobStatusResponse(
         job_id=job.id,
         status=job.status.value,
         type=job.type.value,
         created_at=job.created_at,
         updated_at=job.updated_at,
+        started_at=started_at,
+        finished_at=finished_at,
         result=job.result,
         error=job.error,
     )
