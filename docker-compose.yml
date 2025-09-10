@@ -3,8 +3,8 @@ version: '3.8'
 services:
   scan-server:
     build:
-      context: ./scan-agent
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: scan-agent/Dockerfile
     container_name: scan-server
     ports:
       - "8000:8000" # Expose API port
@@ -20,12 +20,12 @@ services:
       - DATABASE_URL=${DATABASE_URL}
     networks:
       - app-network
-    command: python -m scan_agent.server
+    command: ./start_server.sh
 
   scan-agent:
     build:
-      context: ./scan-agent
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: scan-agent/Dockerfile
     container_name: scan-agent
     volumes:
       - ./scan-agent:/scan-agent
@@ -42,7 +42,7 @@ services:
       - POSTGRES_URL_NON_POOLING=${DATABASE_URL}
     networks:
       - app-network
-    command: ./run-worker-local.sh
+    command: ./start_worker.sh
 
   redis:
     image: redis:alpine

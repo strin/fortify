@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { 
   Shield, 
@@ -103,10 +104,72 @@ export default function ScannedRepositoriesPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scanned repositories...</p>
+      <div className="min-h-screen bg-background text-white">
+        <div className="container mx-auto px-4 py-8">
+          <nav className="flex justify-between items-center mb-8">
+            <Skeleton className="h-8 w-48" />
+            <div className="flex gap-4">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-40" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+          </nav>
+
+          <div className="mb-8">
+            <Skeleton className="h-10 w-64" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i} className="bg-gray-800 border-gray-700">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <Skeleton className="h-8 w-12" />
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="bg-card border-border">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Skeleton className="h-5 w-5" />
+                        <Skeleton className="h-6 w-48" />
+                        <Skeleton className="h-6 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-40" />
+                    </div>
+                    <Skeleton className="h-9 w-24" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, j) => (
+                      <div key={j} className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-8" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-3 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -114,12 +177,12 @@ export default function ScannedRepositoriesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Scanned Repositories</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Targets</Link>
+              <Link href="/projects">Back to Projects</Link>
             </Button>
           </nav>
 
@@ -138,7 +201,7 @@ export default function ScannedRepositoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         <nav className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Scanned Repositories</h1>
@@ -151,7 +214,7 @@ export default function ScannedRepositoriesPage() {
               <Link href="/repositories">Scan New Repository</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Scan Targets</Link>
+              <Link href="/projects">Projects</Link>
             </Button>
           </div>
         </nav>
@@ -229,7 +292,7 @@ export default function ScannedRepositoriesPage() {
         {/* Repository List */}
         <div className="space-y-4">
           {filteredRepositories.map((repo) => (
-            <Card key={repo.fullName} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+            <Card key={repo.fullName} className="bg-card border-border hover:bg-accent transition-colors">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">

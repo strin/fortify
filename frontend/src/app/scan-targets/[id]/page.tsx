@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { redirect, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -70,12 +71,12 @@ interface ScanTarget {
   totalScans: number;
 }
 
-export default async function ScanTargetDetailPage({
+export default function ScanTargetDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params;
+  const { id } = React.use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
   const [scanTarget, setScanTarget] = useState<ScanTarget | null>(null);
@@ -104,7 +105,7 @@ export default async function ScanTargetDetailPage({
           router.push("/scan-targets");
           return;
         }
-        throw new Error(data.error || "Failed to fetch scan target");
+        throw new Error(data.error || "Failed to fetch scan project");
       }
 
       setScanTarget(data);
@@ -222,10 +223,90 @@ export default async function ScanTargetDetailPage({
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scan target...</p>
+      <div className="min-h-screen bg-background text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-8 w-64" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Card className="bg-card border-border mb-6">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-7 w-48" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-32 mb-2" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 flex gap-3">
+                    <Skeleton className="h-9 w-28" />
+                    <Skeleton className="h-9 w-32" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-48" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg border border-border">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Skeleton className="h-4 w-4" />
+                            <Skeleton className="h-5 w-32" />
+                            <Skeleton className="h-5 w-20" />
+                          </div>
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                        <Skeleton className="h-8 w-24" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div>
+              <Card className="bg-card border-border">
+                <CardHeader>
+                  <Skeleton className="h-6 w-24" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="text-center">
+                        <Skeleton className="h-8 w-16 mx-auto mb-1" />
+                        <Skeleton className="h-4 w-20 mx-auto" />
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -233,12 +314,12 @@ export default async function ScanTargetDetailPage({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-2xl mx-auto text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
             <h2 className="text-2xl font-bold mb-4">
-              Error Loading Scan Target
+              Error Loading Scan Project
             </h2>
             <p className="text-gray-300 mb-6">{error}</p>
             <div className="flex gap-4 justify-center">
@@ -247,7 +328,7 @@ export default async function ScanTargetDetailPage({
                 Try Again
               </Button>
               <Button asChild variant="outline">
-                <Link href="/scan-targets">Back to Scan Targets</Link>
+                <Link href="/scan-targets">Back to Scan Projects</Link>
               </Button>
             </div>
           </div>
@@ -261,7 +342,7 @@ export default async function ScanTargetDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -269,7 +350,7 @@ export default async function ScanTargetDetailPage({
             <Button asChild variant="ghost" size="sm">
               <Link href="/scan-targets">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Scan Targets
+                Back to Scan Projects
               </Link>
             </Button>
             <div>
@@ -290,7 +371,7 @@ export default async function ScanTargetDetailPage({
             <Button
               onClick={handleTriggerScan}
               disabled={!scanTarget.isActive || scanning}
-              className="bg-blue-600 hover:bg-blue-700"
+              variant="cta"
             >
               {scanning ? (
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -323,7 +404,7 @@ export default async function ScanTargetDetailPage({
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-red-400">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Target
+                  Delete Project
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -426,7 +507,7 @@ export default async function ScanTargetDetailPage({
           <CardHeader>
             <CardTitle className="text-white">Recent Scans</CardTitle>
             <CardDescription className="text-gray-400">
-              Latest scan results for this target
+              Latest scan results for this project
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -436,7 +517,8 @@ export default async function ScanTargetDetailPage({
                 <Button
                   onClick={handleTriggerScan}
                   disabled={!scanTarget.isActive || scanning}
-                  className="mt-4 bg-blue-600 hover:bg-blue-700"
+                  className="mt-4"
+                  variant="cta"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Run First Scan
@@ -522,18 +604,6 @@ export default async function ScanTargetDetailPage({
                     </div>
                   );
                 })}
-
-                {scanTarget.totalScans > scanTarget.scanJobs.length && (
-                  <div className="text-center pt-4">
-                    <Button asChild variant="outline">
-                      <Link
-                        href={`/scans/${scanTarget.owner}/${scanTarget.repo}`}
-                      >
-                        View All Scans ({scanTarget.totalScans})
-                      </Link>
-                    </Button>
-                  </div>
-                )}
               </div>
             )}
           </CardContent>

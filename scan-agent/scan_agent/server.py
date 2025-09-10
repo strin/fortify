@@ -259,5 +259,11 @@ async def cancel_job_post(job_id: str):
 
 
 if __name__ == "__main__":
+def main():
+    """Main entry point for the server."""
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+if __name__ == "__main__":
+    main()

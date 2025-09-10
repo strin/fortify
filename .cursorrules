@@ -1,0 +1,132 @@
+# Cursor Rules for Fortify Security Platform
+
+## Project Context
+This is Fortify, an AI-powered security scanning platform that validates AI-generated code, dependencies, and vulnerabilities in real-time. The system is designed for low false positives (<1%), auto-fixes, and seamless integration into developer workflows.
+
+## Architecture & Documentation
+All architecture and product documentation is stored in the `specs/` directory. Always consult these files when making decisions:
+
+### Documentation Structure
+The `specs/` directory contains the source of truth for all architectural decisions and product requirements:
+
+- **Architecture**: `specs/architecture/` contains system architecture, implementation details, and technical specifications
+- **Product Requirements**: `specs/product/` contains PRDs, user flows, feature specifications, and UI/UX documentation
+- **Integration Specs**: `specs/architecture/integrations/` contains third-party integration specifications and API documentation
+- **Team & Configuration**: `specs/architecture/teams/` contains team management, configuration, and multi-tenant specifications
+
+### Key Documents to Reference
+- `specs/architecture/mvp.md` - Complete MVP architecture and implementation roadmap
+- `specs/architecture/scanner.md` - Current scan system implementation and architecture
+- `specs/architecture/schema.md` - Database schema and data models
+- `specs/product/` - All product requirements and user experience specifications
+- Any other `.md` files in `specs/` and its subdirectories
+
+## Current Tech Stack
+
+### Backend (scan-agent/)
+- **Language**: Python 3.11+
+- **Framework**: FastAPI
+- **Queue**: Redis Lists (brpoplpush pattern)
+- **Database**: PostgreSQL with Prisma ORM
+- **AI Integration**: Claude Code SDK for vulnerability analysis
+- **Authentication**: JWT-based
+
+### Frontend (frontend/)
+- **Framework**: Next.js 14+ with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui components.
+  - Use the shadcn/ui component library for all UI components.
+  - Use the Tailwind CSS theme classes for styling.
+- **Loading State**: By default, create skeleton UI using shadcn/ui components. Fallback: use the `Loader2` component from shadcn/ui for loading states.
+- **Authentication**: NextAuth.js with GitHub OAuth
+- **Database**: Prisma client for PostgreSQL
+
+### Infrastructure
+- **Database**: PostgreSQL (local development, cloud production)
+- **Queue**: Redis
+- **Containerization**: Docker with docker-compose
+- **Deployment**: Cloud-ready (AWS/GCP)
+
+## Development Guidelines
+
+### Architecture & Specification Design
+- When designing architecture or writing specification documents, stay high-level and do not write code
+- Focus on conceptual design, system interactions, data flows, and requirements rather than implementation details
+- This applies to all work in the `specs/` directory and architectural planning discussions
+- Save implementation details for actual development phases, not specification phases
+
+### Code Quality
+- Always use TypeScript for frontend code
+- Follow Python type hints for backend code
+- Implement proper error handling and logging
+- Write unit tests for critical functionality
+- Use Prisma for all database operations
+
+### Security Best Practices
+- Validate all inputs
+- Use parameterized queries (Prisma handles this)
+- Implement proper authentication checks
+- Never expose sensitive data in API responses
+- Use environment variables for secrets
+
+### API Design
+- Follow RESTful conventions
+- Use consistent error response formats
+- Implement proper HTTP status codes
+- Add request/response validation
+- Document all endpoints
+
+### Database Operations
+- Always use Prisma client
+- Follow the schema defined in `db/schema.prisma`
+- Use transactions for multi-table operations
+- Implement proper indexing for performance
+
+### Frontend Development
+- Use shadcn/ui components when possible
+- Follow Next.js App Router patterns
+- Implement proper loading and error states
+- Use React Query for API calls
+- Follow accessibility best practices
+
+## File Structure Understanding
+- `scan-agent/` - Python backend service with FastAPI server and background workers
+- `frontend/` - Next.js frontend application
+- `db/` - Database schema, migrations, and generated Prisma clients
+- `specs/` - All architecture and product documentation
+- `docs/` - Legacy documentation (prefer specs/ for new docs)
+
+## Before Making Changes
+1. **Always** review relevant documentation in `specs/` directory and subdirectories
+2. Search for and read any related PRDs in `specs/product/` that might affect your changes
+3. Check current implementation state from architecture docs in `specs/architecture/`
+4. Review database schema in `db/schema.prisma`
+5. Review existing API patterns in the codebase
+6. Consider impact on both frontend and backend components
+
+## When Adding New Features
+1. Create or update relevant documentation in appropriate `specs/` subdirectories
+2. For product features, create/update PRDs in `specs/product/`
+3. For technical features, update architecture docs in `specs/architecture/`
+4. Add database migrations if schema changes are needed
+5. Update both frontend and backend components
+6. Add proper error handling and validation
+7. Consider authentication and authorization requirements
+8. Add appropriate logging and monitoring
+
+## Testing Guidelines
+- Write unit tests for business logic
+- Add integration tests for API endpoints
+- Test error scenarios and edge cases
+- Verify database operations work correctly
+- Test authentication flows end-to-end
+
+## Common Patterns
+- Use Prisma for all database operations
+- Implement proper async/await patterns
+- Use TypeScript interfaces for data structures
+- Follow the established error handling patterns
+- Use environment variables for configuration
+
+Remember: The `specs/` directory and all its subdirectories contain the source of truth for all architectural decisions and product requirements. Always search and consult relevant documents in `specs/` before making significant changes. New PRDs should be added to `specs/product/` and new architecture docs to `specs/architecture/` or its subdirectories.
+

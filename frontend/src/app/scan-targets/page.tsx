@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import {
   Search,
@@ -98,7 +99,7 @@ export default function ScanTargetsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch scan targets");
+        throw new Error(data.error || "Failed to fetch scan projects");
       }
 
       setScanTargets(data.scanTargets);
@@ -219,10 +220,65 @@ export default function ScanTargetsPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading scan targets...</p>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <Skeleton className="h-9 w-48 mb-2" />
+              <Skeleton className="h-5 w-80" />
+            </div>
+            <div className="flex gap-4">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-24" />
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <Skeleton className="h-10 w-64" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="hover:bg-accent/50 transition-colors">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-4">
+                    <Skeleton className="h-4 w-full" />
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <Skeleton className="h-6 w-16" />
+                      <Skeleton className="h-6 w-20" />
+                      <Skeleton className="h-6 w-18" />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Skeleton className="h-8 flex-1" />
+                      <Skeleton className="h-8 w-24" />
+                    </div>
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -233,16 +289,16 @@ export default function ScanTargetsPage() {
       <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
-            <h1 className="text-2xl font-bold">Fortify - Scan Targets</h1>
+            <h1 className="text-2xl font-bold">Fortify - Scan Projects</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Targets</Link>
+              <Link href="/scan-targets">Back to Scan Projects</Link>
             </Button>
           </nav>
 
           <div className="max-w-2xl mx-auto text-center">
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-2xl font-bold mb-4">
-              Error Loading Scan Targets
+              Error Loading Scan Projects
             </h2>
             <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={fetchScanTargets} className="mr-4">
@@ -261,7 +317,7 @@ export default function ScanTargetsPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Scan Targets</h1>
+            <h1 className="text-3xl font-bold mb-2">Scan Projects</h1>
             <p className="text-muted-foreground">
               Manage your code security scanning projects
             </p>
@@ -291,13 +347,13 @@ export default function ScanTargetsPage() {
           </div>
         </div>
 
-        {/* Scan Targets Grid */}
+        {/* Scan Projects Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {scanTargets.map((target) => (
-            <Card
-              key={target.id}
-              className="hover:bg-accent/50 transition-colors"
-            >
+            <Link href={`/scan-targets/${target.id}`} key={target.id}>
+              <Card
+                className="hover:bg-accent/50 transition-colors cursor-pointer"
+              >
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <div className="flex-1 min-w-0">
@@ -328,20 +384,23 @@ export default function ScanTargetsPage() {
                   </div>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
-                        <Link href={`/scan-targets/${target.id}`}>
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View Details
+                        <Link href={`/scan-targets/${target.id}/settings`}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Settings
                         </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Settings className="h-4 w-4 mr-2" />
-                        Configure
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Star className="h-4 w-4 mr-2" />
@@ -383,7 +442,11 @@ export default function ScanTargetsPage() {
                     <Button
                       size="sm"
                       className="flex-1"
-                      onClick={() => handleTriggerScan(target.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleTriggerScan(target.id);
+                      }}
                       disabled={
                         !target.isActive || scanningTargets.has(target.id)
                       }
@@ -397,11 +460,6 @@ export default function ScanTargetsPage() {
                         ? "Scanning..."
                         : "Scan Now"}
                     </Button>
-                    <Button asChild variant="outline" size="sm">
-                      <Link href={`/scans/${target.owner}/${target.repo}`}>
-                        View Scans
-                      </Link>
-                    </Button>
                   </div>
 
                   {/* Stats */}
@@ -412,6 +470,7 @@ export default function ScanTargetsPage() {
                 </div>
               </CardContent>
             </Card>
+            </Link>
           ))}
         </div>
 
@@ -419,19 +478,19 @@ export default function ScanTargetsPage() {
         {scanTargets.length === 0 && !loading && (
           <div className="text-center py-16">
             <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-xl font-semibold mb-2">No Scan Targets Yet</h3>
+            <h3 className="text-xl font-semibold mb-2">No Scan Projects Yet</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Get started by creating your first scan target. Connect a
+              Get started by creating your first scan project. Connect a
               repository and configure security scanning for your codebase.
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Your First Scan Target
+              Create Your First Scan Project
             </Button>
           </div>
         )}
 
-        {/* Create Scan Target Dialog */}
+        {/* Create Scan Project Dialog */}
         <CreateScanTargetDialog
           open={showCreateDialog}
           onOpenChange={setShowCreateDialog}

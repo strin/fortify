@@ -120,3 +120,56 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Custom scrollbar styles */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-track-muted::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-muted-foreground::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-muted-foreground:hover::-webkit-scrollbar-thumb,
+  .hover\:scrollbar-thumb-border:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Custom darker background variant */
+  .bg-card-dark {
+    background-color: hsl(var(--card) / 0.8);
+  }
+  
+  .hover\:bg-card-dark:hover {
+    background-color: hsl(var(--card) / 0.8);
+  }
+
+  /* Improved transitions for repository cards */
+  .repository-card {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .repository-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}

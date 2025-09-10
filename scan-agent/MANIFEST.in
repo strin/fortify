@@ -1,0 +1,11 @@
+include README.md
+include requirements.txt
+include test-requirements.txt
+include pytest.ini
+include scan_agent/py.typed
+recursive-include scan_agent *.py
+recursive-include tests *.py
+recursive-exclude scan_agent/__pycache__ *
+recursive-exclude tests/__pycache__ *
+recursive-exclude * *.pyc
+recursive-exclude * *.pyo

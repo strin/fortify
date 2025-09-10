@@ -11,7 +11,6 @@ import {
   GitFork, 
   Star, 
   ExternalLink, 
-  Shield, 
   Clock,
   Search,
   RefreshCw,
@@ -92,7 +91,7 @@ export default function RepositoriesPage() {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-white flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading repositories...</p>
@@ -103,19 +102,19 @@ export default function RepositoriesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+      <div className="min-h-screen bg-background text-white">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Repositories</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Targets</Link>
+              <Link href="/projects">Back to Projects</Link>
             </Button>
           </nav>
 
           <div className="max-w-2xl mx-auto text-center">
-            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-2xl font-bold mb-4">Error Loading Repositories</h2>
-            <p className="text-gray-300 mb-6">{error}</p>
+            <p className="text-muted-foreground mb-6">{error}</p>
             <Button onClick={fetchRepositories} className="mr-4">
               <RefreshCw className="h-4 w-4 mr-2" />
               Try Again
@@ -130,7 +129,7 @@ export default function RepositoriesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8">
         <nav className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Your GitHub Repositories</h1>
@@ -140,7 +139,7 @@ export default function RepositoriesPage() {
               Refresh
             </Button>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Scan Targets</Link>
+              <Link href="/projects">Projects</Link>
             </Button>
           </div>
         </nav>
@@ -148,18 +147,18 @@ export default function RepositoriesPage() {
         {/* Search and Filter */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search repositories..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-gray-800 border-gray-700 text-white"
+              className="pl-10 bg-card border-border text-foreground"
             />
           </div>
           <select
             value={selectedLanguage}
             onChange={(e) => setSelectedLanguage(e.target.value)}
-            className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white"
+            className="px-3 py-2 bg-card border border-border rounded-md text-foreground"
           >
             <option value="">All Languages</option>
             {languages.map((language) => (
@@ -173,7 +172,7 @@ export default function RepositoriesPage() {
         {/* Repository Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredRepositories.map((repo) => (
-            <Card key={repo.id} className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
+            <Card key={repo.id} className="bg-card border-border hover:bg-accent transition-colors">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -181,7 +180,7 @@ export default function RepositoriesPage() {
                       {repo.name}
                       {repo.private && <Badge variant="outline">Private</Badge>}
                     </CardTitle>
-                    <CardDescription className="text-gray-300 text-sm">
+                    <CardDescription className="text-muted-foreground text-sm">
                       {repo.description || "No description available"}
                     </CardDescription>
                   </div>
@@ -212,7 +211,7 @@ export default function RepositoriesPage() {
                   </div>
 
                   {/* Stats */}
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Star className="h-4 w-4" />
                       {repo.stars}
@@ -227,18 +226,8 @@ export default function RepositoriesPage() {
                     </div>
                   </div>
 
-                  {/* Scan Button */}
+                  {/* View Scan History */}
                   <div className="space-y-2">
-                    <Button 
-                      className="w-full" 
-                      onClick={() => {
-                        // TODO: Implement scan functionality
-                        alert(`Scanning ${repo.name} - This feature will be implemented in the next step!`);
-                      }}
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Scan for Vulnerabilities
-                    </Button>
                     <Button 
                       asChild
                       variant="outline"
@@ -257,7 +246,7 @@ export default function RepositoriesPage() {
 
         {filteredRepositories.length === 0 && !loading && (
           <div className="text-center py-16">
-            <p className="text-gray-400 text-lg">
+            <p className="text-muted-foreground text-lg">
               {repositories.length === 0 
                 ? "No public repositories found. Make sure you have public repositories in your GitHub account."
                 : "No repositories match your search criteria."
