@@ -18,6 +18,8 @@ services:
       - REDIS_PORT=6379
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - DATABASE_URL=${DATABASE_URL}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - PORT=8000
     networks:
       - app-network
     command: ./start_server.sh
@@ -40,9 +42,33 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - POSTGRES_PRISMA_URL=${DATABASE_URL}
       - POSTGRES_URL_NON_POOLING=${DATABASE_URL}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
     networks:
       - app-network
     command: ./start_worker.sh
+
+  # Frontend Next.js service for webhook proxy
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:3000" # Expose frontend port
+    depends_on:
+      - scan-server
+    environment:
+      - SCAN_AGENT_URL=http://scan-server:8000
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - POSTGRES_PRISMA_URL=${DATABASE_URL}
+      - POSTGRES_URL_NON_POOLING=${DATABASE_URL}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+    networks:
+      - app-network
+    command: npm run dev
 
   redis:
     image: redis:alpine

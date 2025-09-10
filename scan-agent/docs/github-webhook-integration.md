@@ -4,7 +4,19 @@ This document describes the implementation and setup of GitHub webhook integrati
 
 ## Overview
 
-The Fortify Scan Agent now includes a comprehensive GitHub webhook integration that automatically triggers security scans when pull request events occur. This enables seamless integration into developer workflows and continuous security monitoring.
+The Fortify platform now includes a comprehensive GitHub webhook integration that automatically triggers security scans when pull request events occur. This enables seamless integration into developer workflows and continuous security monitoring.
+
+## ⚠️ Updated Architecture - Webhook Proxy
+
+**Important**: This integration now uses a **proxy architecture** where the Next.js frontend server receives GitHub webhooks and forwards them to the scan agent server. This is because the public domain (https://fortify.rocks) hosts the Next.js server, not the scan agent directly.
+
+**Architecture Flow:**
+```
+GitHub → Next.js Frontend (https://fortify.rocks) → Scan Agent Server
+         /api/webhooks/github               /webhooks/github
+```
+
+For the complete updated architecture documentation, see: [`/docs/github-webhook-proxy-architecture.md`](../../docs/github-webhook-proxy-architecture.md)
 
 ## Features
 
