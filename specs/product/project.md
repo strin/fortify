@@ -125,3 +125,6 @@ Configuration options for integrations and notifications.
 - Team management: invite teammates, assign roles.
 
 
+## Edge Cases
+
+If the project for repo already exists, we should ask the user if they want to go to the corresponding project page or create a new project.
