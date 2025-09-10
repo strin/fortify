@@ -124,4 +124,35 @@ Configuration options for integrations and notifications.
 - (Future) Add/remove repos for multi-repo projects.
 - Team management: invite teammates, assign roles.
 
+## Edge Cases
 
+### Existing Project Conflict
+
+**Scenario**: User attempts to create a new project for a repository that already has an associated project.
+
+**Current Behavior**: System returns an error "Repository already exists in another project" and prevents creation.
+
+**Required Behavior**: 
+1. **Detection**: When a repository is already associated with an existing project for the current user, the system should detect this conflict before attempting creation.
+
+2. **User Choice Dialog**: Present a modal dialog with the following options:
+   - **"Go to Existing Project"**: Navigate the user to the existing project page that contains this repository
+   - **"Create New Project Anyway"**: Allow the user to proceed with creating a new project (this would require allowing the same repository in multiple projects in the future)
+   - **"Cancel"**: Return to the project creation form
+
+3. **Dialog Content**:
+   - Clear title: "Repository Already Exists"
+   - Explanation text: "The repository `[repo-name]` is already associated with the project `[existing-project-name]`"
+   - Timestamp: "Created on [date]"
+   - Two action buttons with clear labels
+
+4. **Navigation**: If user chooses "Go to Existing Project", navigate directly to the project detail page (`/projects/[id]`)
+
+**Implementation Notes**:
+- This applies to both the main new project page (`/new-project`) and any embedded project creation dialogs
+- The conflict check should happen on repository selection, not just on final project creation
+- For MVP, prioritize the "Go to Existing Project" option since we currently enforce one-repository-per-project
+
+## Edge Cases
+
+If the project for repo already exists, we should ask the user if they want to go to the corresponding project page or create a new project.
