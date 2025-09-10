@@ -26,6 +26,10 @@ import {
   Search,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  RepositoryConflictDialog, 
+  type ProjectConflict 
+} from "./repository-conflict-dialog";
 
 interface Repository {
   id: number;
@@ -79,6 +83,10 @@ export function CreateProjectDialog({
     defaultBranch: "",
   });
 
+  // Conflict handling
+  const [showConflictDialog, setShowConflictDialog] = useState(false);
+  const [projectConflict, setProjectConflict] = useState<ProjectConflict | null>(null);
+
   // Fetch user's repositories
   const fetchRepositories = async () => {
     try {
@@ -125,6 +133,34 @@ export function CreateProjectDialog({
     }
   };
 
+  // Check for repository conflict
+  const checkRepositoryConflict = async (repo: Repository) => {
+    try {
+      const response = await fetch("/api/repositories/check-conflict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: repo.full_name,
+          provider: "GITHUB",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to check repository conflict");
+      }
+
+      return data;
+    } catch (err) {
+      console.error("Error checking repository conflict:", err);
+      setError(err instanceof Error ? err.message : "Failed to check repository");
+      return null;
+    }
+  };
+
   // Handle repository selection
   const handleSelectRepository = async (repo: Repository) => {
     // Defensive check to ensure owner data exists
@@ -133,16 +169,40 @@ export function CreateProjectDialog({
       return;
     }
 
-    setSelectedRepo(repo);
-    setFormData((prev) => ({
-      ...prev,
-      name: repo.name,
-      description: repo.description || "",
-      defaultBranch: repo.default_branch,
-    }));
+    try {
+      setLoading(true);
+      setError(null);
 
-    await fetchBranches(repo.owner.login, repo.name);
-    setStep("configure");
+      // Check for conflicts first
+      const conflictCheck = await checkRepositoryConflict(repo);
+      
+      if (!conflictCheck) {
+        return; // Error already set by checkRepositoryConflict
+      }
+
+      if (conflictCheck.hasConflict) {
+        // Show conflict dialog
+        setProjectConflict(conflictCheck.conflict);
+        setShowConflictDialog(true);
+        return;
+      }
+
+      // No conflict, proceed with selection
+      setSelectedRepo(repo);
+      setFormData((prev) => ({
+        ...prev,
+        name: repo.name,
+        description: repo.description || "",
+        defaultBranch: repo.default_branch,
+      }));
+
+      await fetchBranches(repo.owner.login, repo.name);
+      setStep("configure");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to select repository");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Create project
@@ -420,6 +480,20 @@ export function CreateProjectDialog({
           </div>
         </DialogFooter>
       </DialogContent>
+      
+      {/* Repository Conflict Dialog */}
+      <RepositoryConflictDialog
+        open={showConflictDialog}
+        onOpenChange={setShowConflictDialog}
+        conflict={projectConflict}
+        onGoToProject={() => {
+          if (projectConflict?.existingProject.id) {
+            onOpenChange(false); // Close the main dialog first
+            // Navigation will be handled by the conflict dialog
+          }
+        }}
+        showCreateNewOption={false}
+      />
     </Dialog>
   );
 }
