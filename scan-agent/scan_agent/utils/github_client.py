@@ -241,3 +241,105 @@ class GitHubWebhookHandler:
         
         logger.info(f"Parsed push event: {parsed_data['repository']['full_name']} to {branch} ({len(commits)} commits)")
         return parsed_data
+
+    async def setup_webhook(self, owner: str, repo: str, webhook_url: str, secret: str) -> Optional[Dict[str, Any]]:
+        """Create or update webhook for repository."""
+        try:
+            async with httpx.AsyncClient() as client:
+                # Check if webhook already exists
+                existing_webhook = await self._get_existing_webhook(client, owner, repo, webhook_url)
+                
+                if existing_webhook:
+                    logger.info(f"Webhook already exists for {owner}/{repo}")
+                    return existing_webhook
+                
+                # Create new webhook
+                url = f"{self.base_url}/repos/{owner}/{repo}/hooks"
+                webhook_config = {
+                    "name": "web",
+                    "active": True,
+                    "events": ["pull_request", "push"],
+                    "config": {
+                        "url": webhook_url,
+                        "content_type": "json",
+                        "secret": secret,
+                        "insecure_ssl": "0"
+                    }
+                }
+                
+                logger.info(f"Creating webhook for {owner}/{repo} with URL: {webhook_url}")
+                response = await client.post(url, json=webhook_config, headers=self.headers)
+                
+                if response.status_code == 201:
+                    webhook_info = response.json()
+                    logger.info(f"Successfully created webhook for {owner}/{repo} with ID: {webhook_info.get('id')}")
+                    return webhook_info
+                else:
+                    logger.error(f"Failed to create webhook for {owner}/{repo}: {response.status_code} - {response.text}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Error setting up webhook for {owner}/{repo}: {str(e)}", exc_info=True)
+            return None
+
+    async def remove_webhook(self, owner: str, repo: str, webhook_id: int) -> bool:
+        """Remove webhook from repository."""
+        try:
+            async with httpx.AsyncClient() as client:
+                url = f"{self.base_url}/repos/{owner}/{repo}/hooks/{webhook_id}"
+                logger.info(f"Removing webhook {webhook_id} from {owner}/{repo}")
+                
+                response = await client.delete(url, headers=self.headers)
+                
+                if response.status_code == 204:
+                    logger.info(f"Successfully removed webhook {webhook_id} from {owner}/{repo}")
+                    return True
+                else:
+                    logger.error(f"Failed to remove webhook {webhook_id} from {owner}/{repo}: {response.status_code}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Error removing webhook from {owner}/{repo}: {str(e)}", exc_info=True)
+            return False
+
+    async def get_webhooks(self, owner: str, repo: str) -> List[Dict[str, Any]]:
+        """Get all webhooks for repository."""
+        try:
+            async with httpx.AsyncClient() as client:
+                url = f"{self.base_url}/repos/{owner}/{repo}/hooks"
+                logger.info(f"Fetching webhooks for {owner}/{repo}")
+                
+                response = await client.get(url, headers=self.headers)
+                
+                if response.status_code == 200:
+                    webhooks = response.json()
+                    logger.info(f"Found {len(webhooks)} webhooks for {owner}/{repo}")
+                    return webhooks
+                else:
+                    logger.error(f"Failed to fetch webhooks for {owner}/{repo}: {response.status_code}")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"Error fetching webhooks for {owner}/{repo}: {str(e)}", exc_info=True)
+            return []
+
+    async def _get_existing_webhook(self, client: httpx.AsyncClient, owner: str, repo: str, webhook_url: str) -> Optional[Dict[str, Any]]:
+        """Check if webhook already exists for repository."""
+        try:
+            url = f"{self.base_url}/repos/{owner}/{repo}/hooks"
+            response = await client.get(url, headers=self.headers)
+            
+            if response.status_code == 200:
+                hooks = response.json()
+                for hook in hooks:
+                    if hook.get("config", {}).get("url") == webhook_url:
+                        logger.info(f"Found existing webhook for {owner}/{repo}: {hook.get('id')}")
+                        return hook
+                return None
+            else:
+                logger.error(f"Failed to fetch existing webhooks for {owner}/{repo}: {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error checking existing webhooks for {owner}/{repo}: {str(e)}", exc_info=True)
+            return None

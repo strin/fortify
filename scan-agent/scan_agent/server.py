@@ -460,6 +460,131 @@ async def test_github_webhook():
         raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
 
 
+@app.post("/setup-webhook")
+async def setup_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks
+):
+    """Setup webhook for a repository automatically."""
+    try:
+        body = await request.json()
+        owner = body.get("owner")
+        repo = body.get("repo")
+        webhook_url = body.get("webhook_url")
+        secret = body.get("secret")
+        
+        if not all([owner, repo, webhook_url, secret]):
+            raise HTTPException(status_code=400, detail="Missing required parameters: owner, repo, webhook_url, secret")
+        
+        # Get access token from Authorization header
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        
+        access_token = auth_header.split(" ")[1]
+        
+        # Initialize GitHub client with user's access token
+        github_client = GitHubClient(access_token=access_token)
+        
+        # Setup webhook
+        webhook_result = await github_client.setup_webhook(owner, repo, webhook_url, secret)
+        
+        if webhook_result:
+            return {
+                "status": "success",
+                "message": f"Webhook configured for {owner}/{repo}",
+                "webhook_id": webhook_result.get("id"),
+                "webhook_url": webhook_result.get("config", {}).get("url"),
+                "events": webhook_result.get("events", []),
+                "active": webhook_result.get("active", False)
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to setup webhook")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in webhook setup: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.delete("/setup-webhook")
+async def remove_webhook(
+    request: Request
+):
+    """Remove webhook from a repository."""
+    try:
+        body = await request.json()
+        owner = body.get("owner")
+        repo = body.get("repo")
+        webhook_id = body.get("webhook_id")
+        
+        if not all([owner, repo, webhook_id]):
+            raise HTTPException(status_code=400, detail="Missing required parameters: owner, repo, webhook_id")
+        
+        # Get access token from Authorization header
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        
+        access_token = auth_header.split(" ")[1]
+        
+        # Initialize GitHub client with user's access token
+        github_client = GitHubClient(access_token=access_token)
+        
+        # Remove webhook
+        success = await github_client.remove_webhook(owner, repo, webhook_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": f"Webhook removed from {owner}/{repo}"
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to remove webhook")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error removing webhook: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/webhooks/{owner}/{repo}")
+async def get_repository_webhooks(
+    owner: str,
+    repo: str,
+    request: Request
+):
+    """Get webhooks for a repository."""
+    try:
+        # Get access token from Authorization header
+        auth_header = request.headers.get("authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Invalid authorization header")
+        
+        access_token = auth_header.split(" ")[1]
+        
+        # Initialize GitHub client with user's access token
+        github_client = GitHubClient(access_token=access_token)
+        
+        # Get webhooks
+        webhooks = await github_client.get_webhooks(owner, repo)
+        
+        return {
+            "status": "success",
+            "repository": f"{owner}/{repo}",
+            "webhooks": webhooks,
+            "total": len(webhooks)
+        }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching webhooks: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 def main():
     """Main entry point for the server."""
     port = int(os.environ.get("PORT", 8000))

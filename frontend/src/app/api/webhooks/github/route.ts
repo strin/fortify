@@ -4,7 +4,7 @@ import * as crypto from "crypto";
 
 /**
  * GitHub Webhook Proxy Handler
- * 
+ *
  * This endpoint receives GitHub webhooks at the public domain (https://fortify.rocks)
  * and forwards them to the scan agent server for processing.
  */
@@ -18,7 +18,9 @@ const GITHUB_WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET || "";
  */
 function verifyGitHubSignature(payload: string, signature: string): boolean {
   if (!GITHUB_WEBHOOK_SECRET) {
-    console.warn("GITHUB_WEBHOOK_SECRET not configured - skipping signature verification");
+    console.warn(
+      "GITHUB_WEBHOOK_SECRET not configured - skipping signature verification"
+    );
     return true;
   }
 
@@ -52,8 +54,10 @@ async function forwardWebhookToScanAgent(
   githubHeaders: Record<string, string>
 ): Promise<Response> {
   try {
-    console.log(`[Webhook Proxy] Forwarding request to scan agent: ${SCAN_AGENT_URL}/webhooks/github`);
-    
+    console.log(
+      `[Webhook Proxy] Forwarding request to scan agent: ${SCAN_AGENT_URL}/webhooks/github`
+    );
+
     const response = await fetch(`${SCAN_AGENT_URL}/webhooks/github`, {
       method: "POST",
       headers: {
@@ -68,17 +72,22 @@ async function forwardWebhookToScanAgent(
       signal: AbortSignal.timeout(30000), // 30 second timeout
     });
 
-    console.log(`[Webhook Proxy] Scan agent response: ${response.status} ${response.statusText}`);
+    console.log(
+      `[Webhook Proxy] Scan agent response: ${response.status} ${response.statusText}`
+    );
     return response;
-    
   } catch (error) {
     console.error("[Webhook Proxy] Error forwarding to scan agent:", error);
-    
+
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Scan agent request timeout");
     }
-    
-    throw new Error(`Failed to forward webhook: ${error instanceof Error ? error.message : "Unknown error"}`);
+
+    throw new Error(
+      `Failed to forward webhook: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
@@ -88,7 +97,7 @@ async function forwardWebhookToScanAgent(
 export async function POST(request: NextRequest) {
   try {
     const startTime = Date.now();
-    
+
     // Extract GitHub headers
     const headersList = await headers();
     const githubEvent = headersList.get("x-github-event") || "";
@@ -96,7 +105,9 @@ export async function POST(request: NextRequest) {
     const githubSignature = headersList.get("x-hub-signature-256") || "";
     const userAgent = headersList.get("user-agent") || "";
 
-    console.log(`[Webhook Proxy] Received GitHub webhook: event=${githubEvent}, delivery=${githubDelivery}`);
+    console.log(
+      `[Webhook Proxy] Received GitHub webhook: event=${githubEvent}, delivery=${githubDelivery}`
+    );
 
     // Read request body
     const payload = await request.text();
@@ -122,22 +133,29 @@ export async function POST(request: NextRequest) {
     };
 
     // Forward request to scan agent
-    const scanAgentResponse = await forwardWebhookToScanAgent(payload, forwardHeaders);
-    
+    const scanAgentResponse = await forwardWebhookToScanAgent(
+      payload,
+      forwardHeaders
+    );
+
     // Parse scan agent response
     const responseData = await scanAgentResponse.json();
     const processingTime = Date.now() - startTime;
-    
+
     console.log(`[Webhook Proxy] Processing completed in ${processingTime}ms`);
-    
+
     // Log success details
     if (scanAgentResponse.ok) {
-      console.log(`[Webhook Proxy] Successfully processed ${githubEvent} event`);
+      console.log(
+        `[Webhook Proxy] Successfully processed ${githubEvent} event`
+      );
       if (responseData.job_id) {
         console.log(`[Webhook Proxy] Created scan job: ${responseData.job_id}`);
       }
     } else {
-      console.error(`[Webhook Proxy] Scan agent returned error: ${scanAgentResponse.status}`);
+      console.error(
+        `[Webhook Proxy] Scan agent returned error: ${scanAgentResponse.status}`
+      );
     }
 
     // Return scan agent response with additional proxy metadata
@@ -148,14 +166,14 @@ export async function POST(request: NextRequest) {
           processed_at: new Date().toISOString(),
           processing_time_ms: processingTime,
           scan_agent_url: SCAN_AGENT_URL,
-          proxy_version: "1.0.0"
-        }
+          proxy_version: "1.0.0",
+        },
       },
       { status: scanAgentResponse.status }
     );
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     console.error("[Webhook Proxy] Error processing webhook:", error);
 
     // Return error response
@@ -166,8 +184,8 @@ export async function POST(request: NextRequest) {
         proxy: {
           processed_at: new Date().toISOString(),
           scan_agent_url: SCAN_AGENT_URL,
-          proxy_version: "1.0.0"
-        }
+          proxy_version: "1.0.0",
+        },
       },
       { status: 500 }
     );
@@ -180,18 +198,20 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     console.log("[Webhook Proxy] Health check requested");
-    
+
     // Test connection to scan agent
     let scanAgentStatus = "unknown";
     let scanAgentError: string | null = null;
-    
+
     try {
       const testResponse = await fetch(`${SCAN_AGENT_URL}/health`, {
         method: "GET",
         signal: AbortSignal.timeout(5000), // 5 second timeout for health check
       });
-      
-      scanAgentStatus = testResponse.ok ? "healthy" : `error_${testResponse.status}`;
+
+      scanAgentStatus = testResponse.ok
+        ? "healthy"
+        : `error_${testResponse.status}`;
     } catch (error) {
       scanAgentStatus = "unreachable";
       scanAgentError = error instanceof Error ? error.message : "Unknown error";
@@ -213,7 +233,8 @@ export async function GET() {
       },
       setup_instructions: {
         environment_variables: {
-          SCAN_AGENT_URL: "URL of the scan agent server (e.g., http://localhost:8000)",
+          SCAN_AGENT_URL:
+            "URL of the scan agent server (e.g., http://localhost:8000)",
           GITHUB_WEBHOOK_SECRET: "Shared secret for GitHub webhook validation",
         },
         github_webhook_config: {
@@ -225,10 +246,9 @@ export async function GET() {
       },
       timestamp: new Date().toISOString(),
     });
-    
   } catch (error) {
     console.error("[Webhook Proxy] Error in health check:", error);
-    
+
     return NextResponse.json(
       {
         status: "error",
