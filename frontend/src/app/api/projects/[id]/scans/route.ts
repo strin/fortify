@@ -4,6 +4,113 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: projectId } = await params;
+    
+    // Verify the project exists and user has access
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    // Get all scans for this project
+    const scans = await prisma.scanJob.findMany({
+      where: {
+        projectId: projectId,
+        userId: session.user.id,
+      },
+      include: {
+        vulnerabilities: {
+          select: {
+            id: true,
+            severity: true,
+            category: true,
+          },
+        },
+        scanTarget: {
+          select: {
+            id: true,
+            name: true,
+            repoUrl: true,
+            branch: true,
+            subPath: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Process scans to include summary statistics
+    const processedScans = scans.map((scan) => {
+      const vulnerabilityCounts = {
+        CRITICAL: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0,
+        INFO: 0,
+      };
+
+      const categoryCounts: Record<string, number> = {};
+
+      scan.vulnerabilities.forEach((vuln) => {
+        vulnerabilityCounts[
+          vuln.severity as keyof typeof vulnerabilityCounts
+        ]++;
+        categoryCounts[vuln.category] =
+          (categoryCounts[vuln.category] || 0) + 1;
+      });
+
+      return {
+        id: scan.id,
+        type: scan.type,
+        status: scan.status,
+        createdAt: scan.createdAt,
+        updatedAt: scan.updatedAt,
+        startedAt: scan.startedAt,
+        finishedAt: scan.finishedAt,
+        vulnerabilitiesFound: scan.vulnerabilitiesFound,
+        error: scan.error,
+        data: scan.data,
+        vulnerabilityCounts,
+        categoryCounts,
+        totalVulnerabilities: scan.vulnerabilities.length,
+        scanTarget: scan.scanTarget,
+      };
+    });
+
+    return NextResponse.json({ 
+      scans: processedScans,
+      totalScans: processedScans.length 
+    });
+
+  } catch (error) {
+    console.error("Error fetching project scans:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
