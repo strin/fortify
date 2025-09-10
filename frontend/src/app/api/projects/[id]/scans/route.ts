@@ -99,7 +99,7 @@ export async function POST(
     });
 
     // Submit job to scan worker
-    const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
+    const scanWorkerUrl = process.env.SCAN_AGENT_URL || "http://localhost:8000";
     
     try {
       const workerResponse = await fetch(`${scanWorkerUrl}/scan/repo`, {
