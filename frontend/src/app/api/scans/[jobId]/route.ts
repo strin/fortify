@@ -81,14 +81,6 @@ export async function GET(
         name: scanJob.project.name,
         description: scanJob.project.description,
       } : null,
-      scanTarget: scanJob.data ? {
-        repoUrl: scanJob.data.repo_url,
-        branch: scanJob.data.branch || 'main',
-        subPath: scanJob.data.path || '/',
-        repository: {
-          fullName: scanJob.data.repo_url ? scanJob.data.repo_url.replace(/.*github\.com[\/:]/, '').replace(/\.git$/, '') : 'unknown',
-        },
-      } : null,
     };
 
     return NextResponse.json(response);
