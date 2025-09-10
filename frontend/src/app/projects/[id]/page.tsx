@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -27,7 +26,6 @@ import {
   Settings,
   Shield,
   Target,
-  Webhook,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -83,36 +81,18 @@ interface Project {
   vulnerabilitySummary: VulnerabilitySummary;
 }
 
-interface WebhookInfo {
-  id: number;
-  url: string;
-  active: boolean;
-  events: string[];
-}
-
-interface WebhookState {
-  isSubscribed: boolean;
-  isLoading: boolean;
-  webhookInfo: WebhookInfo | null;
-}
-
 export default function ProjectDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { data: session, status } = useSession();
   const router = useRouter();
-
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string>("");
   const [webhookStates, setWebhookStates] = useState<
     Record<string, WebhookState>
   >({});
 
-  // Get project ID from params
+  // Get project ID from params and redirect to overview
   useEffect(() => {
     params.then((p) => setProjectId(p.id));
   }, [params]);
@@ -128,23 +108,6 @@ export default function ProjectDetailPage({
       fetchProject();
     }
   }, [status, router, projectId]);
-
-  // Check webhook status when project loads
-  useEffect(() => {
-    if (project?.repositories) {
-      project.repositories.forEach((repo) => {
-        setWebhookStates((prev) => ({
-          ...prev,
-          [repo.id]: {
-            isSubscribed: false,
-            isLoading: true,
-            webhookInfo: null,
-          },
-        }));
-        checkWebhookStatus(repo);
-      });
-    }
-  }, [project?.repositories]);
 
   const fetchProject = async () => {
     try {
@@ -187,120 +150,6 @@ export default function ProjectDetailPage({
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     return `${Math.floor(diffInDays / 30)} months ago`;
-  };
-
-  // Webhook management functions
-  const checkWebhookStatus = async (repo: Repository) => {
-    try {
-      const [owner, repoName] = repo.fullName.split("/");
-      const response = await fetch(
-        `/api/repositories/${owner}/${repoName}/webhook`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const fortifyWebhook = data.webhooks?.find((webhook: WebhookInfo) =>
-          webhook.url.includes("/api/webhooks/github")
-        );
-
-        setWebhookStates((prev) => ({
-          ...prev,
-          [repo.id]: {
-            isSubscribed: !!fortifyWebhook,
-            isLoading: false,
-            webhookInfo: fortifyWebhook || null,
-          },
-        }));
-      }
-    } catch (error) {
-      console.error("Error checking webhook status:", error);
-      setWebhookStates((prev) => ({
-        ...prev,
-        [repo.id]: {
-          isSubscribed: false,
-          isLoading: false,
-          webhookInfo: null,
-        },
-      }));
-    }
-  };
-
-  const handleWebhookSubscription = async (repo: Repository) => {
-    const [owner, repoName] = repo.fullName.split("/");
-    const currentState = webhookStates[repo.id];
-
-    setWebhookStates((prev) => ({
-      ...prev,
-      [repo.id]: { ...prev[repo.id], isLoading: true },
-    }));
-
-    try {
-      if (currentState?.isSubscribed) {
-        // Unsubscribe - remove webhook
-        const response = await fetch(
-          `/api/repositories/${owner}/${repoName}/webhook`,
-          {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ webhook_id: currentState.webhookInfo?.id }),
-          }
-        );
-
-        if (response.ok) {
-          setWebhookStates((prev) => ({
-            ...prev,
-            [repo.id]: {
-              isSubscribed: false,
-              isLoading: false,
-              webhookInfo: null,
-            },
-          }));
-          // Show success feedback using Alert component instead of toast
-          setError(null); // Clear any existing errors to show success
-        } else {
-          throw new Error("Failed to remove webhook");
-        }
-      } else {
-        // Subscribe - create webhook
-        const response = await fetch(
-          `/api/repositories/${owner}/${repoName}/webhook`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          setWebhookStates((prev) => ({
-            ...prev,
-            [repo.id]: {
-              isSubscribed: true,
-              isLoading: false,
-              webhookInfo: {
-                id: result.webhook_id,
-                url: result.webhook_url,
-                active: result.active,
-                events: result.events,
-              },
-            },
-          }));
-          // Show success feedback
-          setError(null);
-        } else {
-          throw new Error("Failed to create webhook");
-        }
-      }
-    } catch (error) {
-      console.error("Error managing webhook:", error);
-      setWebhookStates((prev) => ({
-        ...prev,
-        [repo.id]: { ...prev[repo.id], isLoading: false },
-      }));
-      setError(
-        error instanceof Error ? error.message : "Failed to manage webhook"
-      );
-    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -706,98 +555,53 @@ export default function ProjectDetailPage({
                         Add Repository
                       </Button>
                     </div>
-                    {project.repositories.map((repo) => {
-                      const webhookState = webhookStates[repo.id] || {
-                        isSubscribed: false,
-                        isLoading: false,
-                        webhookInfo: null,
-                      };
-
-                      return (
-                        <div
-                          key={repo.id}
-                          className="flex items-center justify-between p-4 border border-border rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <Github className="h-4 w-4" />
-                              <span className="font-medium">
-                                {repo.fullName}
-                              </span>
-                              {repo.isPrivate && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Private
-                                </Badge>
-                              )}
-                              {webhookState.isSubscribed && (
-                                <Badge variant="default" className="text-xs">
-                                  <Webhook className="h-3 w-3 mr-1" />
-                                  Subscribed
-                                </Badge>
-                              )}
-                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                                <GitBranch className="h-3 w-3" />
-                                {repo.defaultBranch}
-                              </div>
-                            </div>
-                            {repo.description && (
-                              <p className="text-muted-foreground text-sm">
-                                {repo.description}
-                              </p>
+                    {project.repositories.map((repo) => (
+                      <div
+                        key={repo.id}
+                        className="flex items-center justify-between p-4 border border-border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Github className="h-4 w-4" />
+                            <span className="font-medium">{repo.fullName}</span>
+                            {repo.isPrivate && (
+                              <Badge variant="secondary" className="text-xs">
+                                Private
+                              </Badge>
                             )}
-                            <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                              <span>Scan Targets: {repo.totalScanTargets}</span>
-                              {repo.lastScanAt && (
-                                <span>
-                                  Last Scan: {formatTimeAgo(repo.lastScanAt)}
-                                </span>
-                              )}
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <GitBranch className="h-3 w-3" />
+                              {repo.defaultBranch}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant={
-                                webhookState.isSubscribed
-                                  ? "outline"
-                                  : "default"
-                              }
-                              onClick={() => handleWebhookSubscription(repo)}
-                              disabled={webhookState.isLoading}
-                              className={
-                                webhookState.isSubscribed
-                                  ? "text-destructive hover:text-destructive/80"
-                                  : "bg-primary hover:bg-primary/90"
-                              }
-                            >
-                              {webhookState.isLoading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : webhookState.isSubscribed ? (
-                                <>
-                                  <Webhook className="h-4 w-4 mr-2" />
-                                  Unsubscribe
-                                </>
-                              ) : (
-                                <>
-                                  <Webhook className="h-4 w-4 mr-2" />
-                                  Subscribe
-                                </>
-                              )}
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              Configure
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              Remove
-                            </Button>
+                          {repo.description && (
+                            <p className="text-muted-foreground text-sm">
+                              {repo.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                            <span>Scan Targets: {repo.totalScanTargets}</span>
+                            {repo.lastScanAt && (
+                              <span>
+                                Last Scan: {formatTimeAgo(repo.lastScanAt)}
+                              </span>
+                            )}
                           </div>
                         </div>
-                      );
-                    })}
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline">
+                            Configure
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>

@@ -112,11 +112,30 @@ export async function POST(request: NextRequest) {
         provider,
         fullName,
       },
+      include: {
+        project: true,
+      },
     });
 
     if (existingRepository) {
       return NextResponse.json(
-        { error: "Repository already exists in another project" },
+        { 
+          error: "Repository already exists in another project",
+          conflict: {
+            type: "REPOSITORY_EXISTS",
+            repository: {
+              id: existingRepository.id,
+              fullName: existingRepository.fullName,
+              description: existingRepository.description,
+            },
+            existingProject: {
+              id: existingRepository.project.id,
+              name: existingRepository.project.name,
+              description: existingRepository.project.description,
+              createdAt: existingRepository.project.createdAt,
+            },
+          }
+        },
         { status: 409 }
       );
     }
@@ -164,7 +183,7 @@ export async function POST(request: NextRequest) {
           description: `Default scan target for ${fullName} on ${defaultBranch} branch`,
           repoUrl,
           branch: defaultBranch,
-          subPath: null,
+          subPath: "/",
         },
       });
 
