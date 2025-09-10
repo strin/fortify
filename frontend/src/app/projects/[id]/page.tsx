@@ -171,10 +171,10 @@ export default function ProjectDetailPage({
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-300">Loading project...</p>
+          <p className="text-muted-foreground">Loading project...</p>
         </div>
       </div>
     );
@@ -182,13 +182,13 @@ export default function ProjectDetailPage({
 
   if (status === "unauthenticated" || error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
-          <h2 className="text-xl font-semibold mb-2">
+          <h2 className="text-xl font-semibold mb-2 text-foreground">
             {error || "Access Denied"}
           </h2>
-          <p className="text-gray-400 mb-4">
+          <p className="text-muted-foreground mb-4">
             {error || "You need to be logged in to view this project."}
           </p>
           <Button onClick={() => router.push("/projects")}>
@@ -205,7 +205,7 @@ export default function ProjectDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -222,7 +222,7 @@ export default function ProjectDetailPage({
                 <div className="flex items-center gap-2">
                   {project.repositories.map((repo, index) => (
                     <div key={repo.id} className="flex items-center gap-1">
-                      {index > 0 && <span className="text-gray-500">•</span>}
+                      {index > 0 && <span className="text-muted-foreground">•</span>}
                       <a
                         href={
                           repo.provider === "GITHUB"
@@ -231,7 +231,7 @@ export default function ProjectDetailPage({
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors text-sm text-gray-300 hover:text-white"
+                        className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted hover:bg-accent transition-colors text-sm text-muted-foreground hover:text-foreground"
                         title={`Open ${
                           repo.fullName
                         } on ${repo.provider.toLowerCase()}`}
@@ -243,14 +243,11 @@ export default function ProjectDetailPage({
                   ))}
                 </div>
               )}
-              <Badge variant={project.isActive ? "default" : "secondary"}>
-                {project.isActive ? "Active" : "Inactive"}
-              </Badge>
             </div>
           </div>
 
           {project.description && (
-            <p className="text-gray-400">{project.description}</p>
+            <p className="text-muted-foreground">{project.description}</p>
           )}
 
           {/* Quick Actions */}
@@ -267,7 +264,7 @@ export default function ProjectDetailPage({
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-gray-800">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="scans">Scans</TabsTrigger>
             <TabsTrigger value="compliance">Compliance</TabsTrigger>
@@ -278,7 +275,7 @@ export default function ProjectDetailPage({
           <TabsContent value="overview" className="space-y-6">
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-gray-800 border-gray-700">
+              <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Shield className="h-5 w-5 text-blue-500" />
@@ -311,7 +308,7 @@ export default function ProjectDetailPage({
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
+              <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Target className="h-5 w-5 text-green-500" />
@@ -321,17 +318,19 @@ export default function ProjectDetailPage({
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Total Scans</span>
+                      <span className="text-muted-foreground">Total Scans</span>
                       <span className="font-medium">{project.totalScans}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Repositories</span>
+                      <span className="text-muted-foreground">
+                        Repositories
+                      </span>
                       <span className="font-medium">
                         {project.totalRepositories}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Last Scan</span>
+                      <span className="text-muted-foreground">Last Scan</span>
                       <span className="font-medium">
                         {project.lastScanAt
                           ? formatTimeAgo(project.lastScanAt)
@@ -342,7 +341,7 @@ export default function ProjectDetailPage({
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800 border-gray-700">
+              <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Calendar className="h-5 w-5 text-purple-500" />
@@ -352,13 +351,13 @@ export default function ProjectDetailPage({
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Created</span>
+                      <span className="text-muted-foreground">Created</span>
                       <span className="font-medium text-sm">
                         {formatDate(project.createdAt)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Updated</span>
+                      <span className="text-muted-foreground">Updated</span>
                       <span className="font-medium text-sm">
                         {formatDate(project.updatedAt)}
                       </span>
@@ -369,7 +368,7 @@ export default function ProjectDetailPage({
             </div>
 
             {/* Recent Scans - Now prominently displayed */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
@@ -382,8 +381,8 @@ export default function ProjectDetailPage({
               <CardContent>
                 {project.scanJobs.length === 0 ? (
                   <div className="text-center py-8">
-                    <Target className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                    <p className="text-gray-400">No scans yet</p>
+                    <Target className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No scans yet</p>
                     <Button className="mt-4">
                       <Play className="h-4 w-4 mr-2" />
                       Run Your First Scan
@@ -394,7 +393,7 @@ export default function ProjectDetailPage({
                     {project.scanJobs.slice(0, 8).map((job) => (
                       <div
                         key={job.id}
-                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg hover:border-gray-500 transition-colors"
+                        className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-accent transition-colors"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -407,7 +406,7 @@ export default function ProjectDetailPage({
                             >
                               {job.status}
                             </Badge>
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-muted-foreground">
                               {job.finishedAt
                                 ? formatDate(job.finishedAt)
                                 : "In progress..."}
@@ -442,7 +441,7 @@ export default function ProjectDetailPage({
 
           {/* Scans Tab */}
           <TabsContent value="scans">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader>
                 <CardTitle>All Scans</CardTitle>
                 <CardDescription>
@@ -451,8 +450,10 @@ export default function ProjectDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <FileText className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                  <p className="text-gray-400">Scans view coming soon</p>
+                  <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground">
+                    Scans view coming soon
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -460,7 +461,7 @@ export default function ProjectDetailPage({
 
           {/* Compliance Tab */}
           <TabsContent value="compliance">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader>
                 <CardTitle>Compliance Reporting</CardTitle>
                 <CardDescription>
@@ -469,8 +470,8 @@ export default function ProjectDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <Shield className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                  <p className="text-gray-400 mb-4">
+                  <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">
                     Compliance reporting is coming soon. You&apos;ll be able to
                     generate evidence for SOC2, ISO, and HIPAA directly from
                     your scan history.
@@ -483,7 +484,7 @@ export default function ProjectDetailPage({
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             {/* Repositories Configuration */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Github className="h-5 w-5" />
@@ -496,8 +497,8 @@ export default function ProjectDetailPage({
               <CardContent>
                 {project.repositories.length === 0 ? (
                   <div className="text-center py-8">
-                    <Github className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                    <p className="text-gray-400 mb-4">
+                    <Github className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">
                       No repositories configured
                     </p>
                     <Button className="bg-blue-600 hover:bg-blue-700">
@@ -508,7 +509,7 @@ export default function ProjectDetailPage({
                 ) : (
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-muted-foreground">
                         {project.repositories.length} repositories configured
                       </p>
                       <Button
@@ -522,7 +523,7 @@ export default function ProjectDetailPage({
                     {project.repositories.map((repo) => (
                       <div
                         key={repo.id}
-                        className="flex items-center justify-between p-4 border border-gray-600 rounded-lg"
+                        className="flex items-center justify-between p-4 border border-border rounded-lg"
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
@@ -533,17 +534,17 @@ export default function ProjectDetailPage({
                                 Private
                               </Badge>
                             )}
-                            <div className="flex items-center gap-1 text-sm text-gray-400">
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
                               <GitBranch className="h-3 w-3" />
                               {repo.defaultBranch}
                             </div>
                           </div>
                           {repo.description && (
-                            <p className="text-gray-400 text-sm">
+                            <p className="text-muted-foreground text-sm">
                               {repo.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                             <span>Scan Targets: {repo.totalScanTargets}</span>
                             {repo.lastScanAt && (
                               <span>
@@ -572,7 +573,7 @@ export default function ProjectDetailPage({
             </Card>
 
             {/* Project Settings */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
@@ -584,8 +585,8 @@ export default function ProjectDetailPage({
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8">
-                  <Settings className="h-12 w-12 mx-auto mb-4 text-gray-500" />
-                  <p className="text-gray-400 mb-4">
+                  <Settings className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-muted-foreground mb-4">
                     Advanced settings are coming soon. You&apos;ll be able to
                     configure automatic scans, notifications, and security
                     policies.

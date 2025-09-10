@@ -34,7 +34,9 @@ The `specs/` directory contains the source of truth for all architectural decisi
 ### Frontend (frontend/)
 - **Framework**: Next.js 14+ with App Router
 - **Language**: TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui components
+- **Styling**: Tailwind CSS + shadcn/ui components.
+  - Use the shadcn/ui component library for all UI components.
+  - Use the Tailwind CSS theme classes for styling.
 - **Authentication**: NextAuth.js with GitHub OAuth
 - **Database**: Prisma client for PostgreSQL
 
