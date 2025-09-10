@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import ExitIntentPopup from "./ExitIntentPopup";
-import Globe3D from "./Globe3D";
 import SampleScanReport from "./SampleScanReport";
 
 export default function LandingPage() {
@@ -75,11 +74,23 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Right: Rotating 3D Globe */}
+              {/* Right: Hero Visual */}
               <div className="md:col-span-5">
                 <div className="relative mx-auto h-72 w-72 md:h-[420px] md:w-[420px] rounded-full overflow-hidden">
-                  <Globe3D className="h-full w-full" />
+                  {/* Security-themed gradient visual */}
+                  <div className="h-full w-full rounded-full bg-gradient-to-br from-blue-600 via-purple-600 to-cyan-500 animate-pulse"></div>
                   <div className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-blue-500/20 via-purple-500/10 to-cyan-400/20 mix-blend-screen"></div>
+                  
+                  {/* Security icons overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-6xl md:text-8xl text-white/80 animate-bounce">
+                      🔒
+                    </div>
+                  </div>
+                  
+                  {/* Subtle animated rings */}
+                  <div className="absolute inset-4 border border-white/20 rounded-full animate-ping"></div>
+                  <div className="absolute inset-8 border border-white/10 rounded-full animate-ping" style={{animationDelay: '1s'}}></div>
                 </div>
               </div>
             </div>

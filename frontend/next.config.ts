@@ -11,8 +11,6 @@ const nextConfig: NextConfig = {
   
   // Optimizations to prevent memory issues and tab discarding
   experimental: {
-    // Optimize memory usage
-    optimizePackageImports: ['three'],
     // Reduce client-side bundle size
     optimizeCss: true,
   },
@@ -31,11 +29,6 @@ const nextConfig: NextConfig = {
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
-            chunks: 'all',
-          },
-          three: {
-            test: /[\\/]node_modules[\\/]three[\\/]/,
-            name: 'three',
             chunks: 'all',
           },
         },
