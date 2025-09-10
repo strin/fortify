@@ -226,7 +226,7 @@ function NewScanTargetForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -315,68 +315,129 @@ function NewScanTargetForm() {
                 vulnerabilities.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 sm:px-6">
               {/* Search */}
               <div className="mb-6">
-                <Input
-                  placeholder="Search repositories..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-gray-900 border-gray-600"
-                />
+                <div className="relative">
+                  <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search repositories by name or description..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="bg-gray-900 border-gray-600 pl-10 pr-16 sm:pr-20 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  {repositories.length > 0 && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 hidden sm:block">
+                      {filteredRepositories.length} of {repositories.length}
+                    </div>
+                  )}
+                </div>
+                {/* Mobile counter */}
+                {repositories.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-500 text-center sm:hidden">
+                    {filteredRepositories.length} of {repositories.length} repositories
+                  </div>
+                )}
               </div>
 
               {/* Repository list */}
               {loading ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                  <p className="text-gray-400">Loading repositories...</p>
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin mb-4 text-blue-500" />
+                  <p className="text-gray-400 text-lg">Loading repositories...</p>
+                  <p className="text-gray-500 text-sm mt-1">This may take a moment</p>
                 </div>
               ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {filteredRepositories.map((repo) => (
-                    <div
-                      key={repo.id}
-                      className="p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 cursor-pointer transition-colors"
-                      onClick={() => handleRepositorySelect(repo)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-white">
-                              {repo.name}
-                            </h3>
-                            {repo.private && (
-                              <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded">
-                                Private
-                              </span>
+                <div className="relative">
+                  {/* Repository list container with dynamic height */}
+                  <div className="space-y-3 max-h-[60vh] sm:max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-track-gray-800 scrollbar-thumb-gray-600 hover:scrollbar-thumb-gray-500 pr-1 sm:pr-2">
+                    {filteredRepositories.map((repo, index) => (
+                      <div
+                        key={repo.id}
+                        className="group repository-card p-3 sm:p-4 bg-gray-900 rounded-lg border border-gray-700 hover:border-gray-600 hover:bg-gray-850 cursor-pointer"
+                        onClick={() => handleRepositorySelect(repo)}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                              <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate text-sm sm:text-base">
+                                {repo.name}
+                              </h3>
+                              {repo.private && (
+                                <span className="px-2 py-1 text-xs bg-gray-700 text-gray-300 rounded flex-shrink-0">
+                                  Private
+                                </span>
+                              )}
+                              {repo.language && (
+                                <span className="px-2 py-1 text-xs bg-blue-900/50 text-blue-300 rounded flex-shrink-0">
+                                  {repo.language}
+                                </span>
+                              )}
+                            </div>
+                            {repo.description && (
+                              <p className="text-gray-400 text-sm mb-3 line-clamp-2 leading-relaxed">
+                                {repo.description}
+                              </p>
                             )}
-                            {repo.language && (
-                              <span className="px-2 py-1 text-xs bg-blue-900 text-blue-300 rounded">
-                                {repo.language}
+                            <div className="flex items-center gap-3 sm:gap-4 text-xs text-gray-500 flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <span className="text-yellow-500">⭐</span>
+                                {repo.stars.toLocaleString()}
                               </span>
-                            )}
+                              <span className="truncate">
+                                Updated {new Date(repo.updatedAt).toLocaleDateString()}
+                              </span>
+                            </div>
                           </div>
-                          {repo.description && (
-                            <p className="text-gray-400 text-sm mb-2">
-                              {repo.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>⭐ {repo.stars}</span>
-                            <span>
-                              Updated{" "}
-                              {new Date(repo.updatedAt).toLocaleDateString()}
-                            </span>
-                          </div>
+                          <ArrowRight className="h-4 w-4 text-gray-500 group-hover:text-blue-400 mt-1 flex-shrink-0 transition-colors" />
                         </div>
-                        <ArrowRight className="h-4 w-4 text-gray-500 mt-1" />
                       </div>
+                    ))}
+                  </div>
+                  
+                  {/* Scroll indicator fade effects */}
+                  {filteredRepositories.length > 3 && (
+                    <>
+                      <div className="absolute bottom-0 left-0 right-2 h-6 bg-gradient-to-t from-gray-800/50 to-transparent pointer-events-none" />
+                      <div className="absolute top-0 left-0 right-2 h-6 bg-gradient-to-b from-gray-800/50 to-transparent pointer-events-none" />
+                    </>
+                  )}
+                  
+                  {/* Scroll hint for large lists */}
+                  {filteredRepositories.length > 6 && (
+                    <div className="text-center mt-4 px-2">
+                      <p className="text-xs text-gray-500">
+                        <span className="hidden sm:inline">
+                          Showing {Math.min(6, filteredRepositories.length)} of {filteredRepositories.length} repositories
+                          {filteredRepositories.length > 6 && " • Scroll to see more"}
+                        </span>
+                        <span className="sm:hidden">
+                          {filteredRepositories.length} repositories • Scroll to see more
+                        </span>
+                      </p>
                     </div>
-                  ))}
+                  )}
+                  
+                  {/* Enhanced empty state */}
                   {filteredRepositories.length === 0 && !loading && (
-                    <div className="text-center py-8 text-gray-400">
-                      <p>No repositories found matching your search.</p>
+                    <div className="text-center py-12">
+                      <Github className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400 text-lg mb-2">No repositories found</p>
+                      <p className="text-gray-500 text-sm">
+                        {searchTerm 
+                          ? `Try adjusting your search term "${searchTerm}"` 
+                          : "Make sure you have repositories in your GitHub account"}
+                      </p>
+                      {searchTerm && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setSearchTerm("")}
+                          className="mt-3 text-blue-400 hover:text-blue-300"
+                        >
+                          Clear search
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
