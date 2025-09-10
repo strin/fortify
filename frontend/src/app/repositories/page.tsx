@@ -108,7 +108,7 @@ export default function RepositoriesPage() {
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Fortify - Repositories</h1>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Back to Scan Targets</Link>
+              <Link href="/scan-targets">Back to Scan Projects</Link>
             </Button>
           </nav>
 
@@ -140,7 +140,7 @@ export default function RepositoriesPage() {
               Refresh
             </Button>
             <Button asChild variant="outline">
-              <Link href="/scan-targets">Scan Targets</Link>
+              <Link href="/scan-targets">Scan Projects</Link>
             </Button>
           </div>
         </nav>
