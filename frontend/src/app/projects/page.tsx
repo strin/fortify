@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle,
   Calendar,
@@ -134,10 +135,62 @@ export default function ProjectsPage() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+            <div>
+              <Skeleton className="h-9 w-32 mb-2" />
+              <Skeleton className="h-5 w-80" />
+            </div>
+            <div className="mt-4 sm:mt-0 flex gap-3">
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-24" />
+          </div>
+
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="bg-card border-border">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-7 w-48" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-24" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-6">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div>
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <div className="flex flex-wrap gap-2">
+                        {[...Array(2)].map((_, j) => (
+                          <Skeleton key={j} className="h-8 w-40" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -193,9 +246,44 @@ export default function ProjectsPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="text-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-            <p className="text-muted-foreground">Loading projects...</p>
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="bg-card border-border">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Skeleton className="h-7 w-48" />
+                        <Skeleton className="h-6 w-16" />
+                      </div>
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-8 w-24" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-6">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-28" />
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                    <div>
+                      <Skeleton className="h-4 w-24 mb-2" />
+                      <div className="flex flex-wrap gap-2">
+                        {[...Array(2)].map((_, j) => (
+                          <Skeleton key={j} className="h-8 w-40" />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
 

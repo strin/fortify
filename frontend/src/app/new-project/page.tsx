@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertCircle,
   ArrowLeft,
@@ -233,10 +234,60 @@ function NewProjectForm() {
   // Show loading state while checking authentication
   if (status === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-background text-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-4">
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-9 w-64" />
+            </div>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-4 w-4" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+          </div>
+
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-80" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <Skeleton className="h-10 w-full" />
+                <div className="space-y-3 max-h-96">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="p-4 rounded-lg border border-border">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Skeleton className="h-5 w-48" />
+                            <Skeleton className="h-5 w-16" />
+                            <Skeleton className="h-5 w-20" />
+                          </div>
+                          <Skeleton className="h-4 w-full mb-2" />
+                          <div className="flex items-center gap-4">
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                        </div>
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -331,9 +382,27 @@ function NewProjectForm() {
                 {/* Repository List */}
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {loading ? (
-                    <div className="text-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <p className="text-muted-foreground">Loading repositories...</p>
+                    <div className="space-y-3">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="p-4 rounded-lg border border-border">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Skeleton className="h-5 w-48" />
+                                <Skeleton className="h-5 w-16" />
+                                <Skeleton className="h-5 w-20" />
+                              </div>
+                              <Skeleton className="h-4 w-full mb-2" />
+                              <div className="flex items-center gap-4">
+                                <Skeleton className="h-3 w-12" />
+                                <Skeleton className="h-3 w-12" />
+                                <Skeleton className="h-3 w-16" />
+                              </div>
+                            </div>
+                            <Skeleton className="h-8 w-16" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : filteredRepositories.length === 0 ? (
                     <div className="text-center py-8">

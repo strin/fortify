@@ -20,7 +20,7 @@ This PRD defines the user experience for creating new scans from the project pag
 
 ## User Personas
 
-### Primary: Development Team Lead
+### Primary: Security Engineer
 - **Context**: Managing security for team's repositories
 - **Goals**: Run targeted scans on specific branches before releases
 - **Pain Points**: Need to scan specific paths or branches, not entire repository
@@ -62,10 +62,6 @@ This PRD defines the user experience for creating new scans from the project pag
 - **Trigger**: "Create Scan" or "Run Scan" button in header
 - **Context**: User has selected project and wants to scan associated repositories
 
-**Secondary Entry Points**:
-- Repository list within project (per-repository scan buttons)
-- Scan history page ("Run New Scan" button)
-- Dashboard quick actions
 
 ### 1.2 Step-by-Step Flow
 
@@ -103,7 +99,7 @@ This PRD defines the user experience for creating new scans from the project pag
 - **Path Browser**: Optional file tree browser for complex repositories
 - **Validation**: Verify path exists in selected branch
 
-**Scan Options:**
+**Scan Options:** (Future)
 - **Scan Depth**: Shallow (faster) vs Deep (comprehensive)
 - **File Types**: Include/exclude specific file extensions
 - **Ignore Patterns**: Specify files/directories to ignore (beyond .gitignore)
@@ -114,14 +110,12 @@ This PRD defines the user experience for creating new scans from the project pag
 - Repository: `owner/repo-name`
 - Branch: `feature/authentication`  
 - Path: `/src/auth`
-- Options: Deep scan, all file types, MEDIUM+ severity
-- Estimated Duration: 2-5 minutes
+- Options: Deep scan, all file types, MEDIUM+ severity (Future)
+- Estimated Duration: 2-5 minutes (Futre)
 
 **Actions:**
 - **Start Scan**: Create and initiate scan job
-- **Save as Template**: Save configuration for future use
 - **Back**: Return to previous step to modify
-- **Cancel**: Exit flow and return to project page
 
 ### 1.3 Advanced Options (Future)
 
@@ -144,7 +138,6 @@ This PRD defines the user experience for creating new scans from the project pag
 
 ### 2.1 URL Structure
 - **Scan Job Page**: `/scans/[jobId]`
-- **Alternative**: `/projects/[projectId]/scans/[jobId]` (nested under project)
 
 ### 2.2 Status: In Progress
 
@@ -154,6 +147,7 @@ This PRD defines the user experience for creating new scans from the project pag
 - Repository and branch being scanned
 - Progress indicator (progress bar or spinner)
 - Cancel scan button
+- Back to project page button
 
 **Progress Section:**
 - **Current Stage**: "Cloning repository", "Analyzing code", "Generating report"
@@ -169,10 +163,10 @@ This PRD defines the user experience for creating new scans from the project pag
 
 **Actions:**
 - **Cancel Scan**: Stop scan and mark as cancelled
-- **View Project**: Return to project page
+- **View Project**: Return to project page button
 - **Refresh**: Manual refresh button (with auto-refresh every 10s)
 
-#### Real-time Updates
+#### Real-time Updates (Future)
 - **Auto-refresh**: Page updates every 10 seconds
 - **WebSocket Updates**: Real-time progress updates (future enhancement)
 - **Browser Notifications**: Alert when scan completes (with permission)
@@ -200,7 +194,6 @@ This PRD defines the user experience for creating new scans from the project pag
 **Actions:**
 - **Retry Scan**: Re-run scan with same configuration
 - **Modify and Retry**: Edit configuration and retry
-- **Contact Support**: Pre-filled support form with error details
 - **View Project**: Return to project page
 
 #### Common Error Scenarios
