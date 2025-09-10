@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     const startTime = Date.now();
     
     // Extract GitHub headers
-    const headersList = headers();
+    const headersList = await headers();
     const githubEvent = headersList.get("x-github-event") || "";
     const githubDelivery = headersList.get("x-github-delivery") || "";
     const githubSignature = headersList.get("x-hub-signature-256") || "";
