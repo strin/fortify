@@ -1243,16 +1243,12 @@ Please begin the security audit now."""
             )
 
             try:
-                # Ensure result is JSON-serializable by converting to JSON and back
-                # This handles datetime objects, complex objects, etc.
-                json_serializable_result = ensure_json_serializable(result)
-
                 db = await get_db()
                 await db.scanjob.update(
                     where={"id": job.id},
                     data={
                         "status": "COMPLETED",
-                        "result": json_serializable_result,
+                        "result": json.dumps(result),
                         "finishedAt": datetime.now().isoformat(),
                         "vulnerabilitiesFound": result.get("vulnerabilities_stored", 0),
                     },
