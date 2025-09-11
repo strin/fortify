@@ -1,4 +1,4 @@
-# Production Database Migration Fix - CANCELLED JobStatus
+# Production Database Deployment Fix - CANCELLED JobStatus
 
 ## Issue Summary
 
@@ -11,11 +11,16 @@ ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(Postgr
 
 ## Root Cause
 
-The migration `20250909044604_add_cancelled_job_status` that adds the "CANCELLED" value to the JobStatus enum has not been applied to the production database, even though:
+You are correct that the schema.prisma file includes `CANCELLED` in the JobStatus enum and the migration file exists. However, the error indicates that **the migration has not been applied to the production database yet**.
 
-1. The schema.prisma file includes `CANCELLED` in the JobStatus enum (line 304)
-2. The migration file exists: `db/migrations/20250909044604_add_cancelled_job_status/migration.sql`
-3. The frontend and backend code correctly uses "CANCELLED" as a valid status
+The issue is a **deployment gap**:
+
+1. ✅ The schema.prisma file includes `CANCELLED` in the JobStatus enum (line 304)
+2. ✅ The migration file exists: `db/migrations/20250909044604_add_cancelled_job_status/migration.sql`
+3. ✅ The frontend and backend code correctly uses "CANCELLED" as a valid status
+4. ❌ **The migration hasn't been run against the production database**
+
+This is why PostgreSQL is returning `invalid input value for enum "JobStatus": "CANCELLED"` - the production database's JobStatus enum doesn't include CANCELLED yet, even though our code expects it to.
 
 ## Migration Content
 
@@ -27,7 +32,7 @@ ALTER TYPE "JobStatus" ADD VALUE 'CANCELLED';
 
 ## Fix Instructions
 
-### Step 1: Apply the Missing Migration
+### Step 1: Apply the Pending Migration
 
 In the production environment where the database is deployed:
 
