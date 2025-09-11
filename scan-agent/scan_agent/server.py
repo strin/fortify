@@ -470,7 +470,7 @@ async def create_scan_job_with_database(
                 "scanTargetId": scan_target_id,
                 "type": job_type.value,
                 "status": "PENDING",
-                "data": scan_data.to_dict(),
+                "data": json.dumps(scan_data.to_dict()),
             }
         )
 

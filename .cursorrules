@@ -81,6 +81,8 @@ The `specs/` directory contains the source of truth for all architectural decisi
 - Follow the schema defined in `db/schema.prisma`
 - Use transactions for multi-table operations
 - Implement proper indexing for performance
+- **CRITICAL**: When working with Prisma operations:
+  - JSON fields must be properly serialized - use `json.dumps()` for Python when storing dict/object data in JSON fields
 
 ### Frontend Development
 - Use shadcn/ui components when possible
