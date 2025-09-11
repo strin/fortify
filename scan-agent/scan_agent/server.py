@@ -76,6 +76,15 @@ scan_worker = ScanWorker()
 github_webhook_handler = GitHubWebhookHandler()
 
 
+def normalize_repo_url(repo_url: str) -> str:
+    """Normalize repository URL by removing .git suffix if present."""
+    if repo_url.endswith('.git'):
+        normalized_url = repo_url[:-4]  # Remove .git suffix
+        logger.debug(f"Normalized repository URL: {repo_url} -> {normalized_url}")
+        return normalized_url
+    return repo_url
+
+
 # Background task to process a specific job
 async def process_job_task(job_id: str):
     """Background task to process a specific job."""
@@ -147,7 +156,7 @@ async def scan_repository(request: ScanRepoRequest, background_tasks: Background
 
         # Create job data
         scan_data = ScanJobData(
-            repo_url=str(request.repo_url),
+            repo_url=normalize_repo_url(str(request.repo_url)),
             branch=request.branch,
             claude_cli_args=request.claude_cli_args,
             scan_options=request.scan_options,
@@ -513,7 +522,7 @@ async def _handle_pull_request_event(
 
         # Create job data for scanning the PR branch
         scan_data = ScanJobData(
-            repo_url=pr_data["head"]["repo"]["clone_url"],
+            repo_url=normalize_repo_url(pr_data["head"]["repo"]["clone_url"]),
             branch=pr_data["head"]["ref"],
             claude_cli_args=None,
             scan_options={
@@ -576,7 +585,7 @@ async def _handle_push_event(
 
         # Create job data for scanning the pushed branch
         scan_data = ScanJobData(
-            repo_url=repo_data["clone_url"],
+            repo_url=normalize_repo_url(repo_data["clone_url"]),
             branch=branch,
             claude_cli_args=None,
             scan_options={
@@ -623,6 +632,33 @@ async def _handle_push_event(
         raise
 
 
+@app.post("/test/url-normalization")
+async def test_url_normalization(request: Request):
+    """Test endpoint to validate URL normalization function."""
+    try:
+        body = await request.json()
+        test_url = body.get("url")
+        
+        if not test_url:
+            raise HTTPException(status_code=400, detail="Missing 'url' parameter")
+        
+        normalized_url = normalize_repo_url(test_url)
+        
+        return {
+            "status": "success",
+            "original_url": test_url,
+            "normalized_url": normalized_url,
+            "was_normalized": test_url != normalized_url,
+            "timestamp": datetime.now().isoformat(),
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in URL normalization test: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
+
 @app.post("/webhooks/github/test")
 async def test_github_webhook():
     """Test endpoint to validate GitHub webhook integration setup."""
@@ -641,6 +677,22 @@ async def test_github_webhook():
         test_handler = GitHubWebhookHandler()
         handler_initialized = True
 
+        # Test URL normalization
+        test_urls = [
+            "https://github.com/strin/fortify.git",
+            "https://github.com/strin/fortify",
+            "git@github.com:strin/fortify.git"
+        ]
+        
+        url_normalization_tests = []
+        for url in test_urls:
+            normalized = normalize_repo_url(url)
+            url_normalization_tests.append({
+                "original": url,
+                "normalized": normalized,
+                "was_normalized": url != normalized
+            })
+
         # Create test response
         response = {
             "status": "success",
@@ -653,6 +705,7 @@ async def test_github_webhook():
                 "supported_events": ["pull_request", "push"],
                 "pr_triggering_actions": ["opened", "synchronize", "reopened"],
             },
+            "url_normalization_tests": url_normalization_tests,
             "setup_instructions": {
                 "environment_variables": {
                     "GITHUB_WEBHOOK_SECRET": "Set this to match your GitHub webhook secret for signature validation",
