@@ -33,6 +33,84 @@ export async function GET(
     }
 
     const jobData = await response.json();
+
+    // For completed jobs, enhance the response with database statistics
+    if (jobData.status === "COMPLETED") {
+      try {
+        // Fetch job details from database including vulnerabilities
+        const scanJob = await prisma.scanJob.findUnique({
+          where: { id: jobId },
+          include: {
+            vulnerabilities: {
+              select: {
+                severity: true,
+                category: true,
+                filePath: true,
+                title: true,
+              },
+            },
+          },
+        });
+
+        if (scanJob) {
+          // Calculate vulnerability summary by severity
+          const vulnerabilitySummary = {
+            CRITICAL: 0,
+            HIGH: 0,
+            MEDIUM: 0,
+            LOW: 0,
+            INFO: 0,
+          };
+
+          // Get unique files scanned (approximate by counting unique file paths)
+          const uniqueFiles = new Set<string>();
+
+          // Process vulnerabilities
+          scanJob.vulnerabilities.forEach((vuln) => {
+            if (vuln.severity in vulnerabilitySummary) {
+              vulnerabilitySummary[vuln.severity as keyof typeof vulnerabilitySummary]++;
+            }
+            if (vuln.filePath) {
+              uniqueFiles.add(vuln.filePath);
+            }
+          });
+
+          // Calculate scan duration
+          let scanDuration = 0;
+          if (scanJob.startedAt && scanJob.finishedAt) {
+            scanDuration = new Date(scanJob.finishedAt).getTime() - new Date(scanJob.startedAt).getTime();
+          }
+
+          // Extract some sample vulnerabilities for preview
+          const vulnerabilitiesPreview = scanJob.vulnerabilities.slice(0, 10).map((vuln) => ({
+            severity: vuln.severity,
+            title: vuln.title,
+            file_path: vuln.filePath,
+            category: vuln.category,
+          }));
+
+          // Enhance the result object with frontend-expected fields
+          if (!jobData.result) {
+            jobData.result = {};
+          }
+
+          // Add the stats the frontend expects
+          jobData.result.vulnerabilities_found = scanJob.vulnerabilitiesFound || scanJob.vulnerabilities.length;
+          jobData.result.files_scanned = uniqueFiles.size;
+          jobData.result.scan_duration = scanDuration;
+          jobData.result.engine_version = "Claude v2.1";
+          jobData.result.vulnerability_summary = vulnerabilitySummary;
+          jobData.result.vulnerabilities = vulnerabilitiesPreview;
+
+          // Also add the stored job data for consistency
+          jobData.data = scanJob.data ? JSON.parse(scanJob.data) : jobData.data;
+        }
+      } catch (dbError) {
+        console.error("Error fetching job details from database:", dbError);
+        // Continue without enhancement - don't fail the whole request
+      }
+    }
+
     return NextResponse.json(jobData);
   } catch (error) {
     console.error("Error fetching job status:", error);
