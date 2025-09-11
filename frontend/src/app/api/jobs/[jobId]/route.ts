@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { jobId } = await params;
     const scanWorkerUrl =
-      process.env.SCAN_WORKER_URL || "http://localhost:8000";
+      process.env.SCAN_AGENT_URL || "http://localhost:8000";
 
     const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}`, {
       method: "GET",

@@ -34,6 +34,15 @@ export async function GET(
                 lastScanAt: true,
               },
             },
+            repoWebhookMappings: {
+              where: { provider: "GITHUB" },
+              select: {
+                id: true,
+                webhookId: true,
+                createdAt: true,
+                lastTriggeredAt: true,
+              },
+            },
             _count: {
               select: {
                 scanTargets: true,
@@ -62,10 +71,7 @@ export async function GET(
     });
 
     if (!project) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     // Calculate vulnerability summary
@@ -83,8 +89,23 @@ export async function GET(
       });
     });
 
+    // Process repositories to add webhook subscription status
+    const processedRepositories = project.repositories.map((repo) => {
+      const webhookMapping = repo.repoWebhookMappings?.[0]; // Get the first (should be only one) webhook mapping
+      return {
+        ...repo,
+        webhookSubscribed: !!webhookMapping,
+        webhookId: webhookMapping?.webhookId || null,
+        webhookCreatedAt: webhookMapping?.createdAt || null,
+        webhookLastTriggered: webhookMapping?.lastTriggeredAt || null,
+        // Remove the repoWebhookMappings from the response to keep it clean
+        repoWebhookMappings: undefined,
+      };
+    });
+
     const response = {
       ...project,
+      repositories: processedRepositories,
       totalScans: project._count.scanJobs,
       totalRepositories: project._count.repositories,
       vulnerabilitySummary,
@@ -124,10 +145,7 @@ export async function PUT(
     });
 
     if (!existingProject) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     // Check if name is already taken (if name is being changed)
@@ -189,10 +207,7 @@ export async function DELETE(
     });
 
     if (!existingProject) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     // Soft delete - mark as inactive

@@ -79,7 +79,12 @@ class JobQueue:
         job = self.get_job(job_id)
         if job:
             job.status = JobStatus.COMPLETED
-            job.result = result
+            # Ensure result is JSON-serializable before storing
+            try:
+                job.result = json.loads(json.dumps(result, default=str))
+            except (TypeError, ValueError):
+                # Fallback: convert to string if serialization fails
+                job.result = str(result)
             self.update_job(job)
             # Remove from processing queue
             self.redis.lrem(self.processing_queue, 1, job_id)

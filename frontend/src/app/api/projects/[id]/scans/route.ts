@@ -4,6 +4,112 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id: projectId } = await params;
+
+    // Verify the project exists and user has access
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    }
+
+    // Get all scans for this project
+    const scans = await prisma.scanJob.findMany({
+      where: {
+        projectId: projectId,
+        userId: session.user.id,
+      },
+      include: {
+        vulnerabilities: {
+          select: {
+            id: true,
+            severity: true,
+            category: true,
+          },
+        },
+        scanTarget: {
+          select: {
+            id: true,
+            name: true,
+            repoUrl: true,
+            branch: true,
+            subPath: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Process scans to include summary statistics
+    const processedScans = scans.map((scan) => {
+      const vulnerabilityCounts = {
+        CRITICAL: 0,
+        HIGH: 0,
+        MEDIUM: 0,
+        LOW: 0,
+        INFO: 0,
+      };
+
+      const categoryCounts: Record<string, number> = {};
+
+      scan.vulnerabilities.forEach((vuln) => {
+        vulnerabilityCounts[
+          vuln.severity as keyof typeof vulnerabilityCounts
+        ]++;
+        categoryCounts[vuln.category] =
+          (categoryCounts[vuln.category] || 0) + 1;
+      });
+
+      return {
+        id: scan.id,
+        type: scan.type,
+        status: scan.status,
+        createdAt: scan.createdAt,
+        updatedAt: scan.updatedAt,
+        startedAt: scan.startedAt,
+        finishedAt: scan.finishedAt,
+        vulnerabilitiesFound: scan.vulnerabilitiesFound,
+        error: scan.error,
+        data: scan.data,
+        vulnerabilityCounts,
+        categoryCounts,
+        totalVulnerabilities: scan.vulnerabilities.length,
+        scanTarget: scan.scanTarget,
+      };
+    });
+
+    return NextResponse.json({
+      scans: processedScans,
+      totalScans: processedScans.length,
+    });
+  } catch (error) {
+    console.error("Error fetching project scans:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -45,9 +151,12 @@ export async function POST(
     }
 
     if (project.repositories.length === 0) {
-      return NextResponse.json({ 
-        error: "Repository not found in project" 
-      }, { status: 404 });
+      return NextResponse.json(
+        {
+          error: "Repository not found in project",
+        },
+        { status: 404 }
+      );
     }
 
     const repository = project.repositories[0];
@@ -68,8 +177,14 @@ export async function POST(
       create: {
         userId: session.user.id,
         repositoryId: repository.id,
-        name: `${repository.fullName} (${branch}${normalizedPath !== "/" ? normalizedPath : ''})`,
-        description: `Scan target for ${repository.fullName} on branch ${branch}${normalizedPath !== "/" ? ` at path ${normalizedPath}` : ''}`,
+        name: `${repository.fullName} (${branch}${
+          normalizedPath !== "/" ? normalizedPath : ""
+        })`,
+        description: `Scan target for ${
+          repository.fullName
+        } on branch ${branch}${
+          normalizedPath !== "/" ? ` at path ${normalizedPath}` : ""
+        }`,
         repoUrl: repoUrl,
         branch: branch,
         subPath: normalizedPath,
@@ -79,28 +194,9 @@ export async function POST(
       },
     });
 
-    // Create the scan job
-    const scanJobData = {
-      repo_url: repoUrl,
-      branch: branch,
-      path: normalizedPath === "/" ? undefined : normalizedPath, // Use undefined for root directory in scan job data
-      user_id: session.user.id,
-    };
+    // Submit job to scan agent (which will create database record and queue job)
+    const scanWorkerUrl = process.env.SCAN_AGENT_URL || "http://localhost:8000";
 
-    const scanJob = await prisma.scanJob.create({
-      data: {
-        userId: session.user.id,
-        projectId: projectId,
-        scanTargetId: scanTarget.id,
-        type: "SCAN_REPO",
-        status: "PENDING",
-        data: scanJobData,
-      },
-    });
-
-    // Submit job to scan worker
-    const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
-    
     try {
       const workerResponse = await fetch(`${scanWorkerUrl}/scan/repo`, {
         method: "POST",
@@ -111,61 +207,39 @@ export async function POST(
           repo_url: repoUrl,
           branch: branch,
           claude_cli_args: null,
-          scan_options: normalizedPath === "/" ? {} : { sub_path: normalizedPath },
-          job_id: scanJob.id,
+          scan_options:
+            normalizedPath === "/" ? {} : { sub_path: normalizedPath },
+          user_id: session.user.id,
+          project_id: projectId,
+          scan_target_id: scanTarget.id,
         }),
       });
 
       if (!workerResponse.ok) {
-        console.error("Failed to submit job to worker:", await workerResponse.text());
-        // Update job status to failed
-        await prisma.scanJob.update({
-          where: { id: scanJob.id },
-          data: {
-            status: "FAILED",
-            error: "Failed to submit job to scan worker",
-          },
-        });
-
+        const errorText = await workerResponse.text();
+        console.error("Failed to submit job to worker:", errorText);
         return NextResponse.json(
           { error: "Failed to start scan job" },
           { status: 500 }
         );
       }
 
-      // Update job status to pending (worker received it)
-      await prisma.scanJob.update({
-        where: { id: scanJob.id },
-        data: {
-          status: "PENDING",
-          startedAt: new Date(),
-        },
-      });
+      const workerResult = await workerResponse.json();
+      console.log("Worker response:", workerResult);
 
       return NextResponse.json({
-        scanJobId: scanJob.id,
+        scanJobId: workerResult.job_id,
         scanTargetId: scanTarget.id,
         message: "Scan job created successfully",
       });
-
     } catch (workerError) {
       console.error("Error submitting to scan worker:", workerError);
-      
-      // Update job status to failed
-      await prisma.scanJob.update({
-        where: { id: scanJob.id },
-        data: {
-          status: "FAILED",
-          error: "Failed to communicate with scan worker",
-        },
-      });
 
       return NextResponse.json(
         { error: "Failed to start scan job" },
         { status: 500 }
       );
     }
-
   } catch (error) {
     console.error("Error creating scan:", error);
     return NextResponse.json(

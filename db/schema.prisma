@@ -42,10 +42,11 @@ model User {
         preferences Json?
 
         // Relations
-        projects     Project[]
-        repositories Repository[]
-        scanJobs     ScanJob[]
-        scanTargets  ScanTarget[]
+        projects            Project[]
+        repositories        Repository[]
+        scanJobs            ScanJob[]
+        scanTargets         ScanTarget[]
+        repoWebhookMappings RepoWebhookMapping[]
 
         @@map("users")
 }
@@ -152,9 +153,10 @@ model Project {
         lastScanAt DateTime? // Last scan across all repositories in this project
 
         // Relations
-        user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-        repositories Repository[]
-        scanJobs     ScanJob[]
+        user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+        repositories        Repository[]
+        scanJobs            ScanJob[]
+        repoWebhookMappings RepoWebhookMapping[]
 
         @@unique([userId, name]) // Unique project names per user
         @@index([userId, isActive])
@@ -195,9 +197,10 @@ model Repository {
         lastSyncAt DateTime? // Last sync with provider
 
         // Relations
-        project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-        user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-        scanTargets ScanTarget[]
+        project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+        user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+        scanTargets         ScanTarget[]
+        repoWebhookMappings RepoWebhookMapping[]
 
         @@unique([projectId, provider, fullName]) // Unique repo per project per provider
         @@unique([provider, externalId]) // Unique external ID per provider
@@ -242,6 +245,40 @@ model ScanTarget {
         @@index([repositoryId])
         @@index([lastScanAt])
         @@map("scan_targets")
+}
+
+// ==========================================
+// WEBHOOK MANAGEMENT
+// ==========================================
+
+model RepoWebhookMapping {
+        id           String @id @default(cuid())
+        userId       String // Owner of the webhook
+        projectId    String // Project this webhook belongs to
+        repositoryId String // Repository this webhook is configured for
+
+        // GitHub webhook information
+        webhookId String // GitHub webhook ID (returned from GitHub API)
+        provider  RepositoryProvider @default(GITHUB)
+
+        // Metadata
+        createdAt       DateTime  @default(now())
+        updatedAt       DateTime  @updatedAt
+        lastTriggeredAt DateTime? // Last time this webhook was triggered
+
+        // Relations
+        user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+        project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+        repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+        // Constraints and indexes
+        @@unique([provider, webhookId]) // Unique webhook ID per provider
+        @@unique([repositoryId, provider]) // One webhook per repository per provider
+        @@index([userId])
+        @@index([projectId])
+        @@index([repositoryId])
+        @@index([webhookId])
+        @@map("repo_webhook_mappings")
 }
 
 // ==========================================

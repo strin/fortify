@@ -81,6 +81,8 @@ The `specs/` directory contains the source of truth for all architectural decisi
 - Follow the schema defined in `db/schema.prisma`
 - Use transactions for multi-table operations
 - Implement proper indexing for performance
+- **CRITICAL**: When working with Prisma operations:
+  - JSON fields must be properly serialized - use `json.dumps()` for Python when storing dict/object data in JSON fields
 
 ### Frontend Development
 - Use shadcn/ui components when possible
@@ -130,3 +132,12 @@ The `specs/` directory contains the source of truth for all architectural decisi
 
 Remember: The `specs/` directory and all its subdirectories contain the source of truth for all architectural decisions and product requirements. Always search and consult relevant documents in `specs/` before making significant changes. New PRDs should be added to `specs/product/` and new architecture docs to `specs/architecture/` or its subdirectories.
 
+## Command line workaround
+
+[Terminal commands in MCP tools don't auto-close after completion](https://github.com/cursor/cursor/issues/3200)
+
+Based on this issue, we need to use the following workaround:
+
+Adding && exit to commands works as a temporary solution:
+
+For example, instead of running `head -20 filename`, we need to run `head -20 filename && exit`.

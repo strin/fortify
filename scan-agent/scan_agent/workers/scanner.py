@@ -52,6 +52,25 @@ from scan_agent.utils.redis_client import redis_connection
 from scan_agent.utils.database import get_db, init_database, close_database
 
 
+def ensure_json_serializable(data: Any) -> Any:
+    """
+    Ensure data is JSON-serializable by converting to JSON and back.
+    This handles datetime objects, complex objects, etc. by converting them to strings.
+    
+    Args:
+        data: Any data structure that may contain non-serializable objects
+        
+    Returns:
+        JSON-serializable version of the data
+    """
+    try:
+        return json.loads(json.dumps(data, default=str))
+    except (TypeError, ValueError) as e:
+        logger.warning(f"Failed to serialize data to JSON: {e}")
+        # Fallback: convert the entire structure to string
+        return str(data)
+
+
 class ScanWorker:
     """Worker that processes vulnerability scan jobs."""
 
@@ -935,13 +954,18 @@ Please begin the security audit now."""
             print("💾 Step 5: Updating ScanJob status to COMPLETED...")
 
             try:
+                # Ensure result is JSON-serializable by converting to JSON and back
+                # This handles datetime objects, complex objects, etc.
+                json_serializable_result = ensure_json_serializable(result)
+                
                 db = await get_db()
                 await db.scanjob.update(
                     where={"id": job.id},
                     data={
                         "status": "COMPLETED",
-                        "result": result,
-                        "finishedAt": datetime.now(),
+                        "result": json_serializable_result,
+                        "finishedAt": datetime.now().isoformat(),
+                        "vulnerabilitiesFound": result.get("vulnerabilities_stored", 0),
                     },
                 )
                 logger.info(f"✅ Updated ScanJob {job.id} status to COMPLETED")
@@ -979,7 +1003,7 @@ Please begin the security audit now."""
                 data={
                     "status": "FAILED",
                     "error": error_msg,
-                    "finishedAt": datetime.now(),
+                    "finishedAt": datetime.now().isoformat(),
                 },
             )
             logger.info(f"Updated ScanJob {job_id} status to FAILED")
