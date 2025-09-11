@@ -105,6 +105,9 @@ class ScanRepoRequest(BaseModel):
     claude_cli_args: Optional[str] = None
     scan_options: Optional[dict] = {}
     job_id: Optional[str] = None
+    user_id: Optional[str] = None  # Required for database scan jobs
+    project_id: Optional[str] = None  # Required for database scan jobs
+    scan_target_id: Optional[str] = None  # Optional scan target ID
 
 
 class JobResponse(BaseModel):
@@ -152,11 +155,22 @@ async def scan_repository(request: ScanRepoRequest, background_tasks: Background
 
         logger.debug(f"Created scan data: {scan_data.to_dict()}")
 
-        # Add job to queue
-        job_id = job_queue.add_job(
-            JobType.SCAN_REPO, scan_data.to_dict(), request.job_id
-        )
-        logger.info(f"Created job with ID: {job_id}")
+        # Create scan job with database record if user_id and project_id provided
+        if request.user_id and request.project_id:
+            job_id = await create_scan_job_with_database(
+                user_id=request.user_id,
+                project_id=request.project_id,
+                scan_data=scan_data,
+                scan_target_id=request.scan_target_id,
+                job_type=JobType.SCAN_REPO,
+            )
+            logger.info(f"Created database scan job with ID: {job_id}")
+        else:
+            # Legacy mode: use provided job ID or generate new one
+            job_id = job_queue.add_job(
+                JobType.SCAN_REPO, scan_data.to_dict(), request.job_id
+            )
+            logger.info(f"Created queue-only job with ID: {job_id}")
 
         # Trigger background processing of the job
         background_tasks.add_task(process_job_task, job_id)
@@ -272,12 +286,13 @@ async def github_webhook(
     x_github_event: str = Header(None),
     x_github_delivery: str = Header(None),
     x_hub_signature_256: str = Header(None),
+    x_github_hook_id: str = Header(None),
 ):
     """Handle GitHub webhook events for pull requests and pushes."""
     try:
         # Log incoming webhook
         logger.info(
-            f"Received GitHub webhook: event={x_github_event}, delivery={x_github_delivery}"
+            f"Received GitHub webhook: event={x_github_event}, delivery={x_github_delivery}, hook_id={x_github_hook_id}"
         )
 
         # Read request body
@@ -300,6 +315,70 @@ async def github_webhook(
         repo_name = payload.get("repository", {}).get("full_name", "unknown")
         logger.info(f"Processing webhook for repository: {repo_name}")
 
+        # Require X-GitHub-Hook-ID header to identify the webhook mapping
+        if not x_github_hook_id:
+            logger.error(
+                "Missing X-GitHub-Hook-ID header - cannot identify webhook mapping"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Missing X-GitHub-Hook-ID header - webhook cannot be processed without webhook identification",
+            )
+
+        # Look up webhook mapping using X-GitHub-Hook-ID header
+        webhook_mapping = None
+        try:
+            from generated.prisma_client import Prisma
+
+            prisma = Prisma()
+            await prisma.connect()
+
+            webhook_mapping = await prisma.repowebhookmapping.find_first(
+                where={
+                    "webhookId": x_github_hook_id,
+                    "provider": "GITHUB",
+                },
+                include={
+                    "user": True,
+                    "project": True,
+                    "repository": True,
+                },
+            )
+
+            await prisma.disconnect()
+
+            if webhook_mapping:
+                logger.info(
+                    f"Found webhook mapping for hook_id={x_github_hook_id}: userId={webhook_mapping.userId}, projectId={webhook_mapping.projectId}"
+                )
+
+                # Update last triggered timestamp
+                try:
+                    await prisma.connect()
+                    await prisma.repowebhookmapping.update(
+                        where={"id": webhook_mapping.id},
+                        data={"lastTriggeredAt": datetime.now()},
+                    )
+                    await prisma.disconnect()
+                except Exception as update_error:
+                    logger.error(
+                        f"Failed to update lastTriggeredAt: {str(update_error)}"
+                    )
+            else:
+                logger.error(f"No webhook mapping found for hook_id={x_github_hook_id}")
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Webhook mapping not found for hook_id={x_github_hook_id} - webhook may not be registered in our system",
+                )
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error looking up webhook mapping: {str(e)}", exc_info=True)
+            raise HTTPException(
+                status_code=500, detail="Internal error looking up webhook mapping"
+            )
+
         # Parse webhook payload
         parsed_data = github_webhook_handler.parse_webhook_payload(
             payload, x_github_event
@@ -314,7 +393,9 @@ async def github_webhook(
 
         # Create scan job based on event type
         if parsed_data["event_type"] == "pull_request":
-            job_id = await _handle_pull_request_event(parsed_data, background_tasks)
+            job_id = await _handle_pull_request_event(
+                parsed_data, background_tasks, webhook_mapping
+            )
             logger.info(f"Created scan job {job_id} for PR event")
 
             return {
@@ -326,7 +407,9 @@ async def github_webhook(
             }
 
         elif parsed_data["event_type"] == "push":
-            job_id = await _handle_push_event(parsed_data, background_tasks)
+            job_id = await _handle_push_event(
+                parsed_data, background_tasks, webhook_mapping
+            )
             logger.info(f"Created scan job {job_id} for push event")
 
             return {
@@ -353,8 +436,67 @@ async def github_webhook(
         )
 
 
+async def create_scan_job_with_database(
+    user_id: str,
+    project_id: str,
+    scan_data: ScanJobData,
+    scan_target_id: str = None,
+    job_type: JobType = JobType.SCAN_REPO,
+) -> str:
+    """
+    Centralized function to create a scan job with proper database record.
+
+    Args:
+        user_id: User ID who owns the scan
+        project_id: Project ID the scan belongs to
+        scan_data: Scan job data
+        scan_target_id: Optional scan target ID
+        job_type: Type of scan job
+
+    Returns:
+        Job ID of the created scan job
+    """
+    try:
+        from generated.prisma_client import Prisma
+
+        prisma = Prisma()
+        await prisma.connect()
+
+        # Create database scan job record
+        db_scan_job = await prisma.scanjob.create(
+            data={
+                "userId": user_id,
+                "projectId": project_id,
+                "scanTargetId": scan_target_id,
+                "type": job_type.value,
+                "status": "PENDING",
+                "data": scan_data.to_dict(),
+            }
+        )
+
+        await prisma.disconnect()
+
+        job_id = db_scan_job.id
+        logger.info(
+            f"Created database scan job record: {job_id} for user {user_id}, project {project_id}"
+        )
+
+        # Add to Redis queue for processing
+        job_queue.add_job(job_type, scan_data.to_dict(), job_id)
+
+        return job_id
+
+    except Exception as e:
+        logger.error(
+            f"Failed to create scan job with database: {str(e)}", exc_info=True
+        )
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create scan job: {str(e)}"
+        )
+
+
 async def _handle_pull_request_event(
-    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks
+    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks, webhook_mapping=None
 ) -> str:
     """Handle pull request webhook event and create scan job."""
     try:
@@ -387,11 +529,21 @@ async def _handle_pull_request_event(
             },
         )
 
-        # Create job with descriptive ID
-        job_id_suffix = f"pr-{pr_data['number']}-{pr_data['head']['sha'][:8]}"
-        job_id = job_queue.add_job(
-            JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
-        )
+        # Create scan job using centralized function
+        if webhook_mapping:
+            # Use centralized function for webhook-triggered scans
+            job_id = await create_scan_job_with_database(
+                user_id=webhook_mapping.userId,
+                project_id=webhook_mapping.projectId,
+                scan_data=scan_data,
+                job_type=JobType.SCAN_REPO,
+            )
+        else:
+            # Fallback for webhooks without mapping (backward compatibility)
+            job_id_suffix = f"pr-{pr_data['number']}-{pr_data['head']['sha'][:8]}"
+            job_id = job_queue.add_job(
+                JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
+            )
 
         # Trigger background processing
         background_tasks.add_task(process_job_task, job_id)
@@ -405,7 +557,7 @@ async def _handle_pull_request_event(
 
 
 async def _handle_push_event(
-    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks
+    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks, webhook_mapping=None
 ) -> str:
     """Handle push webhook event and create scan job."""
     try:
@@ -440,13 +592,25 @@ async def _handle_push_event(
             },
         )
 
-        # Create job with descriptive ID
+        # Create job with descriptive ID and webhook mapping context
         job_id_suffix = (
             f"push-{branch}-{commits[-1]['id'][:8]}" if commits else f"push-{branch}"
         )
-        job_id = job_queue.add_job(
-            JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
-        )
+
+        # Create scan job using centralized function
+        if webhook_mapping:
+            # Use centralized function for webhook-triggered scans
+            job_id = await create_scan_job_with_database(
+                user_id=webhook_mapping.userId,
+                project_id=webhook_mapping.projectId,
+                scan_data=scan_data,
+                job_type=JobType.SCAN_REPO,
+            )
+        else:
+            # Fallback for webhooks without mapping (backward compatibility)
+            job_id = job_queue.add_job(
+                JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
+            )
 
         # Trigger background processing
         background_tasks.add_task(process_job_task, job_id)
