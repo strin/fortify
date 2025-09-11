@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Github, GitBranch, Settings } from "lucide-react";
+import { Github, GitBranch, Settings, Webhook, Loader2 } from "lucide-react";
 
 interface Repository {
   id: string;
@@ -23,6 +23,8 @@ interface Repository {
   repoUrl: string;
   scanTargets: any[];
   totalScanTargets: number;
+  webhookSubscribed?: boolean;
+  webhookId?: string;
 }
 
 interface Project {
@@ -39,6 +41,13 @@ export default function ProjectSettingsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [projectId, setProjectId] = useState<string>("");
+  const [webhookLoading, setWebhookLoading] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [webhookMessage, setWebhookMessage] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   // Get project ID from params
   useEffect(() => {
@@ -51,6 +60,16 @@ export default function ProjectSettingsPage({
       fetchProject();
     }
   }, [projectId]);
+
+  // Auto-hide success messages after 5 seconds
+  useEffect(() => {
+    if (webhookMessage && webhookMessage.type === "success") {
+      const timer = setTimeout(() => {
+        setWebhookMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [webhookMessage]);
 
   const fetchProject = async () => {
     try {
@@ -83,6 +102,114 @@ export default function ProjectSettingsPage({
     if (diffInDays < 7) return `${diffInDays} days ago`;
     if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
     return `${Math.floor(diffInDays / 30)} months ago`;
+  };
+
+  const handleWebhookSubscription = async (
+    repo: Repository,
+    subscribe: boolean
+  ) => {
+    const [owner, repoName] = repo.fullName.split("/");
+    const repoKey = `${owner}/${repoName}`;
+
+    setWebhookLoading((prev) => ({ ...prev, [repoKey]: true }));
+
+    try {
+      if (subscribe) {
+        // Subscribe to webhook
+        const response = await fetch(
+          `/api/repositories/${owner}/${repoName}/webhook`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to subscribe to webhook");
+        }
+
+        const result = await response.json();
+
+        // Update the repository in state
+        setProject((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            repositories: prev.repositories.map((r) =>
+              r.id === repo.id
+                ? {
+                    ...r,
+                    webhookSubscribed: true,
+                    webhookId: result.webhook_id,
+                  }
+                : r
+            ),
+          };
+        });
+
+        setWebhookMessage({
+          type: "success",
+          message: `Successfully subscribed to webhooks for ${repo.fullName}`,
+        });
+      } else {
+        // Unsubscribe from webhook
+        if (!repo.webhookId) {
+          throw new Error("No webhook ID found");
+        }
+
+        const response = await fetch(
+          `/api/repositories/${owner}/${repoName}/webhook`,
+          {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              webhook_id: repo.webhookId,
+            }),
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || "Failed to unsubscribe from webhook"
+          );
+        }
+
+        // Update the repository in state
+        setProject((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            repositories: prev.repositories.map((r) =>
+              r.id === repo.id
+                ? { ...r, webhookSubscribed: false, webhookId: undefined }
+                : r
+            ),
+          };
+        });
+
+        setWebhookMessage({
+          type: "success",
+          message: `Successfully unsubscribed from webhooks for ${repo.fullName}`,
+        });
+      }
+    } catch (error) {
+      console.error("Error managing webhook subscription:", error);
+      setWebhookMessage({
+        type: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Failed to manage webhook subscription",
+      });
+    } finally {
+      setWebhookLoading((prev) => ({ ...prev, [repoKey]: false }));
+    }
   };
 
   if (loading) {
@@ -119,6 +246,27 @@ export default function ProjectSettingsPage({
 
   return (
     <div className="space-y-6">
+      {/* Webhook Status Message */}
+      {webhookMessage && (
+        <div
+          className={`p-4 rounded-lg border ${
+            webhookMessage.type === "success"
+              ? "bg-green-50 border-green-200 text-green-800"
+              : "bg-red-50 border-red-200 text-red-800"
+          }`}
+        >
+          <div className="flex justify-between items-center">
+            <p className="text-sm">{webhookMessage.message}</p>
+            <button
+              onClick={() => setWebhookMessage(null)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Repositories Configuration */}
       <Card>
         <CardHeader>
@@ -148,10 +296,7 @@ export default function ProjectSettingsPage({
                 <p className="text-sm text-muted-foreground">
                   {project.repositories.length} repositories configured
                 </p>
-                <Button
-                  size="sm"
-                  className="bg-primary hover:bg-primary/90"
-                >
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
                   <Github className="h-4 w-4 mr-2" />
                   Add Repository
                 </Button>
@@ -183,13 +328,37 @@ export default function ProjectSettingsPage({
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                       <span>Scan Targets: {repo.totalScanTargets}</span>
                       {repo.lastScanAt && (
-                        <span>
-                          Last Scan: {formatTimeAgo(repo.lastScanAt)}
-                        </span>
+                        <span>Last Scan: {formatTimeAgo(repo.lastScanAt)}</span>
+                      )}
+                      {repo.webhookSubscribed && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <Webhook className="h-3 w-3" />
+                          <span>Webhook Active</span>
+                        </div>
                       )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={repo.webhookSubscribed ? "outline" : "default"}
+                      onClick={() =>
+                        handleWebhookSubscription(repo, !repo.webhookSubscribed)
+                      }
+                      disabled={webhookLoading[repo.fullName] || false}
+                      className={
+                        repo.webhookSubscribed
+                          ? "text-destructive hover:text-destructive/80"
+                          : ""
+                      }
+                    >
+                      {webhookLoading[repo.fullName] ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Webhook className="h-4 w-4 mr-2" />
+                      )}
+                      {repo.webhookSubscribed ? "Unsubscribe" : "Subscribe"}
+                    </Button>
                     <Button size="sm" variant="outline">
                       Configure
                     </Button>
