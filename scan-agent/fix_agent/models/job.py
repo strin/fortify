@@ -12,14 +12,9 @@ from typing import Dict, Any, Optional, List
 from pydantic import BaseModel, Field, validator
 
 
-class FixJobType(str, Enum):
-    """Types of fix jobs supported by the fix agent."""
-    VULNERABILITY_FIX = "VULNERABILITY_FIX"
-    SECURITY_ENHANCEMENT = "SECURITY_ENHANCEMENT"
-
-
 class FixJobStatus(str, Enum):
     """Status values for fix jobs throughout their lifecycle."""
+
     PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
@@ -29,6 +24,7 @@ class FixJobStatus(str, Enum):
 
 class VulnerabilityData(BaseModel):
     """Vulnerability information needed for fixing."""
+
     title: str
     filePath: str
     startLine: int
@@ -42,6 +38,7 @@ class VulnerabilityData(BaseModel):
 
 class FixOptions(BaseModel):
     """Options for how the fix should be applied."""
+
     createBranch: bool = True
     branchPrefix: str = "fix"
     createPullRequest: bool = True
@@ -51,8 +48,8 @@ class FixOptions(BaseModel):
 
 class FixJobData(BaseModel):
     """Complete data structure for a fix job."""
+
     vulnerabilityId: str
-    scanJobId: str
     repositoryUrl: str
     branch: str = "main"
     commitSha: Optional[str] = None
@@ -62,6 +59,7 @@ class FixJobData(BaseModel):
 
 class FixResult(BaseModel):
     """Result data structure when a fix is completed."""
+
     success: bool
     branchName: Optional[str] = None
     commitSha: Optional[str] = None
@@ -74,8 +72,8 @@ class FixResult(BaseModel):
 
 class FixJob(BaseModel):
     """Complete fix job object."""
+
     id: str
-    type: FixJobType
     status: FixJobStatus
     data: FixJobData
     result: Optional[FixResult] = None
@@ -87,11 +85,9 @@ class FixJob(BaseModel):
 
     class Config:
         use_enum_values = True
-        json_encoders = {
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
-    @validator('data', pre=True)
+    @validator("data", pre=True)
     def parse_data(cls, v):
         """Parse data field if it comes as a string."""
         if isinstance(v, str):
@@ -101,7 +97,7 @@ class FixJob(BaseModel):
                 raise ValueError("Invalid JSON in data field")
         return v
 
-    @validator('result', pre=True)
+    @validator("result", pre=True)
     def parse_result(cls, v):
         """Parse result field if it comes as a string."""
         if v is None:
@@ -117,10 +113,19 @@ class FixJob(BaseModel):
         """Convert job to dictionary format for JSON serialization."""
         return {
             "id": self.id,
-            "type": self.type.value if isinstance(self.type, FixJobType) else self.type,
-            "status": self.status.value if isinstance(self.status, FixJobStatus) else self.status,
-            "data": self.data.dict() if isinstance(self.data, FixJobData) else self.data,
-            "result": self.result.dict() if isinstance(self.result, FixResult) else self.result,
+            "status": (
+                self.status.value
+                if isinstance(self.status, FixJobStatus)
+                else self.status
+            ),
+            "data": (
+                self.data.dict() if isinstance(self.data, FixJobData) else self.data
+            ),
+            "result": (
+                self.result.dict()
+                if isinstance(self.result, FixResult)
+                else self.result
+            ),
             "error": self.error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -129,20 +134,20 @@ class FixJob(BaseModel):
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'FixJob':
+    def from_dict(cls, data: Dict[str, Any]) -> "FixJob":
         """Create FixJob instance from dictionary."""
         # Parse datetime fields
-        datetime_fields = ['created_at', 'updated_at', 'started_at', 'finished_at']
+        datetime_fields = ["created_at", "updated_at", "started_at", "finished_at"]
         for field in datetime_fields:
             if data.get(field) and isinstance(data[field], str):
-                data[field] = datetime.fromisoformat(data[field].replace('Z', '+00:00'))
+                data[field] = datetime.fromisoformat(data[field].replace("Z", "+00:00"))
 
         # Parse nested objects
-        if 'data' in data and isinstance(data['data'], dict):
-            data['data'] = FixJobData.parse_obj(data['data'])
-        
-        if 'result' in data and data['result'] and isinstance(data['result'], dict):
-            data['result'] = FixResult.parse_obj(data['result'])
+        if "data" in data and isinstance(data["data"], dict):
+            data["data"] = FixJobData.parse_obj(data["data"])
+
+        if "result" in data and data["result"] and isinstance(data["result"], dict):
+            data["result"] = FixResult.parse_obj(data["result"])
 
         return cls.parse_obj(data)
 
@@ -150,7 +155,7 @@ class FixJob(BaseModel):
 def ensure_json_serializable(data: Any) -> Any:
     """
     Convert data to JSON-serializable format.
-    
+
     This function handles complex objects like datetime, Pydantic models,
     and Enums to ensure they can be properly serialized to JSON.
     """

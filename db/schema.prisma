@@ -89,7 +89,6 @@ model ScanJob {
         project         Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
         scanTarget      ScanTarget?         @relation(fields: [scanTargetId], references: [id], onDelete: SetNull)
         vulnerabilities CodeVulnerability[]
-        fixJobs         FixJob[]
 
         @@index([status, createdAt])
         @@index([userId, finishedAt])
@@ -127,7 +126,7 @@ model CodeVulnerability {
         createdAt DateTime @default(now())
 
         // Relations
-        scanJob ScanJob   @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
+        scanJob ScanJob  @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
         fixJobs FixJob[]
 
         @@index([scanJobId])
@@ -141,41 +140,37 @@ model CodeVulnerability {
 // ==========================================
 
 model FixJob {
-        id           String      @id @default(cuid())
-        userId       String?     // User who initiated the fix
-        
+        id     String  @id @default(cuid())
+        userId String? // User who initiated the fix
+
         // Fix job information
-        type         FixJobType   @default(VULNERABILITY_FIX)
-        status       FixJobStatus @default(PENDING)
-        data         Json         // FixJobData as JSON
-        result       Json?        // Fix results (PR URL, commits, etc.)
-        error        String?      // Error message if failed
-        
+        status FixJobStatus @default(PENDING)
+        data   Json // FixJobData as JSON
+        result Json? // Fix results (PR URL, commits, etc.)
+        error  String? // Error message if failed
+
         // Timing
-        createdAt    DateTime     @default(now()) @map("created_at")
-        updatedAt    DateTime     @updatedAt @map("updated_at")
-        startedAt    DateTime?
-        finishedAt   DateTime?
-        
+        createdAt  DateTime  @default(now()) @map("created_at")
+        updatedAt  DateTime  @updatedAt @map("updated_at")
+        startedAt  DateTime?
+        finishedAt DateTime?
+
         // References
-        vulnerabilityId String   // Reference to CodeVulnerability
-        scanJobId       String   // Reference to original ScanJob
-        
+        vulnerabilityId String // Reference to CodeVulnerability
+
         // GitHub integration results
-        branchName      String?  // Created branch name
-        commitSha       String?  // Fix commit SHA
-        pullRequestUrl  String?  // GitHub PR URL
-        pullRequestId   Int?     // GitHub PR number
-        
+        branchName     String? // Created branch name
+        commitSha      String? // Fix commit SHA
+        pullRequestUrl String? // GitHub PR URL
+        pullRequestId  Int? // GitHub PR number
+
         // Relations
-        user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-        vulnerability   CodeVulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
-        scanJob         ScanJob           @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
-        
+        user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+        vulnerability CodeVulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+
         @@index([status, createdAt])
         @@index([userId])
         @@index([vulnerabilityId])
-        @@index([scanJobId])
         @@map("fix_jobs")
 }
 
@@ -379,11 +374,6 @@ enum RepositoryProvider {
         GITLAB
         AZURE_DEVOPS
         OTHER
-}
-
-enum FixJobType {
-        VULNERABILITY_FIX
-        SECURITY_ENHANCEMENT
 }
 
 enum FixJobStatus {

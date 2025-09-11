@@ -131,3 +131,7 @@ The `specs/` directory contains the source of truth for all architectural decisi
 - Use environment variables for configuration
 
 Remember: The `specs/` directory and all its subdirectories contain the source of truth for all architectural decisions and product requirements. Always search and consult relevant documents in `specs/` before making significant changes. New PRDs should be added to `specs/product/` and new architecture docs to `specs/architecture/` or its subdirectories.
+
+## Important Notes
+
+- Do not run database migrations in Cursor. All schema changes should be made via migration scripts and applied manually or through CI/CD pipelines, not automatically by the Cursor editor or development environment.
