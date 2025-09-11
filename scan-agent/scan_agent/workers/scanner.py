@@ -794,12 +794,14 @@ Please begin the security audit now."""
                     data={
                         "update": {
                             "status": "IN_PROGRESS",
+                            "startedAt": datetime.now(),
                             "data": json.dumps(job.data),
                         },
                         "create": {
                             "id": job.id,
                             "type": "SCAN_REPO",
                             "status": "IN_PROGRESS",
+                            "startedAt": datetime.now(),
                             "data": json.dumps(job.data),
                         },
                     },

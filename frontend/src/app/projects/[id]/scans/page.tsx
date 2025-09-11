@@ -108,11 +108,18 @@ export default function ProjectScansPage() {
   };
 
   const formatDuration = (startedAt: string | null, finishedAt: string | null) => {
-    if (!startedAt || !finishedAt) return null;
+    if (!startedAt) return null;
     
     const start = new Date(startedAt);
-    const finish = new Date(finishedAt);
+    const finish = finishedAt ? new Date(finishedAt) : new Date();
     const diffMs = finish.getTime() - start.getTime();
+    
+    // Handle negative time differences (clock sync issues)
+    if (diffMs < 0) {
+      console.warn(`Negative time difference detected: start=${startedAt}, end=${finishedAt || 'now'}, diff=${diffMs}ms`);
+      return "0s"; // Show 0 seconds for negative differences
+    }
+    
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000);
     
