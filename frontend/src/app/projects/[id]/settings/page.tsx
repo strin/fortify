@@ -285,21 +285,13 @@ export default function ProjectSettingsPage({
               <p className="text-muted-foreground mb-4">
                 No repositories configured
               </p>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Github className="h-4 w-4 mr-2" />
-                Add Repository
-              </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="mb-4">
                 <p className="text-sm text-muted-foreground">
                   {project.repositories.length} repositories configured
                 </p>
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
-                  <Github className="h-4 w-4 mr-2" />
-                  Add Repository
-                </Button>
               </div>
               {project.repositories.map((repo) => (
                 <div
