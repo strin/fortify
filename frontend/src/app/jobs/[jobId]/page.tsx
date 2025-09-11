@@ -202,6 +202,13 @@ export default function ScanJobPage() {
     const start = new Date(startTime);
     const end = endTime ? new Date(endTime) : new Date();
     const diff = end.getTime() - start.getTime();
+    
+    // Handle negative time differences (clock sync issues)
+    if (diff < 0) {
+      console.warn(`Negative time difference detected: start=${startTime}, end=${endTime || 'now'}, diff=${diff}ms`);
+      return "0s"; // Show 0 seconds for negative differences
+    }
+    
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
 

@@ -154,10 +154,18 @@ function RepositoryScansContent({
   };
 
   const formatDuration = (startedAt?: string, finishedAt?: string) => {
-    if (!startedAt || !finishedAt) return "N/A";
+    if (!startedAt) return "N/A";
+    
     const start = new Date(startedAt);
-    const end = new Date(finishedAt);
+    const end = finishedAt ? new Date(finishedAt) : new Date();
     const diff = end.getTime() - start.getTime();
+    
+    // Handle negative time differences (clock sync issues)
+    if (diff < 0) {
+      console.warn(`Negative time difference detected: start=${startedAt}, end=${finishedAt || 'now'}, diff=${diff}ms`);
+      return "0s"; // Show 0 seconds for negative differences
+    }
+    
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
