@@ -65,7 +65,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: "read:user user:email public_repo",
+          scope: "read:user user:email repo admin:repo_hook write:repo_hook",
         },
       },
     }),
@@ -149,7 +149,7 @@ export const authOptions: NextAuthOptions = {
               session.user.name = dbUser.displayName;
               session.user.email = dbUser.email;
               session.user.image = dbUser.avatarUrl;
-              session.user.githubAccessToken = dbUser.githubAccessToken;
+              session.accessToken = dbUser.githubAccessToken; // Make access token available at session level
             }
           } catch (error) {
             console.error("Error fetching user data:", error);

@@ -26,6 +26,22 @@ interface Repository {
   repoUrl: string;
 }
 
+interface ScanJob {
+  id: string;
+  type: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  vulnerabilitiesFound: number;
+  error: string | null;
+  data: any;
+  vulnerabilities: Array<{
+    severity: string;
+  }>;
+}
+
 interface Project {
   id: string;
   name: string;
@@ -35,6 +51,15 @@ interface Project {
   updatedAt: string;
   lastScanAt: string | null;
   repositories: Repository[];
+  scanJobs: ScanJob[];
+  totalScans: number;
+  vulnerabilitySummary: {
+    CRITICAL: number;
+    HIGH: number;
+    MEDIUM: number;
+    LOW: number;
+    INFO: number;
+  };
 }
 
 interface ProjectLayoutProps {
