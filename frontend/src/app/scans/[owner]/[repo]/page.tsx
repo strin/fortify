@@ -174,6 +174,33 @@ function RepositoryScansContent({
     return `${minutes}m ${seconds}s`;
   };
 
+  // Extract branch and repository info from scan data
+  const extractScanInfo = (scanData: any) => {
+    try {
+      const branch = scanData?.branch || "main";
+      const repoUrl = scanData?.repo_url || "";
+      
+      // Extract repository path from URL
+      let repoPath = "";
+      if (repoUrl) {
+        // Handle both GitHub URLs and direct repo paths
+        if (repoUrl.includes("github.com")) {
+          const match = repoUrl.match(/github\.com[\/:]([^\/]+\/[^\/]+)/);
+          repoPath = match ? match[1] : repoUrl;
+        } else {
+          repoPath = repoUrl;
+        }
+        // Remove .git suffix if present
+        repoPath = repoPath.replace(/\.git$/, "");
+      }
+      
+      return { branch, repoPath, repoUrl };
+    } catch (error) {
+      console.warn("Failed to extract scan info:", error);
+      return { branch: "main", repoPath: "", repoUrl: "" };
+    }
+  };
+
   const cancelScan = async (scanId: string) => {
     try {
       setCancellingJobs(prev => new Set(prev.add(scanId)));
@@ -369,6 +396,7 @@ function RepositoryScansContent({
           {scans.map((scan) => {
             const StatusIcon =
               statusIcons[scan.status as keyof typeof statusIcons];
+            const { branch, repoPath } = extractScanInfo(scan.data);
             return (
               <Card
                 key={scan.id}
@@ -402,14 +430,33 @@ function RepositoryScansContent({
                         </Badge>
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-sm">
-                        <div className="flex items-center gap-4">
-                          <span>Started: {formatDate(scan.createdAt)}</span>
-                          {scan.finishedAt && (
-                            <span>
-                              Duration:{" "}
-                              {formatDuration(scan.startedAt, scan.finishedAt)}
+                        <div className="space-y-2">
+                          {/* Repository and branch info */}
+                          <div className="flex items-center gap-4 flex-wrap">
+                            {repoPath && (
+                              <span className="flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                {repoPath}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <GitBranch className="h-3 w-3" />
+                              {branch}
                             </span>
-                          )}
+                          </div>
+                          {/* Timing info */}
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Started: {formatDate(scan.createdAt)}
+                            </span>
+                            {scan.finishedAt && (
+                              <span>
+                                Duration:{" "}
+                                {formatDuration(scan.startedAt, scan.finishedAt)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </CardDescription>
                     </div>
@@ -451,7 +498,7 @@ function RepositoryScansContent({
                       <div className="flex flex-wrap gap-4">
                         {Object.entries(scan.vulnerabilityCounts).map(
                           ([severity, count]) =>
-                            count > 0 && (
+                            (count as number) > 0 && (
                               <div
                                 key={severity}
                                 className="flex items-center gap-2"
@@ -485,7 +532,7 @@ function RepositoryScansContent({
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(scan.categoryCounts)
-                              .sort(([, a], [, b]) => b - a)
+                              .sort(([, a], [, b]) => (b as number) - (a as number))
                               .slice(0, 3)
                               .map(([category, count]) => (
                                 <Badge
