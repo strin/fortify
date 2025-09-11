@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { VulnerabilityCard } from "@/components/vulnerability/VulnerabilityCard";
 import Link from "next/link";
 import {
   RefreshCw,
@@ -121,6 +122,40 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedFile, setSelectedFile] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Handler for "Fix with Agent" button
+  const handleFixWithAgent = async (vulnerability: CodeVulnerability) => {
+    if (!scanJob) return;
+    
+    try {
+      const response = await fetch(`/api/fix-agent/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scanJobId: scanJob.id,
+          vulnerabilityId: vulnerability.id,
+          scanJobData: scanJob.data, // Contains repo info
+          vulnerability
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create fix job');
+      }
+
+      const result = await response.json();
+      
+      // Show success message or redirect
+      console.log('Fix job created:', result);
+      alert(`Fix job created successfully! Job ID: ${result.jobId}`);
+      
+    } catch (error) {
+      console.error('Error creating fix job:', error);
+      alert('Failed to create fix job. Please try again.');
+    }
+  };
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -401,94 +436,12 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         {/* Vulnerabilities List */}
         <div className="space-y-4">
           {filteredVulnerabilities.map((vuln) => (
-            <Card key={vuln.id} className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
-                      {vuln.title}
-                      <Badge
-                        className={
-                          severityColors[
-                            vuln.severity as keyof typeof severityColors
-                          ]
-                        }
-                      >
-                        {vuln.severity}
-                      </Badge>
-                      <Badge variant="outline">
-                        {categoryLabels[vuln.category] || vuln.category}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription className="text-gray-300 text-sm flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {truncateFilePath(vuln.filePath)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        Line {vuln.startLine}
-                        {vuln.endLine && vuln.endLine !== vuln.startLine
-                          ? `-${vuln.endLine}`
-                          : ""}
-                      </span>
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Description */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Description
-                    </h4>
-                    <p className="text-gray-300 text-sm">{vuln.description}</p>
-                  </div>
-
-                  {/* Code Snippet */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Code Snippet
-                    </h4>
-                    <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto text-sm">
-                      <code className="text-gray-300">{vuln.codeSnippet}</code>
-                    </pre>
-                  </div>
-
-                  {/* Recommendation */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Recommendation
-                    </h4>
-                    <p className="text-gray-300 text-sm">
-                      {vuln.recommendation}
-                    </p>
-                  </div>
-
-                  {/* Metadata */}
-                  {vuln.metadata && Object.keys(vuln.metadata).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-white mb-2">
-                        Additional Information
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(vuln.metadata).map(([key, value]) => (
-                          <Badge
-                            key={key}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {key}: {String(value)}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <VulnerabilityCard
+              key={vuln.id}
+              vulnerability={vuln}
+              onFixWithAgent={handleFixWithAgent}
+              showFullDetails={true}
+            />
           ))}
         </div>
 
