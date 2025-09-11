@@ -1266,6 +1266,9 @@ Please begin the security audit now."""
             except Exception as update_error:
                 logger.error(f"Failed to update ScanJob status: {update_error}")
                 print(f"❌ Failed to update ScanJob status: {update_error}")
+                # Re-raise the exception to prevent Redis from being marked as completed
+                # if database update failed
+                raise Exception(f"Database update failed: {update_error}")
 
             logger.info(f"Scan completed successfully for job {job.id}")
             logger.debug(f"Final result keys: {list(result.keys())}")
