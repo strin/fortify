@@ -79,6 +79,10 @@ model ScanJob {
         // Metrics (optional)
         vulnerabilitiesFound Int @default(0)
 
+        // GitHub integration (optional)
+        githubCheckId  String? // GitHub check run ID
+        githubCheckUrl String? // GitHub check run URL
+
         // Relations
         user            User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
         project         Project?            @relation(fields: [projectId], references: [id], onDelete: SetNull)
