@@ -153,7 +153,9 @@ async def scan_repository(request: ScanRepoRequest, background_tasks: Background
         logger.debug(f"Created scan data: {scan_data.to_dict()}")
 
         # Add job to queue
-        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict(), request.job_id)
+        job_id = job_queue.add_job(
+            JobType.SCAN_REPO, scan_data.to_dict(), request.job_id
+        )
         logger.info(f"Created job with ID: {job_id}")
 
         # Trigger background processing of the job
@@ -187,10 +189,10 @@ async def get_job_status(job_id: str):
     finished_at = None
     try:
         from scan_agent.utils.database import get_db
+
         db = await get_db()
         scan_job = await db.scanjob.find_unique(
-            where={"id": job_id},
-            select={"startedAt": True, "finishedAt": True}
+            where={"id": job_id}, select={"startedAt": True, "finishedAt": True}
         )
         if scan_job:
             started_at = scan_job.startedAt
@@ -269,88 +271,104 @@ async def github_webhook(
     background_tasks: BackgroundTasks,
     x_github_event: str = Header(None),
     x_github_delivery: str = Header(None),
-    x_hub_signature_256: str = Header(None)
+    x_hub_signature_256: str = Header(None),
 ):
     """Handle GitHub webhook events for pull requests and pushes."""
     try:
         # Log incoming webhook
-        logger.info(f"Received GitHub webhook: event={x_github_event}, delivery={x_github_delivery}")
-        
+        logger.info(
+            f"Received GitHub webhook: event={x_github_event}, delivery={x_github_delivery}"
+        )
+
         # Read request body
         body = await request.body()
         logger.debug(f"Webhook payload size: {len(body)} bytes")
-        
+
         # Verify webhook signature
         if not github_webhook_handler.verify_signature(body, x_hub_signature_256):
             logger.error("Webhook signature verification failed")
             raise HTTPException(status_code=403, detail="Invalid signature")
-        
+
         # Parse JSON payload
         try:
             payload = json.loads(body)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in webhook payload: {str(e)}")
             raise HTTPException(status_code=400, detail="Invalid JSON payload")
-        
+
         # Log payload summary for debugging
         repo_name = payload.get("repository", {}).get("full_name", "unknown")
         logger.info(f"Processing webhook for repository: {repo_name}")
-        
+
         # Parse webhook payload
-        parsed_data = github_webhook_handler.parse_webhook_payload(payload, x_github_event)
-        
+        parsed_data = github_webhook_handler.parse_webhook_payload(
+            payload, x_github_event
+        )
+
         if not parsed_data:
             logger.info(f"Webhook event '{x_github_event}' does not require processing")
-            return {"status": "ignored", "message": f"Event '{x_github_event}' not processed"}
-        
+            return {
+                "status": "ignored",
+                "message": f"Event '{x_github_event}' not processed",
+            }
+
         # Create scan job based on event type
         if parsed_data["event_type"] == "pull_request":
             job_id = await _handle_pull_request_event(parsed_data, background_tasks)
             logger.info(f"Created scan job {job_id} for PR event")
-            
+
             return {
                 "status": "success",
                 "message": f"Scan job created for PR #{parsed_data['pull_request']['number']}",
                 "job_id": job_id,
                 "repository": parsed_data["repository"]["full_name"],
-                "pull_request": parsed_data["pull_request"]["number"]
+                "pull_request": parsed_data["pull_request"]["number"],
             }
-        
+
         elif parsed_data["event_type"] == "push":
             job_id = await _handle_push_event(parsed_data, background_tasks)
             logger.info(f"Created scan job {job_id} for push event")
-            
+
             return {
-                "status": "success", 
+                "status": "success",
                 "message": f"Scan job created for push to {parsed_data['branch']}",
                 "job_id": job_id,
                 "repository": parsed_data["repository"]["full_name"],
-                "branch": parsed_data["branch"]
+                "branch": parsed_data["branch"],
             }
-        
+
         else:
             logger.warning(f"Unsupported event type: {parsed_data['event_type']}")
-            return {"status": "ignored", "message": f"Event type '{parsed_data['event_type']}' not supported"}
-        
+            return {
+                "status": "ignored",
+                "message": f"Event type '{parsed_data['event_type']}' not supported",
+            }
+
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error processing GitHub webhook: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error processing webhook")
+        raise HTTPException(
+            status_code=500, detail="Internal server error processing webhook"
+        )
 
 
-async def _handle_pull_request_event(parsed_data: Dict[str, Any], background_tasks: BackgroundTasks) -> str:
+async def _handle_pull_request_event(
+    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks
+) -> str:
     """Handle pull request webhook event and create scan job."""
     try:
         pr_data = parsed_data["pull_request"]
         repo_data = parsed_data["repository"]
-        
+
         # Log PR details
-        logger.info(f"Handling PR event: {repo_data['full_name']} PR #{pr_data['number']}")
+        logger.info(
+            f"Handling PR event: {repo_data['full_name']} PR #{pr_data['number']}"
+        )
         logger.info(f"PR title: {pr_data['title']}")
         logger.info(f"PR branch: {pr_data['head']['ref']} -> {pr_data['base']['ref']}")
         logger.info(f"PR action: {parsed_data['action']}")
-        
+
         # Create job data for scanning the PR branch
         scan_data = ScanJobData(
             repo_url=pr_data["head"]["repo"]["clone_url"],
@@ -365,39 +383,45 @@ async def _handle_pull_request_event(parsed_data: Dict[str, Any], background_tas
                 "pr_action": parsed_data["action"],
                 "base_branch": pr_data["base"]["ref"],
                 "head_sha": pr_data["head"]["sha"],
-                "base_sha": pr_data["base"]["sha"]
-            }
+                "base_sha": pr_data["base"]["sha"],
+            },
         )
-        
+
         # Create job with descriptive ID
         job_id_suffix = f"pr-{pr_data['number']}-{pr_data['head']['sha'][:8]}"
-        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix)
-        
+        job_id = job_queue.add_job(
+            JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
+        )
+
         # Trigger background processing
         background_tasks.add_task(process_job_task, job_id)
-        
+
         logger.info(f"Created PR scan job: {job_id}")
         return job_id
-        
+
     except Exception as e:
         logger.error(f"Error handling PR event: {str(e)}", exc_info=True)
         raise
 
 
-async def _handle_push_event(parsed_data: Dict[str, Any], background_tasks: BackgroundTasks) -> str:
+async def _handle_push_event(
+    parsed_data: Dict[str, Any], background_tasks: BackgroundTasks
+) -> str:
     """Handle push webhook event and create scan job."""
     try:
         repo_data = parsed_data["repository"]
         branch = parsed_data["branch"]
         commits = parsed_data["commits"]
-        
+
         # Log push details
         logger.info(f"Handling push event: {repo_data['full_name']} to {branch}")
         logger.info(f"Number of commits: {len(commits)}")
         if commits:
             latest_commit = commits[-1]
-            logger.info(f"Latest commit: {latest_commit['id'][:8]} - {latest_commit['message'][:100]}")
-        
+            logger.info(
+                f"Latest commit: {latest_commit['id'][:8]} - {latest_commit['message'][:100]}"
+            )
+
         # Create job data for scanning the pushed branch
         scan_data = ScanJobData(
             repo_url=repo_data["clone_url"],
@@ -408,20 +432,28 @@ async def _handle_push_event(parsed_data: Dict[str, Any], background_tasks: Back
                 "branch": branch,
                 "ref": parsed_data["ref"],
                 "commits": commits,
-                "pusher": parsed_data["pusher"]["name"] if parsed_data.get("pusher") else "unknown"
-            }
+                "pusher": (
+                    parsed_data["pusher"]["name"]
+                    if parsed_data.get("pusher")
+                    else "unknown"
+                ),
+            },
         )
-        
+
         # Create job with descriptive ID
-        job_id_suffix = f"push-{branch}-{commits[-1]['id'][:8]}" if commits else f"push-{branch}"
-        job_id = job_queue.add_job(JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix)
-        
+        job_id_suffix = (
+            f"push-{branch}-{commits[-1]['id'][:8]}" if commits else f"push-{branch}"
+        )
+        job_id = job_queue.add_job(
+            JobType.SCAN_REPO, scan_data.to_dict(), job_id_suffix
+        )
+
         # Trigger background processing
         background_tasks.add_task(process_job_task, job_id)
-        
+
         logger.info(f"Created push scan job: {job_id}")
         return job_id
-        
+
     except Exception as e:
         logger.error(f"Error handling push event: {str(e)}", exc_info=True)
         raise
@@ -432,19 +464,19 @@ async def test_github_webhook():
     """Test endpoint to validate GitHub webhook integration setup."""
     try:
         logger.info("GitHub webhook test endpoint called")
-        
+
         # Check environment configuration
         webhook_secret = os.environ.get("GITHUB_WEBHOOK_SECRET")
         secret_configured = bool(webhook_secret)
-        
+
         # Test GitHub client initialization
         test_client = GitHubClient()
         client_initialized = True
-        
+
         # Test webhook handler
         test_handler = GitHubWebhookHandler()
         handler_initialized = True
-        
+
         # Create test response
         response = {
             "status": "success",
@@ -455,36 +487,35 @@ async def test_github_webhook():
                 "webhook_handler_initialized": handler_initialized,
                 "endpoint_url": "/webhooks/github",
                 "supported_events": ["pull_request", "push"],
-                "pr_triggering_actions": ["opened", "synchronize", "reopened"]
+                "pr_triggering_actions": ["opened", "synchronize", "reopened"],
             },
             "setup_instructions": {
                 "environment_variables": {
                     "GITHUB_WEBHOOK_SECRET": "Set this to match your GitHub webhook secret for signature validation",
-                    "optional_note": "If not set, signature validation will be disabled (not recommended for production)"
+                    "optional_note": "If not set, signature validation will be disabled (not recommended for production)",
                 },
                 "github_webhook_config": {
                     "payload_url": "https://your-domain.com/webhooks/github",
-                    "content_type": "application/json", 
+                    "content_type": "application/json",
                     "events": ["pull_request", "push"],
-                    "active": True
-                }
+                    "active": True,
+                },
             },
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
-        
-        logger.info(f"Webhook test completed successfully - secret configured: {secret_configured}")
+
+        logger.info(
+            f"Webhook test completed successfully - secret configured: {secret_configured}"
+        )
         return response
-        
+
     except Exception as e:
         logger.error(f"Error in webhook test endpoint: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
 
 
 @app.post("/setup-webhook")
-async def setup_webhook(
-    request: Request,
-    background_tasks: BackgroundTasks
-):
+async def setup_webhook(request: Request, background_tasks: BackgroundTasks):
     """Setup webhook for a repository automatically."""
     try:
         body = await request.json()
@@ -492,35 +523,67 @@ async def setup_webhook(
         repo = body.get("repo")
         webhook_url = body.get("webhook_url")
         secret = body.get("secret")
-        
+
         if not all([owner, repo, webhook_url, secret]):
-            raise HTTPException(status_code=400, detail="Missing required parameters: owner, repo, webhook_url, secret")
-        
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required parameters: owner, repo, webhook_url, secret",
+            )
+
         # Get access token from Authorization header
         auth_header = request.headers.get("authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
-        
+
         access_token = auth_header.split(" ")[1]
-        
+
         # Initialize GitHub client with user's access token
         github_client = GitHubClient(access_token=access_token)
-        
+
         # Setup webhook
-        webhook_result = await github_client.setup_webhook(owner, repo, webhook_url, secret)
-        
+        webhook_result = await github_client.setup_webhook(
+            owner, repo, webhook_url, secret
+        )
+
         if webhook_result:
+            # Check if result contains an error
+            if "error" in webhook_result:
+                error_type = webhook_result.get("error")
+                message = webhook_result.get("message", "Unknown error")
+                status_code = webhook_result.get("status_code", 500)
+
+                if error_type == "insufficient_permissions":
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Insufficient permissions: You need admin access to {owner}/{repo} to create webhooks. Please ensure you have admin permissions on this repository.",
+                    )
+                elif error_type == "permission_denied":
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Permission denied: {message}. Please check your GitHub permissions and OAuth scopes.",
+                    )
+                elif error_type == "validation_failed":
+                    raise HTTPException(
+                        status_code=422, detail=f"Webhook validation failed: {message}"
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=status_code,
+                        detail=f"Webhook setup failed: {message}",
+                    )
+
+            # Success case
             return {
                 "status": "success",
                 "message": f"Webhook configured for {owner}/{repo}",
                 "webhook_id": webhook_result.get("id"),
                 "webhook_url": webhook_result.get("config", {}).get("url"),
                 "events": webhook_result.get("events", []),
-                "active": webhook_result.get("active", False)
+                "active": webhook_result.get("active", False),
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to setup webhook")
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -529,40 +592,41 @@ async def setup_webhook(
 
 
 @app.delete("/setup-webhook")
-async def remove_webhook(
-    request: Request
-):
+async def remove_webhook(request: Request):
     """Remove webhook from a repository."""
     try:
         body = await request.json()
         owner = body.get("owner")
         repo = body.get("repo")
         webhook_id = body.get("webhook_id")
-        
+
         if not all([owner, repo, webhook_id]):
-            raise HTTPException(status_code=400, detail="Missing required parameters: owner, repo, webhook_id")
-        
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required parameters: owner, repo, webhook_id",
+            )
+
         # Get access token from Authorization header
         auth_header = request.headers.get("authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
-        
+
         access_token = auth_header.split(" ")[1]
-        
+
         # Initialize GitHub client with user's access token
         github_client = GitHubClient(access_token=access_token)
-        
+
         # Remove webhook
         success = await github_client.remove_webhook(owner, repo, webhook_id)
-        
+
         if success:
             return {
                 "status": "success",
-                "message": f"Webhook removed from {owner}/{repo}"
+                "message": f"Webhook removed from {owner}/{repo}",
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to remove webhook")
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -571,33 +635,29 @@ async def remove_webhook(
 
 
 @app.get("/webhooks/{owner}/{repo}")
-async def get_repository_webhooks(
-    owner: str,
-    repo: str,
-    request: Request
-):
+async def get_repository_webhooks(owner: str, repo: str, request: Request):
     """Get webhooks for a repository."""
     try:
         # Get access token from Authorization header
         auth_header = request.headers.get("authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header")
-        
+
         access_token = auth_header.split(" ")[1]
-        
+
         # Initialize GitHub client with user's access token
         github_client = GitHubClient(access_token=access_token)
-        
+
         # Get webhooks
         webhooks = await github_client.get_webhooks(owner, repo)
-        
+
         return {
             "status": "success",
             "repository": f"{owner}/{repo}",
             "webhooks": webhooks,
-            "total": len(webhooks)
+            "total": len(webhooks),
         }
-            
+
     except HTTPException:
         raise
     except Exception as e:

@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.accessToken) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -28,32 +28,49 @@ export async function POST(
     }
 
     // Call scan agent to setup webhook
-    const response = await fetch(`${process.env.SCAN_AGENT_URL}/setup-webhook`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify({
-        owner,
-        repo,
-        webhook_url: webhookUrl,
-        secret: webhookSecret,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.SCAN_AGENT_URL}/setup-webhook`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify({
+          owner,
+          repo,
+          webhook_url: webhookUrl,
+          secret: webhookSecret,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || "Failed to setup webhook");
+      const errorMessage = errorData.detail || "Failed to setup webhook";
+
+      // Return appropriate status code based on the error
+      let statusCode = 500;
+      if (response.status === 403) {
+        statusCode = 403;
+      } else if (response.status === 422) {
+        statusCode = 422;
+      } else if (response.status === 401) {
+        statusCode = 401;
+      }
+
+      return NextResponse.json({ error: errorMessage }, { status: statusCode });
     }
 
     const result = await response.json();
     return NextResponse.json(result);
-
   } catch (error) {
     console.error("Error setting up webhook:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to setup webhook" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to setup webhook",
+      },
       { status: 500 }
     );
   }
@@ -65,7 +82,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.accessToken) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -85,18 +102,21 @@ export async function DELETE(
     }
 
     // Call scan agent to remove webhook
-    const response = await fetch(`${process.env.SCAN_AGENT_URL}/setup-webhook`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${session.accessToken}`,
-      },
-      body: JSON.stringify({
-        owner,
-        repo,
-        webhook_id,
-      }),
-    });
+    const response = await fetch(
+      `${process.env.SCAN_AGENT_URL}/setup-webhook`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+        body: JSON.stringify({
+          owner,
+          repo,
+          webhook_id,
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -105,11 +125,13 @@ export async function DELETE(
 
     const result = await response.json();
     return NextResponse.json(result);
-
   } catch (error) {
     console.error("Error removing webhook:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to remove webhook" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to remove webhook",
+      },
       { status: 500 }
     );
   }
@@ -121,7 +143,7 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.accessToken) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -132,12 +154,15 @@ export async function GET(
     const { owner, repo } = await params;
 
     // Call scan agent to get webhooks
-    const response = await fetch(`${process.env.SCAN_AGENT_URL}/webhooks/${owner}/${repo}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${session.accessToken}`,
-      },
-    });
+    const response = await fetch(
+      `${process.env.SCAN_AGENT_URL}/webhooks/${owner}/${repo}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -146,11 +171,13 @@ export async function GET(
 
     const result = await response.json();
     return NextResponse.json(result);
-
   } catch (error) {
     console.error("Error fetching webhooks:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch webhooks" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to fetch webhooks",
+      },
       { status: 500 }
     );
   }
