@@ -65,6 +65,7 @@ async function forwardWebhookToScanAgent(
         "X-GitHub-Event": githubHeaders["x-github-event"] || "",
         "X-GitHub-Delivery": githubHeaders["x-github-delivery"] || "",
         "X-Hub-Signature-256": githubHeaders["x-hub-signature-256"] || "",
+        "X-GitHub-Hook-ID": githubHeaders["x-github-hook-id"] || "",
         "User-Agent": githubHeaders["user-agent"] || "GitHub-Hookshot-Proxy",
       },
       body: payload,
@@ -103,10 +104,11 @@ export async function POST(request: NextRequest) {
     const githubEvent = headersList.get("x-github-event") || "";
     const githubDelivery = headersList.get("x-github-delivery") || "";
     const githubSignature = headersList.get("x-hub-signature-256") || "";
+    const githubHookId = headersList.get("x-github-hook-id") || "";
     const userAgent = headersList.get("user-agent") || "";
 
     console.log(
-      `[Webhook Proxy] Received GitHub webhook: event=${githubEvent}, delivery=${githubDelivery}`
+      `[Webhook Proxy] Received GitHub webhook: event=${githubEvent}, delivery=${githubDelivery}, hook_id=${githubHookId}`
     );
 
     // Read request body
@@ -129,6 +131,7 @@ export async function POST(request: NextRequest) {
       "x-github-event": githubEvent,
       "x-github-delivery": githubDelivery,
       "x-hub-signature-256": githubSignature,
+      "x-github-hook-id": githubHookId,
       "user-agent": userAgent,
     };
 

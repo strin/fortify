@@ -123,6 +123,10 @@ export default function ProjectSettingsPage({
             headers: {
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({
+              repositoryId: repo.id,
+              projectId: projectId,
+            }),
           }
         );
 
