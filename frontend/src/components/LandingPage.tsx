@@ -10,8 +10,40 @@ import Globe3D from "./Globe3D";
 import SampleScanReport from "./SampleScanReport";
 
 export default function LandingPage() {
-  const handleGitHubScan = () => {
-    signIn("github", { callbackUrl: "/new-project" });
+  const handleGitHubScan = async () => {
+    console.log("🔒 Scan My GitHub button clicked!");
+    console.log("NextAuth signIn function:", typeof signIn);
+    console.log("Current URL:", window.location.href);
+    
+    // Check if required environment variables are likely configured
+    // by checking if the NextAuth API endpoint exists
+    try {
+      const authCheck = await fetch("/api/auth/providers");
+      console.log("NextAuth providers check:", authCheck.status);
+      
+      if (!authCheck.ok) {
+        throw new Error("NextAuth API not responding - check environment variables");
+      }
+      
+      const providers = await authCheck.json();
+      console.log("Available auth providers:", providers);
+      
+      if (!providers.github) {
+        throw new Error("GitHub provider not configured - check GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET");
+      }
+      
+      // All checks passed, attempt to sign in
+      console.log("Starting GitHub OAuth flow...");
+      const result = await signIn("github", { 
+        callbackUrl: "/new-project",
+        redirect: true 
+      });
+      console.log("signIn result:", result);
+      
+    } catch (error: any) {
+      console.error("Error starting GitHub scan:", error);
+      alert(`❌ GitHub Scan Failed!\n\n${error.message}\n\nCheck the browser console for more details.`);
+    }
   };
 
   return (

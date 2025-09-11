@@ -28,29 +28,11 @@ export async function GET(request: NextRequest) {
             name: true,
           },
         },
-        scanTargets: {
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            branch: true,
-            subPath: true,
-            lastScanAt: true,
-          },
-        },
-        _count: {
-          select: {
-            scanTargets: true,
-          },
-        },
       },
       orderBy: { updatedAt: "desc" },
     });
 
-    const formattedRepositories = repositories.map((repo) => ({
-      ...repo,
-      totalScanTargets: repo._count.scanTargets,
-    }));
+    const formattedRepositories = repositories;
 
     return NextResponse.json({ repositories: formattedRepositories });
   } catch (error) {
@@ -121,50 +103,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create repository and default scan target in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      const repository = await tx.repository.create({
-        data: {
-          projectId,
-          userId: session.user.id,
-          fullName,
-          description,
-          provider,
-          repoUrl,
-          externalId,
-          defaultBranch,
-          isPrivate,
-          providerMetadata,
-        },
-      });
-
-      // Create a default scan target for the main/default branch
-      const scanTarget = await tx.scanTarget.create({
-        data: {
-          userId: session.user.id,
-          repositoryId: repository.id,
-          name: `${fullName} (${defaultBranch})`,
-          description: `Default scan target for ${fullName} on ${defaultBranch} branch`,
-          repoUrl,
-          branch: defaultBranch,
-          subPath: "/",
-        },
-      });
-
-      return { repository, scanTarget };
+    // Create repository
+    const repository = await prisma.repository.create({
+      data: {
+        projectId,
+        userId: session.user.id,
+        fullName,
+        description,
+        provider,
+        repoUrl,
+        externalId,
+        defaultBranch,
+        isPrivate,
+        providerMetadata,
+      },
     });
 
     return NextResponse.json(
       {
-        id: result.repository.id,
-        fullName: result.repository.fullName,
-        description: result.repository.description,
-        repoUrl: result.repository.repoUrl,
-        defaultBranch: result.repository.defaultBranch,
-        defaultScanTarget: {
-          id: result.scanTarget.id,
-          name: result.scanTarget.name,
-        },
+        id: repository.id,
+        fullName: repository.fullName,
+        description: repository.description,
+        repoUrl: repository.repoUrl,
+        defaultBranch: repository.defaultBranch,
       },
       { status: 201 }
     );

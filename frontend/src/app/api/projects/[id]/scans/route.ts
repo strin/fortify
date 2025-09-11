@@ -162,30 +162,6 @@ export async function POST(
     // Keep the path as-is, default to "/" if not provided
     const normalizedPath = path || "/";
 
-    // Create or find existing scan target
-    const scanTarget = await prisma.scanTarget.upsert({
-      where: {
-        userId_repoUrl_branch_subPath: {
-          userId: session.user.id,
-          repoUrl: repoUrl,
-          branch: branch,
-          subPath: normalizedPath,
-        },
-      },
-      create: {
-        userId: session.user.id,
-        repositoryId: repository.id,
-        name: `${repository.fullName} (${branch}${normalizedPath !== "/" ? normalizedPath : ''})`,
-        description: `Scan target for ${repository.fullName} on branch ${branch}${normalizedPath !== "/" ? ` at path ${normalizedPath}` : ''}`,
-        repoUrl: repoUrl,
-        branch: branch,
-        subPath: normalizedPath,
-      },
-      update: {
-        // Update last scan time will be set when scan completes
-      },
-    });
-
     // Create the scan job
     const scanJobData = {
       repo_url: repoUrl,
@@ -198,7 +174,6 @@ export async function POST(
       data: {
         userId: session.user.id,
         projectId: projectId,
-        scanTargetId: scanTarget.id,
         type: "SCAN_REPO",
         status: "PENDING",
         data: scanJobData,
@@ -251,7 +226,6 @@ export async function POST(
 
       return NextResponse.json({
         scanJobId: scanJob.id,
-        scanTargetId: scanTarget.id,
         message: "Scan job created successfully",
       });
 

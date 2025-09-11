@@ -174,18 +174,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Also create a default scan target for the main/default branch
-      await tx.scanTarget.create({
-        data: {
-          userId: session.user.id,
-          repositoryId: repository.id,
-          name: `${fullName} (${defaultBranch})`,
-          description: `Default scan target for ${fullName} on ${defaultBranch} branch`,
-          repoUrl,
-          branch: defaultBranch,
-          subPath: "/",
-        },
-      });
 
       return { project, repository };
     });
