@@ -39,7 +39,6 @@ export async function GET(
               select: {
                 id: true,
                 webhookId: true,
-                isActive: true,
                 createdAt: true,
                 lastTriggeredAt: true,
               },
