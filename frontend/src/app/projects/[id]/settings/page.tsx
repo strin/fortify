@@ -179,7 +179,6 @@ export default function ProjectSettingsPage({
                       </p>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                      <span>Scan Targets: {repo.totalScanTargets}</span>
                       {repo.lastScanAt && (
                         <span>
                           Last Scan: {formatTimeAgo(repo.lastScanAt)}
