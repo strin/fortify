@@ -308,7 +308,7 @@ export default function ProjectsPage() {
 
         {/* Projects List */}
         {!loading && filteredProjects.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {filteredProjects.map((project) => (
               <Link href={`/projects/${project.id}`} key={project.id}>
                 <Card className="bg-card border-border hover:border-muted hover:bg-accent/50 transition-colors cursor-pointer">
