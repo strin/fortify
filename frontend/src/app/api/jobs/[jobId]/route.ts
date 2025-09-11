@@ -103,7 +103,20 @@ export async function GET(
           jobData.result.vulnerabilities = vulnerabilitiesPreview;
 
           // Also add the stored job data for consistency
-          jobData.data = scanJob.data ? JSON.parse(scanJob.data) : jobData.data;
+          if (scanJob.data) {
+            try {
+              // If data is already a parsed object, use it directly
+              if (typeof scanJob.data === 'string') {
+                jobData.data = JSON.parse(scanJob.data);
+              } else {
+                // If it's already parsed (JsonValue), use it as-is
+                jobData.data = scanJob.data;
+              }
+            } catch (parseError) {
+              console.warn("Failed to parse scanJob.data:", parseError);
+              // Keep the original jobData.data if parsing fails
+            }
+          }
         }
       } catch (dbError) {
         console.error("Error fetching job details from database:", dbError);
