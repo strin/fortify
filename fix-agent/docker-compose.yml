@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  fix-agent-server:
+    build: .
+    ports:
+      - "8001:8001"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - redis
+    command: python -m fix_agent.server
+
+  fix-agent-worker:
+    build: .
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=1
+      - GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - redis
+    command: python -c "from fix_agent.workers.fixer import FixWorker; worker = FixWorker(); worker.run()"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - fix_agent_redis_data:/data
+
+volumes:
+  fix_agent_redis_data:
