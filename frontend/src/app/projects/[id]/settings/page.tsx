@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Github, GitBranch, Settings, Webhook, Loader2 } from "lucide-react";
+import { AddRepositoryDialog } from "@/components/project/add-repository-dialog";
 
 interface Repository {
   id: string;
@@ -48,6 +49,7 @@ export default function ProjectSettingsPage({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [addRepositoryDialogOpen, setAddRepositoryDialogOpen] = useState(false);
 
   // Get project ID from params
   useEffect(() => {
@@ -285,7 +287,10 @@ export default function ProjectSettingsPage({
               <p className="text-muted-foreground mb-4">
                 No repositories configured
               </p>
-              <Button className="bg-primary hover:bg-primary/90">
+              <Button 
+                className="bg-primary hover:bg-primary/90"
+                onClick={() => setAddRepositoryDialogOpen(true)}
+              >
                 <Github className="h-4 w-4 mr-2" />
                 Add Repository
               </Button>
@@ -296,7 +301,11 @@ export default function ProjectSettingsPage({
                 <p className="text-sm text-muted-foreground">
                   {project.repositories.length} repositories configured
                 </p>
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setAddRepositoryDialogOpen(true)}
+                >
                   <Github className="h-4 w-4 mr-2" />
                   Add Repository
                 </Button>
@@ -398,6 +407,17 @@ export default function ProjectSettingsPage({
           </div>
         </CardContent>
       </Card>
+
+      {/* Add Repository Dialog */}
+      <AddRepositoryDialog
+        open={addRepositoryDialogOpen}
+        onOpenChange={setAddRepositoryDialogOpen}
+        onSuccess={() => {
+          fetchProject();
+          setAddRepositoryDialogOpen(false);
+        }}
+        projectId={projectId}
+      />
     </div>
   );
 }
