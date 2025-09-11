@@ -76,14 +76,30 @@ export async function DELETE(
     }
 
     // Update job status to CANCELLED in database
-    await prisma.scanJob.update({
-      where: { id: jobId },
-      data: {
-        status: "CANCELLED",
-        finishedAt: new Date(),
-        error: "Job cancelled by user"
-      },
-    });
+    try {
+      await prisma.scanJob.update({
+        where: { id: jobId },
+        data: {
+          status: "CANCELLED",
+          finishedAt: new Date(),
+          error: "Job cancelled by user"
+        },
+      });
+    } catch (dbError: any) {
+      // Handle specific enum error for better debugging
+      if (dbError.code === 'P2022' || dbError.message?.includes('invalid input value for enum "JobStatus": "CANCELLED"')) {
+        console.error("Database enum error: CANCELLED status not available in JobStatus enum. Migration may not have been applied.");
+        return NextResponse.json(
+          { 
+            error: "Database configuration error: CANCELLED status not available. Please contact support.",
+            details: "Migration 20250909044604_add_cancelled_job_status may not have been applied to the database."
+          },
+          { status: 500 }
+        );
+      }
+      // Re-throw other database errors
+      throw dbError;
+    }
 
     // Try to signal the worker to cancel the job (optional - may fail if worker is not reachable)
     try {
