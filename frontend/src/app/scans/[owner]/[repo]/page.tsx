@@ -28,6 +28,14 @@ import {
   StopCircle,
 } from "lucide-react";
 
+interface ScanTarget {
+  id: string;
+  name: string;
+  repoUrl: string;
+  branch: string;
+  subPath: string;
+}
+
 interface ScanJobSummary {
   id: string;
   type: string;
@@ -48,6 +56,7 @@ interface ScanJobSummary {
   };
   categoryCounts: Record<string, number>;
   totalVulnerabilities: number;
+  scanTarget: ScanTarget | null;
 }
 
 interface RepositorySummary {
@@ -199,6 +208,25 @@ function RepositoryScansContent({
       console.warn("Failed to extract scan info:", error);
       return { branch: "main", repoPath: "", repoUrl: "" };
     }
+
+  const getBranchAndPath = (scan: ScanJobSummary) => {
+    // Use scanTarget data if available
+    if (scan.scanTarget) {
+      return {
+        branch: scan.scanTarget.branch,
+        subPath: scan.scanTarget.subPath !== "/" ? scan.scanTarget.subPath : null,
+      };
+    }
+    
+    // Fallback to extracting from scan.data
+    if (scan.data) {
+      return {
+        branch: scan.data.branch || scan.data.ref || "main",
+        subPath: scan.data.sub_path && scan.data.sub_path !== "/" ? scan.data.sub_path : null,
+      };
+    }
+    
+    return { branch: "main", subPath: null };
   };
 
   const cancelScan = async (scanId: string) => {
@@ -457,6 +485,17 @@ function RepositoryScansContent({
                               </span>
                             )}
                           </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <GitBranch className="h-3 w-3" />
+                            {getBranchAndPath(scan).branch}
+                          </span>
+                          {getBranchAndPath(scan).subPath && (
+                            <span className="bg-muted px-2 py-1 rounded">
+                              {getBranchAndPath(scan).subPath}
+                            </span>
+                          )}
                         </div>
                       </CardDescription>
                     </div>

@@ -50,16 +50,17 @@ from scan_agent.models.job import Job, JobStatus, JobType, ScanJobData
 from scan_agent.utils.queue import JobQueue
 from scan_agent.utils.redis_client import redis_connection
 from scan_agent.utils.database import get_db, init_database, close_database
+from scan_agent.utils.github_checks import GitHubChecksClient
 
 
 def ensure_json_serializable(data: Any) -> Any:
     """
     Ensure data is JSON-serializable by converting to JSON and back.
     This handles datetime objects, complex objects, etc. by converting them to strings.
-    
+
     Args:
         data: Any data structure that may contain non-serializable objects
-        
+
     Returns:
         JSON-serializable version of the data
     """
@@ -627,6 +628,277 @@ Please begin the security audit now."""
             logger.debug(f"Failed to extract conversation summary: {e}")
             return "Security audit completed"
 
+    async def _create_github_check(
+        self, job: Job, scan_data: ScanJobData
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Create a GitHub check run for the scan job.
+
+        Args:
+            job: The scan job
+            scan_data: The scan job data
+
+        Returns:
+            Check run data if successful, None if failed or not applicable
+        """
+        try:
+            # Extract GitHub information from scan options
+            scan_options = scan_data.scan_options or {}
+
+            # Check if this is a GitHub-triggered scan with PR/push context
+            if "trigger" not in scan_options or scan_options["trigger"] not in [
+                "pull_request",
+                "push",
+            ]:
+                logger.debug(
+                    "Scan not triggered by GitHub webhook, skipping check creation"
+                )
+                return None
+
+            # Extract repository info from repo URL
+            repo_url = scan_data.repo_url
+            import re
+
+            github_match = re.match(
+                r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", repo_url
+            )
+            if not github_match:
+                logger.warning(
+                    f"Could not extract GitHub owner/repo from URL: {repo_url}"
+                )
+                return None
+
+            owner, repo = github_match.groups()
+
+            # Get commit SHA from scan options
+            head_sha = None
+            if scan_options["trigger"] == "pull_request":
+                head_sha = scan_options.get("head_sha")
+            elif scan_options["trigger"] == "push":
+                # For push events, get the latest commit SHA from commits array
+                commits = scan_options.get("commits", [])
+                if commits:
+                    head_sha = commits[-1].get("id")
+
+            if not head_sha:
+                logger.warning(
+                    "No commit SHA found in scan options, cannot create GitHub check"
+                )
+                return None
+
+            # Get access token from database (from webhook mapping)
+            db = await get_db()
+            scan_job_record = await db.scanjob.find_unique(
+                where={"id": job.id},
+                include={
+                    "user": True,
+                    "project": {
+                        "include": {"repoWebhookMappings": {"include": {"user": True}}}
+                    },
+                },
+            )
+
+            if not scan_job_record or not scan_job_record.user:
+                logger.warning("No user found for scan job, cannot create GitHub check")
+                return None
+
+            access_token = scan_job_record.user.githubAccessToken
+            if not access_token:
+                logger.warning(
+                    "No GitHub access token found for user, cannot create GitHub check"
+                )
+                return None
+
+            # Create GitHub checks client
+            github_client = GitHubChecksClient(access_token=access_token)
+
+            # Create the check run
+            check_run = await github_client.create_check_run(
+                owner=owner, repo=repo, head_sha=head_sha, job_id=job.id
+            )
+
+            if check_run:
+                # Update scan job with GitHub check info
+                await db.scanjob.update(
+                    where={"id": job.id},
+                    data={
+                        "githubCheckId": str(check_run["id"]),
+                        "githubCheckUrl": check_run.get("html_url"),
+                    },
+                )
+
+                logger.info(
+                    f"Created GitHub check run {check_run['id']} for job {job.id}"
+                )
+                print(f"✅ Created GitHub check run {check_run['id']} for job {job.id}")
+                return check_run
+            else:
+                logger.warning("Failed to create GitHub check run")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error creating GitHub check: {str(e)}", exc_info=True)
+            return None
+
+    async def _update_github_check_progress(self, job: Job):
+        """
+        Update GitHub check run to show scan is in progress.
+
+        Args:
+            job: The scan job
+        """
+        try:
+            db = await get_db()
+            scan_job_record = await db.scanjob.find_unique(
+                where={"id": job.id}, include={"user": True}
+            )
+
+            if not scan_job_record or not scan_job_record.githubCheckId:
+                return
+
+            access_token = (
+                scan_job_record.user.githubAccessToken if scan_job_record.user else None
+            )
+            if not access_token:
+                return
+
+            # Extract repository info
+            scan_data = ScanJobData.from_dict(job.data)
+            repo_url = scan_data.repo_url
+            import re
+
+            github_match = re.match(
+                r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", repo_url
+            )
+            if not github_match:
+                return
+
+            owner, repo = github_match.groups()
+
+            # Update check status
+            github_client = GitHubChecksClient(access_token=access_token)
+            await github_client.update_check_run_status(
+                owner=owner,
+                repo=repo,
+                check_run_id=int(scan_job_record.githubCheckId),
+                status="in_progress",
+                output_title="Security scan in progress",
+                output_summary="Fortify is analyzing your code for security vulnerabilities...",
+                output_text="The scan is currently running. This may take a few minutes depending on the size of your codebase.",
+            )
+
+            logger.info(
+                f"Updated GitHub check {scan_job_record.githubCheckId} to in_progress"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error updating GitHub check progress: {str(e)}", exc_info=True
+            )
+
+    async def _complete_github_check(self, job: Job, scan_results: Dict[str, Any]):
+        """
+        Complete GitHub check run with scan results.
+
+        Args:
+            job: The scan job
+            scan_results: The scan results
+        """
+        try:
+            db = await get_db()
+            scan_job_record = await db.scanjob.find_unique(
+                where={"id": job.id}, include={"user": True, "vulnerabilities": True}
+            )
+
+            if not scan_job_record or not scan_job_record.githubCheckId:
+                return
+
+            access_token = (
+                scan_job_record.user.githubAccessToken if scan_job_record.user else None
+            )
+            if not access_token:
+                return
+
+            # Extract repository info
+            scan_data = ScanJobData.from_dict(job.data)
+            repo_url = scan_data.repo_url
+            import re
+
+            github_match = re.match(
+                r"https?://github\.com/([^/]+)/([^/]+?)(?:\.git)?/?$", repo_url
+            )
+            if not github_match:
+                return
+
+            owner, repo = github_match.groups()
+
+            # Get vulnerabilities from database
+            vulnerabilities = []
+            if scan_job_record.vulnerabilities:
+                vulnerabilities = [
+                    {
+                        "title": vuln.title,
+                        "description": vuln.description,
+                        "severity": vuln.severity,
+                        "category": vuln.category,
+                        "filePath": vuln.filePath,
+                        "startLine": vuln.startLine,
+                        "endLine": vuln.endLine,
+                        "codeSnippet": vuln.codeSnippet,
+                        "recommendation": vuln.recommendation,
+                    }
+                    for vuln in scan_job_record.vulnerabilities
+                ]
+
+            # Create GitHub checks client
+            github_client = GitHubChecksClient(access_token=access_token)
+
+            # Determine conclusion based on scan status and vulnerabilities
+            if "error" in scan_results:
+                conclusion = "failure"
+                output = {
+                    "title": "❌ Scan failed",
+                    "summary": f"Security scan failed: {scan_results.get('error', 'Unknown error')}",
+                    "text": "The security scan encountered an error and could not complete. Please check the scan logs for more details.",
+                }
+            else:
+                conclusion = github_client.get_check_conclusion(
+                    "COMPLETED", vulnerabilities
+                )
+                output = github_client.format_vulnerability_summary(vulnerabilities)
+
+            # Create annotations for vulnerabilities (first 50)
+            annotations = await github_client.create_scan_annotations(
+                vulnerabilities[:50]
+            )
+
+            # Complete the check run
+            success = await github_client.complete_check_run(
+                owner=owner,
+                repo=repo,
+                check_run_id=int(scan_job_record.githubCheckId),
+                conclusion=conclusion,
+                output_title=output["title"],
+                output_summary=output["summary"],
+                output_text=output.get("text"),
+                annotations=annotations,
+            )
+
+            if success:
+                logger.info(
+                    f"Completed GitHub check {scan_job_record.githubCheckId} with conclusion {conclusion}"
+                )
+                print(
+                    f"✅ Completed GitHub check {scan_job_record.githubCheckId} with conclusion {conclusion}"
+                )
+            else:
+                logger.warning(
+                    f"Failed to complete GitHub check {scan_job_record.githubCheckId}"
+                )
+
+        except Exception as e:
+            logger.error(f"Error completing GitHub check: {str(e)}", exc_info=True)
+
     async def _write_vulnerabilities_to_db(
         self, job_id: str, scan_results: Dict[str, Any]
     ) -> int:
@@ -792,9 +1064,9 @@ Please begin the security audit now."""
             logger.info(f"Starting to process scan job {job.id}, {job.type.value}")
             logger.debug(f"Job data: {job.data}")
 
-            # Step 0: Create ScanJob record in database
-            logger.info("Step 0: Creating ScanJob record in database")
-            print("💾 Step 0: Creating ScanJob record in database...")
+            # Step 0: Create ScanJob record in database and GitHub check
+            logger.info("Step 0: Creating ScanJob record in database and GitHub check")
+            print("💾 Step 0: Creating ScanJob record in database and GitHub check...")
             # Initialize database connection
             await init_database()
 
@@ -813,6 +1085,7 @@ Please begin the security audit now."""
                             "status": "IN_PROGRESS",
                             "startedAt": datetime.now(),
                             "data": json.dumps(job.data),
+                            "startedAt": datetime.now(),
                         },
                         "create": {
                             "id": job.id,
@@ -820,6 +1093,7 @@ Please begin the security audit now."""
                             "status": "IN_PROGRESS",
                             "startedAt": datetime.now(),
                             "data": json.dumps(job.data),
+                            "startedAt": datetime.now(),
                         },
                     },
                 )
@@ -828,6 +1102,12 @@ Please begin the security audit now."""
                     f"✅ Upserted ScanJob record in database: {scan_job_record.id}"
                 )
                 print(f"✅ Upserted ScanJob record in database: {scan_job_record.id}")
+
+                # Create GitHub check if applicable
+                github_check = await self._create_github_check(job, scan_data)
+                if github_check:
+                    logger.info("✅ Created GitHub check run")
+                    print("✅ Created GitHub check run")
 
             except Exception as db_error:
                 logger.error(f"Failed to upsert ScanJob record: {db_error}")
@@ -868,6 +1148,9 @@ Please begin the security audit now."""
             # Step 2: Run Claude Code SDK scan
             logger.info("Step 2: Running Claude Code SDK scan")
             print("🤖 Step 2: Running vulnerability scan with Claude Code SDK...")
+
+            # Update GitHub check to show scan is in progress
+            await self._update_github_check_progress(job)
 
             # Add debug info about the repository
             try:
@@ -951,27 +1234,31 @@ Please begin the security audit now."""
             # Update result with database info
             result["vulnerabilities_stored"] = vulnerability_count
 
-            # Step 5: Update ScanJob status to COMPLETED
-            logger.info("Step 5: Updating ScanJob status to COMPLETED")
-            print("💾 Step 5: Updating ScanJob status to COMPLETED...")
+            # Step 5: Update ScanJob status to COMPLETED and complete GitHub check
+            logger.info(
+                "Step 5: Updating ScanJob status to COMPLETED and completing GitHub check"
+            )
+            print(
+                "💾 Step 5: Updating ScanJob status to COMPLETED and completing GitHub check..."
+            )
 
             try:
-                # Ensure result is JSON-serializable by converting to JSON and back
-                # This handles datetime objects, complex objects, etc.
-                json_serializable_result = ensure_json_serializable(result)
-                
                 db = await get_db()
                 await db.scanjob.update(
                     where={"id": job.id},
                     data={
                         "status": "COMPLETED",
-                        "result": json_serializable_result,
+                        "result": json.dumps(result),
                         "finishedAt": datetime.now().isoformat(),
                         "vulnerabilitiesFound": result.get("vulnerabilities_stored", 0),
                     },
                 )
                 logger.info(f"✅ Updated ScanJob {job.id} status to COMPLETED")
                 print(f"✅ Updated ScanJob {job.id} status to COMPLETED")
+
+                # Complete GitHub check with scan results
+                await self._complete_github_check(job, scan_results)
+
             except Exception as update_error:
                 logger.error(f"Failed to update ScanJob status: {update_error}")
                 print(f"❌ Failed to update ScanJob status: {update_error}")
@@ -996,7 +1283,7 @@ Please begin the security audit now."""
                 logger.debug("No temporary directory to clean up")
 
     async def _update_failed_job_status(self, job_id: str, error_msg: str):
-        """Update the database status for a failed job."""
+        """Update the database status for a failed job and complete GitHub check."""
         try:
             await init_database()
             db = await get_db()
@@ -1010,6 +1297,31 @@ Please begin the security audit now."""
             )
             logger.info(f"Updated ScanJob {job_id} status to FAILED")
             print(f"💾 Updated ScanJob {job_id} status to FAILED")
+
+            # Complete GitHub check with failure status
+            try:
+                # Get job data to create a mock Job object for GitHub check completion
+                job_record = await db.scanjob.find_unique(where={"id": job_id})
+                if job_record:
+                    mock_job = Job(
+                        id=job_id,
+                        type=JobType.SCAN_REPO,
+                        status=JobStatus.FAILED,
+                        data=json.loads(job_record.data) if job_record.data else {},
+                        created_at=job_record.createdAt,
+                        updated_at=job_record.updatedAt,
+                        error=error_msg,
+                    )
+
+                    # Complete GitHub check with error
+                    await self._complete_github_check(mock_job, {"error": error_msg})
+                    logger.info("Completed GitHub check with failure status")
+
+            except Exception as github_error:
+                logger.error(
+                    f"Failed to complete GitHub check for failed job: {github_error}"
+                )
+
         except Exception as update_error:
             logger.error(f"Failed to update ScanJob status to FAILED: {update_error}")
         finally:

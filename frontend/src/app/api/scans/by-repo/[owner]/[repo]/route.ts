@@ -32,6 +32,15 @@ export async function GET(
             category: true,
           },
         },
+        scanTarget: {
+          select: {
+            id: true,
+            name: true,
+            repoUrl: true,
+            branch: true,
+            subPath: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -74,6 +83,7 @@ export async function GET(
         vulnerabilityCounts,
         categoryCounts,
         totalVulnerabilities: scan.vulnerabilities.length,
+        scanTarget: scan.scanTarget,
       };
     });
 
