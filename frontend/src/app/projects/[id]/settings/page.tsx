@@ -362,13 +362,15 @@ export default function ProjectSettingsPage({
                     <Button size="sm" variant="outline">
                       Configure
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:text-destructive/80"
-                    >
-                      Remove
-                    </Button>
+                    {project.repositories.length > 1 && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive/80"
+                      >
+                        Remove
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
