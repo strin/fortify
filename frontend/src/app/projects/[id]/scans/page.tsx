@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
   Clock,
-  FileText,
   GitBranch,
   Shield,
   Target,
@@ -170,6 +169,26 @@ export default function ProjectScansPage() {
     }
   };
 
+  const getBranchAndPath = (scan: ProcessedScan) => {
+    // Use scanTarget data if available
+    if (scan.scanTarget) {
+      return {
+        branch: scan.scanTarget.branch,
+        subPath: scan.scanTarget.subPath !== "/" ? scan.scanTarget.subPath : null,
+      };
+    }
+    
+    // Fallback to extracting from scan.data
+    if (scan.data) {
+      return {
+        branch: scan.data.branch || scan.data.ref || "main",
+        subPath: scan.data.sub_path && scan.data.sub_path !== "/" ? scan.data.sub_path : null,
+      };
+    }
+    
+    return { branch: "main", subPath: null };
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -244,18 +263,14 @@ export default function ProjectScansPage() {
                                   <Calendar className="h-3 w-3" />
                                   {formatDate(scan.createdAt)}
                                 </span>
-                                {scan.scanTarget && (
-                                  <>
-                                    <span className="flex items-center gap-1">
-                                      <GitBranch className="h-3 w-3" />
-                                      {scan.scanTarget.branch}
-                                    </span>
-                                    {scan.scanTarget.subPath !== "/" && (
-                                      <span className="text-xs bg-muted px-2 py-1 rounded">
-                                        {scan.scanTarget.subPath}
-                                      </span>
-                                    )}
-                                  </>
+                                <span className="flex items-center gap-1">
+                                  <GitBranch className="h-3 w-3" />
+                                  {getBranchAndPath(scan).branch}
+                                </span>
+                                {getBranchAndPath(scan).subPath && (
+                                  <span className="text-xs bg-muted px-2 py-1 rounded">
+                                    {getBranchAndPath(scan).subPath}
+                                  </span>
                                 )}
                                 {scan.finishedAt && scan.startedAt && (
                                   <span className="flex items-center gap-1">
