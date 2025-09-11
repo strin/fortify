@@ -23,8 +23,10 @@ interface Repository {
   repoUrl: string;
   scanTargets: any[];
   totalScanTargets: number;
-  webhookSubscribed?: boolean;
-  webhookId?: string;
+  webhookSubscribed: boolean;
+  webhookId: string | null;
+  webhookCreatedAt: string | null;
+  webhookLastTriggered: string | null;
 }
 
 interface Project {
@@ -148,6 +150,8 @@ export default function ProjectSettingsPage({
                     ...r,
                     webhookSubscribed: true,
                     webhookId: result.webhook_id,
+                    webhookCreatedAt: new Date().toISOString(),
+                    webhookLastTriggered: null,
                   }
                 : r
             ),
@@ -191,7 +195,13 @@ export default function ProjectSettingsPage({
             ...prev,
             repositories: prev.repositories.map((r) =>
               r.id === repo.id
-                ? { ...r, webhookSubscribed: false, webhookId: undefined }
+                ? { 
+                    ...r, 
+                    webhookSubscribed: false, 
+                    webhookId: null,
+                    webhookCreatedAt: null,
+                    webhookLastTriggered: null
+                  }
                 : r
             ),
           };
@@ -337,7 +347,12 @@ export default function ProjectSettingsPage({
                       {repo.webhookSubscribed && (
                         <div className="flex items-center gap-1 text-green-600">
                           <Webhook className="h-3 w-3" />
-                          <span>Webhook Active</span>
+                          <span>
+                            Webhook Active
+                            {repo.webhookLastTriggered && 
+                              ` • Last triggered: ${formatTimeAgo(repo.webhookLastTriggered)}`
+                            }
+                          </span>
                         </div>
                       )}
                     </div>
