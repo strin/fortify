@@ -78,6 +78,7 @@ class ScanWorker:
         self.job_queue = JobQueue()
         self.running = True
         self.current_job: Optional[Job] = None
+        self.cancelled_jobs = set()  # Track jobs requested for cancellation
 
         # Set up signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -87,6 +88,16 @@ class ScanWorker:
         """Handle shutdown signals."""
         print(f"Received signal {signum}, shutting down gracefully...")
         self.running = False
+
+    def request_cancellation(self, job_id: str):
+        """Request cancellation of a specific job."""
+        logger.info(f"Cancellation requested for job {job_id}")
+        print(f"🛑 Cancellation requested for job {job_id}")
+        self.cancelled_jobs.add(job_id)
+
+    def _is_job_cancelled(self, job_id: str) -> bool:
+        """Check if a job has been requested for cancellation."""
+        return job_id in self.cancelled_jobs
 
     def _clone_repository(self, repo_url: str, branch: str, target_dir: str) -> bool:
         """Clone a repository to the target directory."""
@@ -760,6 +771,12 @@ Please begin the security audit now."""
         logger.info(f"=== ENTERING _process_scan_job METHOD ===")
         print(f"🔍 DEBUG: Entering _process_scan_job method for job {job.id}")
 
+        # Check for cancellation at the beginning
+        if self._is_job_cancelled(job.id):
+            logger.info(f"Job {job.id} was cancelled before processing started")
+            print(f"🛑 Job {job.id} was cancelled before processing started")
+            raise Exception("Job cancelled by user")
+
         try:
             scan_data = ScanJobData.from_dict(job.data)
             logger.debug(f"Parsed scan data: {scan_data}")
@@ -830,10 +847,23 @@ Please begin the security audit now."""
             # Step 1: Clone the repository
             logger.info("Step 1: Cloning repository")
             print(f"📥 Step 1: Cloning repository to {repo_path}...")
+            
+            # Check for cancellation before cloning
+            if self._is_job_cancelled(job.id):
+                logger.info(f"Job {job.id} was cancelled during repository cloning")
+                print(f"🛑 Job {job.id} was cancelled during repository cloning")
+                raise Exception("Job cancelled by user")
+                
             self._clone_repository(scan_data.repo_url, scan_data.branch, repo_path)
 
             logger.info("✅ Repository cloning completed, proceeding to Claude scan")
             print("✅ Repository cloning completed, proceeding to Claude scan")
+
+            # Check for cancellation before scanning
+            if self._is_job_cancelled(job.id):
+                logger.info(f"Job {job.id} was cancelled before Claude scan")
+                print(f"🛑 Job {job.id} was cancelled before Claude scan")
+                raise Exception("Job cancelled by user")
 
             # Step 2: Run Claude Code SDK scan
             logger.info("Step 2: Running Claude Code SDK scan")
@@ -988,6 +1018,29 @@ Please begin the security audit now."""
             except Exception as close_error:
                 logger.error(f"Failed to close database connection: {close_error}")
 
+    async def _update_cancelled_job_status(self, job_id: str, error_msg: str):
+        """Update the database status for a cancelled job."""
+        try:
+            await init_database()
+            db = await get_db()
+            await db.scanjob.update(
+                where={"id": job_id},
+                data={
+                    "status": "CANCELLED",
+                    "error": error_msg,
+                    "finishedAt": datetime.now(),
+                },
+            )
+            logger.info(f"Updated ScanJob {job_id} status to CANCELLED")
+            print(f"💾 Updated ScanJob {job_id} status to CANCELLED")
+        except Exception as update_error:
+            logger.error(f"Failed to update ScanJob status to CANCELLED: {update_error}")
+        finally:
+            try:
+                await close_database()
+            except Exception as close_error:
+                logger.error(f"Failed to close database connection: {close_error}")
+
     def process_job(self, job: Job):
         """Process a single job."""
         try:
@@ -1030,13 +1083,27 @@ Please begin the security audit now."""
 
         except Exception as e:
             error_msg = str(e)
-            logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
-            print(f"❌ Job {job.id} failed: {error_msg}")
+            
+            # Check if this is a cancellation
+            if "cancelled by user" in error_msg.lower():
+                logger.info(f"Job {job.id} was cancelled: {error_msg}")
+                print(f"🛑 Job {job.id} was cancelled: {error_msg}")
+                
+                # Update ScanJob status to CANCELLED in database using a separate async context
+                anyio.run(self._update_cancelled_job_status, job.id, error_msg)
+                
+                self.job_queue.cancel_job(job.id, error_msg)
+                
+                # Clean up from cancelled jobs set
+                self.cancelled_jobs.discard(job.id)
+            else:
+                logger.error(f"Job {job.id} failed: {error_msg}", exc_info=True)
+                print(f"❌ Job {job.id} failed: {error_msg}")
 
-            # Update ScanJob status to FAILED in database using a separate async context
-            anyio.run(self._update_failed_job_status, job.id, error_msg)
+                # Update ScanJob status to FAILED in database using a separate async context
+                anyio.run(self._update_failed_job_status, job.id, error_msg)
 
-            self.job_queue.fail_job(job.id, error_msg)
+                self.job_queue.fail_job(job.id, error_msg)
 
     def run(self):
         """Main worker loop."""

@@ -277,15 +277,37 @@ async def cancel_job(job_id: str):
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    if job.status != JobStatus.PENDING:
+    if job.status not in [JobStatus.PENDING, JobStatus.IN_PROGRESS]:
         raise HTTPException(
             status_code=400, detail=f"Cannot cancel job in {job.status.value} status"
         )
 
-    # Mark job as failed with cancellation message
-    job_queue.fail_job(job_id, "Job cancelled by user")
+    # Mark job as cancelled
+    job_queue.cancel_job(job_id, "Job cancelled by user")
 
     return {"message": f"Job {job_id} cancelled"}
+
+
+@app.post("/jobs/{job_id}/cancel")
+async def cancel_job_post(job_id: str):
+    """Cancel a job via POST method (for frontend compatibility)."""
+    job = job_queue.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.status not in [JobStatus.PENDING, JobStatus.IN_PROGRESS]:
+        raise HTTPException(
+            status_code=400, detail=f"Cannot cancel job in {job.status.value} status"
+        )
+
+    # Mark job as cancelled
+    job_queue.cancel_job(job_id, "Job cancelled by user")
+    
+    # Signal the worker if the job is currently being processed
+    if job.status == JobStatus.IN_PROGRESS:
+        scan_worker.request_cancellation(job_id)
+
+    return {"message": f"Job {job_id} cancelled", "job_id": job_id, "status": "CANCELLED"}
 
 
 @app.post("/webhooks/github")

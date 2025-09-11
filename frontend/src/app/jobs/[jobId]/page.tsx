@@ -32,11 +32,13 @@ import {
   Play,
   Eye,
   RotateCcw,
+  StopCircle,
+  Loader2,
 } from "lucide-react";
 
 interface JobStatus {
   job_id: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED" | "CANCELLED";
   type: string;
   created_at: string;
   updated_at: string;
@@ -102,6 +104,14 @@ const statusConfig = {
     label: "Failed",
     description: "Scan encountered an error",
   },
+  CANCELLED: {
+    icon: StopCircle,
+    color: "bg-gray-500",
+    bgColor: "bg-gray-50",
+    textColor: "text-gray-700",
+    label: "Cancelled",
+    description: "Scan was cancelled by user",
+  },
 };
 
 export default function ScanJobPage() {
@@ -110,6 +120,7 @@ export default function ScanJobPage() {
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const jobId = params?.jobId as string;
 
@@ -140,6 +151,34 @@ export default function ScanJobPage() {
     }
   }, [jobId]);
 
+  const cancelScan = async () => {
+    if (!jobId) return;
+
+    try {
+      setCancelling(true);
+      setError(null);
+      
+      const response = await fetch(`/api/jobs/${jobId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Failed to cancel scan");
+      }
+
+      // Refresh job status after successful cancellation
+      await fetchJobStatus();
+    } catch (err) {
+      console.error("Error cancelling scan:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to cancel scan"
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   useEffect(() => {
     fetchJobStatus();
 
@@ -167,6 +206,8 @@ export default function ScanJobPage() {
         return 100;
       case "FAILED":
         return 100;
+      case "CANCELLED":
+        return 100;
       default:
         return 0;
     }
@@ -193,6 +234,8 @@ export default function ScanJobPage() {
         return "Scan completed";
       case "FAILED":
         return "Scan failed";
+      case "CANCELLED":
+        return "Scan cancelled";
       default:
         return "";
     }
@@ -343,14 +386,25 @@ export default function ScanJobPage() {
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               <span>Refresh</span>
             </Button>
-            {jobStatus.status === "IN_PROGRESS" && (
+            {(jobStatus.status === "IN_PROGRESS" || jobStatus.status === "PENDING") && (
               <Button
                 variant="destructive"
                 size="sm"
+                onClick={cancelScan}
+                disabled={cancelling}
                 className="flex items-center space-x-2"
               >
-                <XCircle className="h-4 w-4" />
-                <span>Cancel Scan</span>
+                {cancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Cancelling...</span>
+                  </>
+                ) : (
+                  <>
+                    <StopCircle className="h-4 w-4" />
+                    <span>Cancel Scan</span>
+                  </>
+                )}
               </Button>
             )}
           </div>
@@ -409,7 +463,7 @@ export default function ScanJobPage() {
                 <p className="text-sm text-muted-foreground">
                   {formatDuration(
                     jobStatus.started_at || jobStatus.created_at,
-                    jobStatus.status === "COMPLETED" || jobStatus.status === "FAILED"
+                    jobStatus.status === "COMPLETED" || jobStatus.status === "FAILED" || jobStatus.status === "CANCELLED"
                       ? jobStatus.finished_at || jobStatus.updated_at
                       : undefined
                   )}
