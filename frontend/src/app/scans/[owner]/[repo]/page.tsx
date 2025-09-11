@@ -208,6 +208,7 @@ function RepositoryScansContent({
       console.warn("Failed to extract scan info:", error);
       return { branch: "main", repoPath: "", repoUrl: "" };
     }
+  };
 
   const getBranchAndPath = (scan: ScanJobSummary) => {
     // Use scanTarget data if available
