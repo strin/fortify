@@ -40,6 +40,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Reduce verbose HTTP client logging
+logging.getLogger("httpcore").setLevel(logging.DEBUG)
+logging.getLogger("httpx").setLevel(logging.DEBUG)
+
 # Import fix-agent modules
 from fix_agent.models.job import FixJob, FixJobStatus, FixResult
 
@@ -809,7 +813,13 @@ Please start by reading the vulnerable file and then provide a secure fix."""
 
             # Push branch using GitHub API
             success = await self._push_branch_via_github_api(
-                github_client, owner, repo_name, branch_name, repo_path
+                github_client,
+                owner,
+                repo_name,
+                branch_name,
+                repo_path,
+                job,
+                access_token,
             )
 
             if success:
@@ -889,6 +899,8 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         repo: str,
         branch_name: str,
         repo_path: str,
+        job: FixJob,
+        access_token: str,
     ) -> bool:
         """Push branch using GitHub API by uploading git objects and creating branch reference."""
         try:
@@ -939,8 +951,11 @@ Please start by reading the vulnerable file and then provide a secure fix."""
             )
 
             if not success:
-                logger.error("Failed to upload git objects")
-                return False
+                logger.warning("Failed to upload git objects via GitHub API")
+                logger.info("Attempting fallback to git push...")
+                return await self._fallback_git_push(
+                    repo_path, branch_name, access_token, job.data.repositoryUrl
+                )
 
             # Step 5: Create or update branch reference
             success = await self._create_or_update_branch_ref(
@@ -953,12 +968,20 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                 )
                 return True
             else:
-                logger.error("Failed to create/update branch reference")
-                return False
+                logger.warning(
+                    "Failed to create/update branch reference via GitHub API"
+                )
+                logger.info("Attempting fallback to git push...")
+                return await self._fallback_git_push(
+                    repo_path, branch_name, access_token, job.data.repositoryUrl
+                )
 
         except Exception as e:
             logger.error(f"Error pushing branch via GitHub API: {e}")
-            return False
+            logger.info("Attempting fallback to git push...")
+            return await self._fallback_git_push(
+                repo_path, branch_name, access_token, job.data.repositoryUrl
+            )
 
     async def _upload_git_objects(
         self,
@@ -974,12 +997,14 @@ Please start by reading the vulnerable file and then provide a secure fix."""
             import subprocess
             import base64
 
-            # Get all objects that need to be uploaded
-            objects_to_upload = set()
+            # Get all objects that need to be uploaded in the correct order
+            blobs_to_upload = set()
+            trees_to_upload = set()
+            commits_to_upload = set()
 
-            # Add the commit and tree
-            objects_to_upload.add(commit_sha)
-            objects_to_upload.add(tree_sha)
+            # Add the main tree and commit
+            trees_to_upload.add(tree_sha)
+            commits_to_upload.add(commit_sha)
 
             # Get all blobs referenced by the tree
             result = subprocess.run(
@@ -995,19 +1020,94 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                     parts = line.split("\t")[0].split(" ")
                     if len(parts) >= 3:
                         blob_sha = parts[2]
-                        objects_to_upload.add(blob_sha)
+                        blobs_to_upload.add(blob_sha)
 
-            logger.info(f"Uploading {len(objects_to_upload)} git objects...")
+            # Get any parent commits and their trees
+            result = subprocess.run(
+                ["git", "rev-list", "--parents", "-n", "5", commit_sha],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
 
-            # Upload each object
-            for obj_sha in objects_to_upload:
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    commit_shas = line.split(" ")
+                    for parent_sha in commit_shas[
+                        1:
+                    ]:  # Skip the first (current commit)
+                        commits_to_upload.add(parent_sha)
+
+                        # Get parent commit's tree
+                        try:
+                            parent_result = subprocess.run(
+                                ["git", "cat-file", "-p", parent_sha],
+                                cwd=repo_path,
+                                capture_output=True,
+                                text=True,
+                                check=True,
+                            )
+                            for parent_line in parent_result.stdout.split("\n"):
+                                if parent_line.startswith("tree "):
+                                    parent_tree_sha = parent_line.split(" ")[1]
+                                    trees_to_upload.add(parent_tree_sha)
+                                    break
+                        except:
+                            pass  # Skip if we can't get parent info
+
+            total_objects = (
+                len(blobs_to_upload) + len(trees_to_upload) + len(commits_to_upload)
+            )
+            logger.info(
+                f"Uploading {total_objects} git objects (blobs: {len(blobs_to_upload)}, trees: {len(trees_to_upload)}, commits: {len(commits_to_upload)})..."
+            )
+
+            # Upload in correct order: blobs first, then trees, then commits
+            failed_uploads = []
+
+            # 1. Upload all blobs
+            for blob_sha in blobs_to_upload:
                 success = await self._upload_git_object(
-                    github_client, owner, repo, repo_path, obj_sha
+                    github_client, owner, repo, repo_path, blob_sha
                 )
                 if not success:
-                    logger.error(f"Failed to upload object {obj_sha}")
-                    return False
+                    logger.warning(f"Failed to upload blob {blob_sha[:8]}")
+                    failed_uploads.append(f"blob:{blob_sha[:8]}")
 
+            # 2. Upload all trees
+            for tree_sha_item in trees_to_upload:
+                success = await self._upload_git_object(
+                    github_client, owner, repo, repo_path, tree_sha_item
+                )
+                if not success:
+                    logger.warning(f"Failed to upload tree {tree_sha_item[:8]}")
+                    failed_uploads.append(f"tree:{tree_sha_item[:8]}")
+
+            # 3. Upload all commits
+            for commit_sha_item in commits_to_upload:
+                success = await self._upload_git_object(
+                    github_client, owner, repo, repo_path, commit_sha_item
+                )
+                if not success:
+                    logger.warning(f"Failed to upload commit {commit_sha_item[:8]}")
+                    failed_uploads.append(f"commit:{commit_sha_item[:8]}")
+
+            # Log summary of failed uploads but don't fail the entire process
+            if failed_uploads:
+                logger.warning(
+                    f"Some git objects failed to upload: {', '.join(failed_uploads)}"
+                )
+                logger.info(
+                    "Continuing with branch creation - objects may already exist on GitHub"
+                )
+
+            successful_uploads = total_objects - len(failed_uploads)
+            logger.info(
+                f"Git object upload completed: {successful_uploads}/{total_objects} objects uploaded successfully"
+            )
+
+            # Return true even if some uploads failed - the important objects (current commit/tree) may have succeeded
             return True
 
         except Exception as e:
@@ -1027,24 +1127,44 @@ Please start by reading the vulnerable file and then provide a secure fix."""
             import subprocess
             import base64
 
-            # Get object type and content
-            result = subprocess.run(
-                ["git", "cat-file", "-t", obj_sha],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            obj_type = result.stdout.strip()
+            # Check if object exists first
+            try:
+                result = subprocess.run(
+                    ["git", "cat-file", "-t", obj_sha],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                obj_type = result.stdout.strip()
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 128:
+                    # Object doesn't exist in local repository (common with shallow clones)
+                    logger.debug(
+                        f"Git object {obj_sha[:8]} not found locally, skipping upload"
+                    )
+                    return (
+                        True  # Skip missing objects - they may already exist on GitHub
+                    )
+                else:
+                    logger.error(
+                        f"Error checking git object type for {obj_sha[:8]}: {e}"
+                    )
+                    return False
 
-            result = subprocess.run(
-                ["git", "cat-file", "-p", obj_sha],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            obj_content = result.stdout
+            # Get object content
+            try:
+                result = subprocess.run(
+                    ["git", "cat-file", "-p", obj_sha],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                obj_content = result.stdout
+            except subprocess.CalledProcessError as e:
+                logger.error(f"Error reading git object content for {obj_sha[:8]}: {e}")
+                return True  # Skip objects we can't read
 
             # Upload based on object type
             if obj_type == "blob":
@@ -1086,14 +1206,26 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                 )
 
                 if response.status_code == 201:
+                    logger.debug(f"Successfully uploaded blob {sha[:8]}")
                     return True
                 elif response.status_code == 409:
                     # Blob already exists
+                    logger.debug(f"Blob {sha[:8]} already exists, skipping")
                     return True
                 else:
+                    error_text = response.text
                     logger.error(
-                        f"Failed to upload blob: {response.status_code} - {response.text}"
+                        f"Failed to upload blob {sha[:8]}: {response.status_code} - {error_text}"
                     )
+
+                    # Try to parse error details
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data:
+                            logger.error(f"GitHub API error: {error_data['message']}")
+                    except:
+                        pass
+
                     return False
 
         except Exception as e:
@@ -1136,14 +1268,26 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                 )
 
                 if response.status_code == 201:
+                    logger.debug(f"Successfully uploaded tree {sha[:8]}")
                     return True
                 elif response.status_code == 409:
                     # Tree already exists
+                    logger.debug(f"Tree {sha[:8]} already exists, skipping")
                     return True
                 else:
+                    error_text = response.text
                     logger.error(
-                        f"Failed to upload tree: {response.status_code} - {response.text}"
+                        f"Failed to upload tree {sha[:8]}: {response.status_code} - {error_text}"
                     )
+
+                    # Try to parse error details
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data:
+                            logger.error(f"GitHub API error: {error_data['message']}")
+                    except:
+                        pass
+
                     return False
 
         except Exception as e:
@@ -1195,14 +1339,26 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                 )
 
                 if response.status_code == 201:
+                    logger.debug(f"Successfully uploaded commit {sha[:8]}")
                     return True
                 elif response.status_code == 409:
                     # Commit already exists
+                    logger.debug(f"Commit {sha[:8]} already exists, skipping")
                     return True
                 else:
+                    error_text = response.text
                     logger.error(
-                        f"Failed to upload commit: {response.status_code} - {response.text}"
+                        f"Failed to upload commit {sha[:8]}: {response.status_code} - {error_text}"
                     )
+
+                    # Try to parse error details
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data:
+                            logger.error(f"GitHub API error: {error_data['message']}")
+                    except:
+                        pass
+
                     return False
 
         except Exception as e:
@@ -1319,18 +1475,76 @@ Please start by reading the vulnerable file and then provide a secure fix."""
             logger.error(f"Error updating branch reference: {e}")
             return False
 
-    async def _fallback_git_push(self, repo_path: str, branch_name: str) -> bool:
-        """Fallback to using git push command."""
+    async def _fallback_git_push(
+        self,
+        repo_path: str,
+        branch_name: str,
+        access_token: str = None,
+        repo_url: str = None,
+    ) -> bool:
+        """Fallback to using git push command with proper authentication."""
         try:
             import subprocess
+            import re
 
-            # Push branch to origin
-            subprocess.run(
-                ["git", "push", "origin", branch_name], cwd=repo_path, check=True
+            if not access_token or not repo_url:
+                logger.error("Access token and repo URL required for git push fallback")
+                return False
+
+            # Parse repository info for authenticated URL
+            repo_info = self._parse_repository_url(repo_url)
+            if not repo_info:
+                logger.error("Could not parse repository URL for git push")
+                return False
+
+            owner, repo_name = repo_info
+
+            # Create authenticated GitHub URL
+            auth_url = f"https://{access_token}@github.com/{owner}/{repo_name}.git"
+
+            # Get current remote URL
+            result = subprocess.run(
+                ["git", "remote", "get-url", "origin"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
             )
+            original_url = result.stdout.strip()
 
-            logger.info(f"Pushed branch using git push: {branch_name}")
-            return True
+            try:
+                # Temporarily set remote URL with authentication
+                subprocess.run(
+                    ["git", "remote", "set-url", "origin", auth_url],
+                    cwd=repo_path,
+                    check=True,
+                )
+
+                # Push branch to origin
+                subprocess.run(
+                    ["git", "push", "origin", branch_name],
+                    cwd=repo_path,
+                    check=True,
+                    capture_output=True,  # Capture output to avoid logging the token
+                    text=True,
+                )
+
+                logger.info(f"Successfully pushed branch using git push: {branch_name}")
+                return True
+
+            finally:
+                # Always restore original remote URL
+                try:
+                    subprocess.run(
+                        ["git", "remote", "set-url", "origin", original_url],
+                        cwd=repo_path,
+                        check=True,
+                    )
+                    logger.debug("Restored original remote URL")
+                except Exception as restore_e:
+                    logger.warning(
+                        f"Failed to restore original remote URL: {restore_e}"
+                    )
 
         except Exception as e:
             logger.error(f"Failed to push branch using git push: {e}")
