@@ -41,8 +41,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Reduce verbose HTTP client logging
-logging.getLogger("httpcore").setLevel(logging.DEBUG)
-logging.getLogger("httpx").setLevel(logging.DEBUG)
+logging.getLogger("httpcore").setLevel(logging.INFO)
+logging.getLogger("httpx").setLevel(logging.INFO)
 
 # Import fix-agent modules
 from fix_agent.models.job import FixJob, FixJobStatus, FixResult
