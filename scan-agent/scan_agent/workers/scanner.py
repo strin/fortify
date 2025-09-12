@@ -111,6 +111,10 @@ class ScanWorker:
             )
 
             # Clone the repository
+    I'll analyze the vulnerability in the scanner.py file and provide a targeted security fix. Let me start by reading the vulnerable file to understand the context.
+Now I'll analyze the vulnerability and create a targeted security fix. The issue is in the `_clone_repository` method on lines 114-126. The vulnerability is that the `repo_url` and `branch` parameters are passed directly to `subprocess.run` without proper validation, which could potentially allow command injection attacks.
+
+Let me create a minimal, targeted fix that adds input validation and sanitization:
             cmd = [
                 "git",
                 "clone",
