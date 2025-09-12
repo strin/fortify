@@ -8,31 +8,65 @@ export async function GET(
 ) {
   try {
     const { jobId } = await params;
-    const scanWorkerUrl =
-      process.env.SCAN_AGENT_URL || "http://localhost:8000";
 
-    const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    // Query the job directly from the database
+    const job = await prisma.scanJob.findUnique({
+      where: { id: jobId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        scanTarget: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        vulnerabilities: {
+          select: {
+            id: true,
+            severity: true,
+            category: true,
+          },
+        },
       },
     });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return NextResponse.json({ error: "Job not found" }, { status: 404 });
-      }
-
-      const errorText = await response.text();
-      console.error("Scan worker error:", response.status, errorText);
-
-      return NextResponse.json(
-        { error: "Failed to fetch job status" },
-        { status: 500 }
-      );
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    const jobData = await response.json();
+    // Transform the database job to match the expected API response format
+    const jobData = {
+      job_id: job.id,
+      status: job.status,
+      type: job.type,
+      created_at: job.createdAt,
+      updated_at: job.updatedAt,
+      started_at: job.startedAt,
+      finished_at: job.finishedAt,
+      result: job.result,
+      error: job.error,
+      data: job.data,
+      vulnerabilities_found: job.vulnerabilitiesFound,
+      github_check_id: job.githubCheckId,
+      github_check_url: job.githubCheckUrl,
+      user: job.user,
+      project: job.project,
+      scan_target: job.scanTarget,
+      vulnerabilities: job.vulnerabilities,
+    };
+
     return NextResponse.json(jobData);
   } catch (error) {
     console.error("Error fetching job status:", error);
@@ -49,7 +83,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -70,7 +104,10 @@ export async function DELETE(
 
     if (job.status !== "IN_PROGRESS" && job.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Job cannot be cancelled. Only PENDING or IN_PROGRESS jobs can be cancelled." },
+        {
+          error:
+            "Job cannot be cancelled. Only PENDING or IN_PROGRESS jobs can be cancelled.",
+        },
         { status: 400 }
       );
     }
@@ -81,14 +118,15 @@ export async function DELETE(
       data: {
         status: "CANCELLED",
         finishedAt: new Date(),
-        error: "Job cancelled by user"
+        error: "Job cancelled by user",
       },
     });
 
     // Try to signal the worker to cancel the job (optional - may fail if worker is not reachable)
     try {
-      const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
-      
+      const scanWorkerUrl =
+        process.env.SCAN_WORKER_URL || "http://localhost:8000";
+
       const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}/cancel`, {
         method: "POST",
         headers: {
@@ -100,18 +138,22 @@ export async function DELETE(
       if (response.ok) {
         console.log(`Successfully signaled worker to cancel job ${jobId}`);
       } else {
-        console.warn(`Failed to signal worker to cancel job ${jobId}: ${response.status}`);
+        console.warn(
+          `Failed to signal worker to cancel job ${jobId}: ${response.status}`
+        );
       }
     } catch (workerError) {
-      console.warn(`Failed to contact worker for job cancellation ${jobId}:`, workerError);
+      console.warn(
+        `Failed to contact worker for job cancellation ${jobId}:`,
+        workerError
+      );
     }
 
     return NextResponse.json({
       message: "Job cancelled successfully",
       jobId: jobId,
-      status: "CANCELLED"
+      status: "CANCELLED",
     });
-
   } catch (error) {
     console.error("Error cancelling job:", error);
     return NextResponse.json(
