@@ -5,6 +5,7 @@ This module implements the background worker that processes fix jobs
 by generating AI-powered fixes and creating GitHub pull requests.
 """
 
+import json
 import os
 import sys
 import time
@@ -153,26 +154,41 @@ class FixWorker:
                 # Convert to FixJob if needed (assuming job data contains fix job info)
                 fix_job = FixJob.from_dict(job.data) if hasattr(job, "data") else job
 
+                # Update database fix job status to IN_PROGRESS
+                await self._update_fix_job_status_in_progress(job.id)
+
                 # Process the fix job
                 result = await self._execute_fix_job(fix_job)
 
                 if result:
-                    # Mark job as completed
+                    # Mark job as completed in Redis queue
                     result_dict = (
                         result.dict() if hasattr(result, "dict") else result.__dict__
                     )
                     self.queue.complete_job(job.id, result_dict)
 
+                    # Update database fix job status to COMPLETED
+                    await self._update_completed_fix_job_status(job.id, result)
+
                     logger.info(f"Fix job {job.id} completed successfully")
                 else:
                     # Job processing failed
-                    self.queue.fail_job(job.id, "Fix processing failed")
+                    error_msg = "Fix processing failed"
+                    self.queue.fail_job(job.id, error_msg)
+
+                    # Update database fix job status to FAILED
+                    await self._update_failed_fix_job_status(job.id, error_msg)
+
                     logger.error(f"Fix job {job.id} failed")
 
             except Exception as e:
                 # Handle job processing errors
                 error_msg = f"Fix job processing error: {str(e)}"
                 self.queue.fail_job(job.id, error_msg)
+
+                # Update database fix job status to FAILED
+                await self._update_failed_fix_job_status(job.id, error_msg)
+
                 logger.error(f"Fix job {job.id} failed: {error_msg}")
 
         except Exception as e:
@@ -1685,6 +1701,96 @@ Please review the changes and run your test suite to ensure the fix doesn't brea
         except Exception as e:
             logger.error(f"Error creating GitHub PR: {e}")
             return None
+
+    async def _update_completed_fix_job_status(self, job_id: str, result: FixResult):
+        """Update the database status for a completed fix job."""
+        try:
+            db = await get_db()
+
+            # Prepare result data for database storage
+            result_data = {
+                "success": result.success,
+                "branchName": result.branchName,
+                "commitSha": result.commitSha,
+                "pullRequestUrl": result.pullRequestUrl,
+                "pullRequestId": result.pullRequestId,
+                "filesModified": result.filesModified,
+                "fixApplied": result.fixApplied,
+                "confidence": result.confidence,
+            }
+
+            # Update fix job in database
+            await db.fixjob.update(
+                where={"id": job_id},
+                data={
+                    "status": "COMPLETED",
+                    "result": json.dumps(result_data),
+                    "finishedAt": datetime.now().isoformat(),
+                    "branchName": result.branchName,
+                    "commitSha": result.commitSha,
+                    "pullRequestUrl": result.pullRequestUrl,
+                    "pullRequestId": result.pullRequestId,
+                },
+            )
+            logger.info(f"✅ Updated FixJob {job_id} status to COMPLETED in database")
+            print(f"✅ Updated FixJob {job_id} status to COMPLETED in database")
+
+        except Exception as update_error:
+            logger.error(
+                f"Failed to update FixJob {job_id} status to COMPLETED: {update_error}"
+            )
+            print(
+                f"❌ Failed to update FixJob {job_id} status to COMPLETED: {update_error}"
+            )
+
+    async def _update_failed_fix_job_status(self, job_id: str, error_msg: str):
+        """Update the database status for a failed fix job."""
+        try:
+            db = await get_db()
+
+            # Update fix job in database
+            await db.fixjob.update(
+                where={"id": job_id},
+                data={
+                    "status": "FAILED",
+                    "error": error_msg,
+                    "finishedAt": datetime.now().isoformat(),
+                },
+            )
+            logger.info(f"✅ Updated FixJob {job_id} status to FAILED in database")
+            print(f"✅ Updated FixJob {job_id} status to FAILED in database")
+
+        except Exception as update_error:
+            logger.error(
+                f"Failed to update FixJob {job_id} status to FAILED: {update_error}"
+            )
+            print(
+                f"❌ Failed to update FixJob {job_id} status to FAILED: {update_error}"
+            )
+
+    async def _update_fix_job_status_in_progress(self, job_id: str):
+        """Update the database status for a fix job that has started processing."""
+        try:
+            db = await get_db()
+
+            # Update fix job in database
+            await db.fixjob.update(
+                where={"id": job_id},
+                data={
+                    "status": "IN_PROGRESS",
+                    "startedAt": datetime.now().isoformat(),
+                },
+            )
+            logger.info(f"✅ Updated FixJob {job_id} status to IN_PROGRESS in database")
+            print(f"✅ Updated FixJob {job_id} status to IN_PROGRESS in database")
+
+        except Exception as update_error:
+            logger.error(
+                f"Failed to update FixJob {job_id} status to IN_PROGRESS: {update_error}"
+            )
+            print(
+                f"❌ Failed to update FixJob {job_id} status to IN_PROGRESS: {update_error}"
+            )
 
 
 async def main():
