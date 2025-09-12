@@ -96,6 +96,7 @@ export const authOptions: NextAuthOptions = {
                 avatarUrl: user.image || profile.avatar_url,
                 emailVerified: new Date(),
                 lastLoginAt: new Date(),
+    I'll help you generate a precise security fix for the DATA_EXPOSURE vulnerability. Let me start by reading the vulnerable file to understand the context.
                 githubAccessToken: account.access_token,
               },
             });
