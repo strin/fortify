@@ -205,7 +205,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
     return `.../${parts.slice(-2).join("/")}`;
   };
 
-  const handleFixWithAgent = async (vulnerabilityId: string) => {
+  const handleFixWithAgent = async (vulnerabilityId: string): Promise<string | null> => {
     try {
       const response = await fetch("/api/fix/vulnerability", {
         method: "POST",
@@ -228,10 +228,10 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
       }
 
       console.log("Fix job created:", data);
-      // TODO: Show success message or update UI state
+      return data.fixJobId;
     } catch (error) {
       console.error("Error creating fix job:", error);
-      // TODO: Show error message
+      throw error;
     }
   };
 
