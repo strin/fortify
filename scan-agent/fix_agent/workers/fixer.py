@@ -358,13 +358,103 @@ class FixWorker:
 
             messages = []
 
+            def format_claude_message(message, index=None) -> str:
+                """Format Claude messages with creative and consistent styling."""
+                message_type = type(message).__name__
+
+                # Extract content safely from any message type
+                content = ""
+                content_length = 0
+
+                if isinstance(message, AssistantMessage):
+                    if isinstance(message.content, list):
+                        # Handle content blocks
+                        content_parts = []
+                        for block in message.content:
+                            if hasattr(block, "text"):
+                                content_parts.append(block.text)
+                            elif isinstance(block, dict) and "text" in block:
+                                content_parts.append(block["text"])
+                            elif isinstance(block, str):
+                                content_parts.append(block)
+                        content = "".join(content_parts)
+                    else:
+                        content = str(message.content) if message.content else ""
+                    content_length = len(content)
+                elif isinstance(message, UserMessage):
+                    content = (
+                        str(message.content)
+                        if hasattr(message, "content") and message.content
+                        else ""
+                    )
+                    content_length = len(content)
+                elif isinstance(message, SystemMessage):
+                    content = (
+                        str(message.data)
+                        if hasattr(message, "data") and message.data
+                        else ""
+                    )
+                    content_length = len(content)
+                elif (ResultMessage and isinstance(message, ResultMessage)) or hasattr(
+                    message, "result"
+                ):  # ResultMessage or similar
+                    content = str(message.result) if message.result else ""
+                    content_length = len(content)
+                elif hasattr(message, "content"):
+                    content = str(message.content) if message.content else ""
+                    content_length = len(content)
+                else:
+                    content = str(message) if message else ""
+                    content_length = len(content)
+
+                # Create preview (first 150 chars)
+                preview = content[:150] + "..." if len(content) > 150 else content
+                preview = preview.replace("\n", " ").replace("\r", " ").strip()
+
+                # Creative message type indicators
+                type_indicators = {
+                    "AssistantMessage": "🤖 Claude",
+                    "UserMessage": "👤 User",
+                    "SystemMessage": "⚙️ System",
+                    "ResultMessage": "🎯 Result",
+                }
+
+                indicator = type_indicators.get(message_type, f"❓ {message_type}")
+
+                # Format with consistent styling
+                index_str = f"[{index+1:02d}] " if index is not None else ""
+                size_info = (
+                    f"({content_length:,} chars)" if content_length > 0 else "(empty)"
+                )
+
+                formatted_msg = f"{index_str}{indicator} {size_info}"
+                if preview:
+                    formatted_msg += f"\n    ➤ {preview}"
+
+                return formatted_msg
+
             async def run_query():
+                i = 0
                 async for message in query(prompt=fix_prompt, options=options):
                     messages.append(message)
+
+                    # Format and display message with creative styling
+                    formatted_msg = format_claude_message(message, i)
+                    logger.info(f"🔧 {formatted_msg}")
+                    print(f"🔧 {formatted_msg}")
+                    i += 1
+
                 return messages
 
             # Run the async query
             result_messages = await run_query()
+
+            logger.info(
+                f"Claude SDK fix generation completed with {len(result_messages)} messages"
+            )
+            print(
+                f"🔧 Claude SDK fix generation completed with {len(result_messages)} messages"
+            )
 
             if result_messages:
                 logger.info(f"Claude SDK returned {len(result_messages)} messages")
@@ -717,9 +807,9 @@ Please start by reading the vulnerable file and then provide a secure fix."""
             access_token = await self._get_github_access_token(job)
             if not access_token:
                 logger.error(
-                    "No GitHub access token available, falling back to git push"
+                    "No GitHub access token available, cannot push via GitHub API"
                 )
-                return await self._fallback_git_push(repo_path, branch_name)
+                return False
 
             # Parse repository URL to get owner and repo name
             repo_info = self._parse_repository_url(job.data.repositoryUrl)
@@ -729,24 +819,12 @@ Please start by reading the vulnerable file and then provide a secure fix."""
 
             owner, repo_name = repo_info
 
-            # Get current commit SHA
-            import subprocess
-
-            result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=repo_path,
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            commit_sha = result.stdout.strip()
-
             # Initialize GitHub client
             github_client = GitHubClient(access_token=access_token)
 
-            # Create or update branch reference using GitHub API
-            success = await self._create_or_update_branch_ref(
-                github_client, owner, repo_name, branch_name, commit_sha
+            # Push branch using GitHub API
+            success = await self._push_branch_via_github_api(
+                github_client, owner, repo_name, branch_name, repo_path
             )
 
             if success:
@@ -755,13 +833,12 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                 )
                 return True
             else:
-                logger.warning("GitHub API push failed, falling back to git push")
-                return await self._fallback_git_push(repo_path, branch_name)
+                logger.error("GitHub API push failed")
+                return False
 
         except Exception as e:
             logger.error(f"Failed to push branch using GitHub API: {e}")
-            logger.info("Falling back to git push")
-            return await self._fallback_git_push(repo_path, branch_name)
+            return False
 
     async def _get_github_access_token(self, job: FixJob) -> Optional[str]:
         """Get GitHub access token from database."""
@@ -819,6 +896,39 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         except Exception as e:
             logger.error(f"Error parsing repository URL: {e}")
             return None
+
+    async def _push_branch_via_github_api(
+        self,
+        github_client: GitHubClient,
+        owner: str,
+        repo: str,
+        branch_name: str,
+        repo_path: str,
+    ) -> bool:
+        """Push branch using GitHub API by creating/updating the branch reference."""
+        try:
+            import subprocess
+
+            # Get current commit SHA
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            commit_sha = result.stdout.strip()
+
+            # Create or update branch reference using GitHub API
+            success = await self._create_or_update_branch_ref(
+                github_client, owner, repo, branch_name, commit_sha
+            )
+
+            return success
+
+        except Exception as e:
+            logger.error(f"Error pushing branch via GitHub API: {e}")
+            return False
 
     async def _create_or_update_branch_ref(
         self,
