@@ -364,7 +364,7 @@ class FixWorker:
             import subprocess
 
             vulnerability = job.data.vulnerability
-            branch_prefix = job.data.fixOptions.get("branchPrefix", "fix")
+            branch_prefix = getattr(job.data.fixOptions, "branchPrefix", "fix")
 
             # Generate branch name
             category = vulnerability.category.lower()

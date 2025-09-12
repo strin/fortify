@@ -67,6 +67,8 @@ services:
       - POSTGRES_URL_NON_POOLING=${DATABASE_URL}
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-fix-agent@fortify.dev}
+      - GIT_USER_NAME=${GIT_USER_NAME:-Fortify Fix Agent}
     networks:
       - app-network
     command: ./start_fix_agent.sh

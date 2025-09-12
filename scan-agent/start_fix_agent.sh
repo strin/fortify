@@ -28,5 +28,12 @@ fi
 echo "Generating Prisma client..."
 cd /db && npx prisma generate && cd /scan-agent
 
+# Configure Git for fix-agent operations
+echo "Configuring Git for fix operations..."
+git config --global user.email "${GIT_USER_EMAIL:-fix-agent@fortify.dev}"
+git config --global user.name "${GIT_USER_NAME:-Fortify Fix Agent}"
+git config --global init.defaultBranch main
+
 # Start the fix worker
 python -m fix_agent.workers.fixer
+
