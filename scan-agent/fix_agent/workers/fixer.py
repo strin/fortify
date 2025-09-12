@@ -1725,7 +1725,7 @@ Please review the changes and run your test suite to ensure the fix doesn't brea
                 data={
                     "status": "COMPLETED",
                     "result": json.dumps(result_data),
-                    "finishedAt": datetime.now().isoformat(),
+                    "finishedAt": datetime.now().isoformat() + "Z",
                     "branchName": result.branchName,
                     "commitSha": result.commitSha,
                     "pullRequestUrl": result.pullRequestUrl,
@@ -1754,7 +1754,7 @@ Please review the changes and run your test suite to ensure the fix doesn't brea
                 data={
                     "status": "FAILED",
                     "error": error_msg,
-                    "finishedAt": datetime.now().isoformat(),
+                    "finishedAt": datetime.now().isoformat() + "Z",
                 },
             )
             logger.info(f"✅ Updated FixJob {job_id} status to FAILED in database")
@@ -1778,7 +1778,7 @@ Please review the changes and run your test suite to ensure the fix doesn't brea
                 where={"id": job_id},
                 data={
                     "status": "IN_PROGRESS",
-                    "startedAt": datetime.now().isoformat(),
+                    "startedAt": datetime.now().isoformat() + "Z",
                 },
             )
             logger.info(f"✅ Updated FixJob {job_id} status to IN_PROGRESS in database")
