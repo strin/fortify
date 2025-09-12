@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { VulnerabilityCard } from "@/components/vulnerability/VulnerabilityCard";
 import {
   RefreshCw,
   AlertCircle,
@@ -24,7 +25,6 @@ import {
   Search,
   Filter,
   FileText,
-  MapPin,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -77,7 +77,6 @@ const severityColors = {
   INFO: "bg-gray-500 text-white",
 };
 
-
 const categoryLabels: Record<string, string> = {
   INJECTION: "Injection",
   AUTHENTICATION: "Authentication",
@@ -99,7 +98,7 @@ export default async function VulnerabilitiesPage({
   params: Promise<{ scanId: string }>;
 }) {
   const { scanId } = await params;
-  
+
   return <VulnerabilitiesContent scanId={scanId} />;
 }
 
@@ -128,49 +127,59 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
     }
   }, [status]);
 
-  const fetchVulnerabilities = useCallback(async (page = 1) => {
-    console.log("fetchVulnerabilities", scanId);
-    try {
-      setLoading(true);
-      setError(null);
+  const fetchVulnerabilities = useCallback(
+    async (page = 1) => {
+      console.log("fetchVulnerabilities", scanId);
+      try {
+        setLoading(true);
+        setError(null);
 
-      const searchParams = new URLSearchParams({
-        page: page.toString(),
-        limit: "20",
-      });
+        const searchParams = new URLSearchParams({
+          page: page.toString(),
+          limit: "20",
+        });
 
-      if (selectedSeverity) searchParams.set("severity", selectedSeverity);
-      if (selectedCategory) searchParams.set("category", selectedCategory);
-      if (selectedFile) searchParams.set("filePath", selectedFile);
+        if (selectedSeverity) searchParams.set("severity", selectedSeverity);
+        if (selectedCategory) searchParams.set("category", selectedCategory);
+        if (selectedFile) searchParams.set("filePath", selectedFile);
 
-      const response = await fetch(
-        `/api/scans/${scanId}/vulnerabilities?${searchParams}`
-      );
-      const data = await response.json();
+        const response = await fetch(
+          `/api/scans/${scanId}/vulnerabilities?${searchParams}`
+        );
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch vulnerabilities");
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch vulnerabilities");
+        }
+
+        setScanJob(data.scanJob);
+        setVulnerabilities(data.vulnerabilities);
+        setSummary(data.summary);
+        setPagination(data.pagination);
+        setCurrentPage(page);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "An unexpected error occurred"
+        );
+      } finally {
+        setLoading(false);
       }
-
-      setScanJob(data.scanJob);
-      setVulnerabilities(data.vulnerabilities);
-      setSummary(data.summary);
-      setPagination(data.pagination);
-      setCurrentPage(page);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [scanId, selectedSeverity, selectedCategory, selectedFile]);
+    },
+    [scanId, selectedSeverity, selectedCategory, selectedFile]
+  );
 
   useEffect(() => {
     if (session) {
       fetchVulnerabilities(1);
     }
-  }, [session, scanId, selectedSeverity, selectedCategory, selectedFile, fetchVulnerabilities]);
+  }, [
+    session,
+    scanId,
+    selectedSeverity,
+    selectedCategory,
+    selectedFile,
+    fetchVulnerabilities,
+  ]);
 
   const filteredVulnerabilities = vulnerabilities.filter(
     (vuln) =>
@@ -194,6 +203,36 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
     const parts = path.split("/");
     if (parts.length <= 2) return path;
     return `.../${parts.slice(-2).join("/")}`;
+  };
+
+  const handleFixWithAgent = async (vulnerabilityId: string) => {
+    try {
+      const response = await fetch("/api/fix/vulnerability", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          vulnerabilityId,
+          fixOptions: {
+            createPullRequest: true,
+            autoMerge: false,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create fix job");
+      }
+
+      console.log("Fix job created:", data);
+      // TODO: Show success message or update UI state
+    } catch (error) {
+      console.error("Error creating fix job:", error);
+      // TODO: Show error message
+    }
   };
 
   if (status === "loading" || loading) {
@@ -401,94 +440,13 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         {/* Vulnerabilities List */}
         <div className="space-y-4">
           {filteredVulnerabilities.map((vuln) => (
-            <Card key={vuln.id} className="bg-gray-800 border-gray-700">
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
-                      {vuln.title}
-                      <Badge
-                        className={
-                          severityColors[
-                            vuln.severity as keyof typeof severityColors
-                          ]
-                        }
-                      >
-                        {vuln.severity}
-                      </Badge>
-                      <Badge variant="outline">
-                        {categoryLabels[vuln.category] || vuln.category}
-                      </Badge>
-                    </CardTitle>
-                    <CardDescription className="text-gray-300 text-sm flex items-center gap-4">
-                      <span className="flex items-center gap-1">
-                        <FileText className="h-4 w-4" />
-                        {truncateFilePath(vuln.filePath)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        Line {vuln.startLine}
-                        {vuln.endLine && vuln.endLine !== vuln.startLine
-                          ? `-${vuln.endLine}`
-                          : ""}
-                      </span>
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Description */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Description
-                    </h4>
-                    <p className="text-gray-300 text-sm">{vuln.description}</p>
-                  </div>
-
-                  {/* Code Snippet */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Code Snippet
-                    </h4>
-                    <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto text-sm">
-                      <code className="text-gray-300">{vuln.codeSnippet}</code>
-                    </pre>
-                  </div>
-
-                  {/* Recommendation */}
-                  <div>
-                    <h4 className="font-semibold text-white mb-2">
-                      Recommendation
-                    </h4>
-                    <p className="text-gray-300 text-sm">
-                      {vuln.recommendation}
-                    </p>
-                  </div>
-
-                  {/* Metadata */}
-                  {vuln.metadata && Object.keys(vuln.metadata).length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-white mb-2">
-                        Additional Information
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(vuln.metadata).map(([key, value]) => (
-                          <Badge
-                            key={key}
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {key}: {String(value)}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <VulnerabilityCard
+              key={vuln.id}
+              vulnerability={vuln}
+              onFixWithAgent={handleFixWithAgent}
+              scanJobId={scanId}
+              showFullDetails={true}
+            />
           ))}
         </div>
 
