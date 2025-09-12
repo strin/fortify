@@ -1195,7 +1195,7 @@ Please begin the security audit now."""
             logger.info("Step 3: Processing scan results")
             print("📊 Step 3: Processing scan results...")
             result = {
-                "scan_completed_at": datetime.now().isoformat(),
+                "scan_completed_at": datetime.now().isoformat() + "Z",
                 "repository": scan_data.repo_url,
                 "branch": scan_data.branch,
                 "results": scan_results,
@@ -1249,7 +1249,7 @@ Please begin the security audit now."""
                     data={
                         "status": "COMPLETED",
                         "result": json.dumps(result),
-                        "finishedAt": datetime.now().isoformat(),
+                        "finishedAt": datetime.now().isoformat() + "Z",
                         "vulnerabilitiesFound": result.get("vulnerabilities_stored", 0),
                     },
                 )
@@ -1292,7 +1292,7 @@ Please begin the security audit now."""
                 data={
                     "status": "FAILED",
                     "error": error_msg,
-                    "finishedAt": datetime.now().isoformat(),
+                    "finishedAt": datetime.now().isoformat() + "Z",
                 },
             )
             logger.info(f"Updated ScanJob {job_id} status to FAILED")
