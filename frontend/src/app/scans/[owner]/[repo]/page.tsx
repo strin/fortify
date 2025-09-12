@@ -28,6 +28,14 @@ import {
   StopCircle,
 } from "lucide-react";
 
+interface ScanTarget {
+  id: string;
+  name: string;
+  repoUrl: string;
+  branch: string;
+  subPath: string;
+}
+
 interface ScanJobSummary {
   id: string;
   type: string;
@@ -48,6 +56,7 @@ interface ScanJobSummary {
   };
   categoryCounts: Record<string, number>;
   totalVulnerabilities: number;
+  scanTarget: ScanTarget | null;
 }
 
 interface RepositorySummary {
@@ -172,6 +181,52 @@ function RepositoryScansContent({
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
+  };
+
+  // Extract branch and repository info from scan data
+  const extractScanInfo = (scanData: any) => {
+    try {
+      const branch = scanData?.branch || "main";
+      const repoUrl = scanData?.repo_url || "";
+      
+      // Extract repository path from URL
+      let repoPath = "";
+      if (repoUrl) {
+        // Handle both GitHub URLs and direct repo paths
+        if (repoUrl.includes("github.com")) {
+          const match = repoUrl.match(/github\.com[\/:]([^\/]+\/[^\/]+)/);
+          repoPath = match ? match[1] : repoUrl;
+        } else {
+          repoPath = repoUrl;
+        }
+        // Remove .git suffix if present
+        repoPath = repoPath.replace(/\.git$/, "");
+      }
+      
+      return { branch, repoPath, repoUrl };
+    } catch (error) {
+      console.warn("Failed to extract scan info:", error);
+      return { branch: "main", repoPath: "", repoUrl: "" };
+    }
+
+  const getBranchAndPath = (scan: ScanJobSummary) => {
+    // Use scanTarget data if available
+    if (scan.scanTarget) {
+      return {
+        branch: scan.scanTarget.branch,
+        subPath: scan.scanTarget.subPath !== "/" ? scan.scanTarget.subPath : null,
+      };
+    }
+    
+    // Fallback to extracting from scan.data
+    if (scan.data) {
+      return {
+        branch: scan.data.branch || scan.data.ref || "main",
+        subPath: scan.data.sub_path && scan.data.sub_path !== "/" ? scan.data.sub_path : null,
+      };
+    }
+    
+    return { branch: "main", subPath: null };
   };
 
   const cancelScan = async (scanId: string) => {
@@ -369,6 +424,7 @@ function RepositoryScansContent({
           {scans.map((scan) => {
             const StatusIcon =
               statusIcons[scan.status as keyof typeof statusIcons];
+            const { branch, repoPath } = extractScanInfo(scan.data);
             return (
               <Card
                 key={scan.id}
@@ -402,12 +458,42 @@ function RepositoryScansContent({
                         </Badge>
                       </CardTitle>
                       <CardDescription className="text-gray-300 text-sm">
-                        <div className="flex items-center gap-4">
-                          <span>Started: {formatDate(scan.createdAt)}</span>
-                          {scan.finishedAt && (
-                            <span>
-                              Duration:{" "}
-                              {formatDuration(scan.startedAt, scan.finishedAt)}
+                        <div className="space-y-2">
+                          {/* Repository and branch info */}
+                          <div className="flex items-center gap-4 flex-wrap">
+                            {repoPath && (
+                              <span className="flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                {repoPath}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <GitBranch className="h-3 w-3" />
+                              {branch}
+                            </span>
+                          </div>
+                          {/* Timing info */}
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              Started: {formatDate(scan.createdAt)}
+                            </span>
+                            {scan.finishedAt && (
+                              <span>
+                                Duration:{" "}
+                                {formatDuration(scan.startedAt, scan.finishedAt)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <GitBranch className="h-3 w-3" />
+                            {getBranchAndPath(scan).branch}
+                          </span>
+                          {getBranchAndPath(scan).subPath && (
+                            <span className="bg-muted px-2 py-1 rounded">
+                              {getBranchAndPath(scan).subPath}
                             </span>
                           )}
                         </div>
@@ -451,7 +537,7 @@ function RepositoryScansContent({
                       <div className="flex flex-wrap gap-4">
                         {Object.entries(scan.vulnerabilityCounts).map(
                           ([severity, count]) =>
-                            count > 0 && (
+                            (count as number) > 0 && (
                               <div
                                 key={severity}
                                 className="flex items-center gap-2"
@@ -485,7 +571,7 @@ function RepositoryScansContent({
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(scan.categoryCounts)
-                              .sort(([, a], [, b]) => b - a)
+                              .sort(([, a], [, b]) => (b as number) - (a as number))
                               .slice(0, 3)
                               .map(([category, count]) => (
                                 <Badge

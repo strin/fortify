@@ -119,6 +119,7 @@ export async function GET(
       vulnerabilities: job.vulnerabilities,
     };
 
+
     return NextResponse.json(jobData);
   } catch (error) {
     console.error("Error fetching job status:", error);
