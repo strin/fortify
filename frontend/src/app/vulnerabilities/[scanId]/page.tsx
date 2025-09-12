@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { severityColors } from "@/lib/vulnerability-utils";
 
 interface CodeVulnerability {
   id: string;
@@ -69,13 +70,6 @@ interface Pagination {
   hasPrev: boolean;
 }
 
-const severityColors = {
-  CRITICAL: "bg-red-500 text-white",
-  HIGH: "bg-orange-500 text-white",
-  MEDIUM: "bg-yellow-500 text-black",
-  LOW: "bg-blue-500 text-white",
-  INFO: "bg-gray-500 text-white",
-};
 
 
 const categoryLabels: Record<string, string> = {
@@ -198,7 +192,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
 
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background text-white flex items-center justify-center">
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p>Loading vulnerabilities...</p>
@@ -209,7 +203,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background text-white">
+      <div className="min-h-screen bg-background text-foreground">
         <div className="container mx-auto px-4 py-16">
           <nav className="flex justify-between items-center mb-16">
             <h1 className="text-2xl font-bold">Vulnerabilities</h1>
@@ -219,11 +213,11 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
           </nav>
 
           <div className="max-w-2xl mx-auto text-center">
-            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-red-400" />
+            <AlertCircle className="h-16 w-16 mx-auto mb-4 text-destructive" />
             <h2 className="text-2xl font-bold mb-4">
               Error Loading Vulnerabilities
             </h2>
-            <p className="text-gray-300 mb-6">{error}</p>
+            <p className="text-foreground mb-6">{error}</p>
             <Button
               onClick={() => fetchVulnerabilities(currentPage)}
               className="mr-4"
@@ -238,7 +232,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8">
         {/* Navigation */}
         <nav className="flex justify-between items-center mb-8">
@@ -253,7 +247,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
                 Vulnerabilities
               </h1>
               {scanJob && (
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   Scan from {formatDate(scanJob.createdAt)} •{" "}
                   {scanJob.data?.repo || "Repository"}
                 </p>
@@ -278,58 +272,58 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         {/* Summary Cards */}
         {summary && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Total Issues</p>
+                    <p className="text-sm text-muted-foreground">Total Issues</p>
                     <p className="text-2xl font-bold">
                       {summary.totalVulnerabilities}
                     </p>
                   </div>
-                  <Bug className="h-8 w-8 text-red-400" />
+                  <Bug className="h-8 w-8 text-destructive" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Critical</p>
-                    <p className="text-2xl font-bold text-red-400">
+                    <p className="text-sm text-muted-foreground">Critical</p>
+                    <p className="text-2xl font-bold text-destructive">
                       {summary.severityCounts.CRITICAL || 0}
                     </p>
                   </div>
-                  <AlertCircle className="h-8 w-8 text-red-400" />
+                  <AlertCircle className="h-8 w-8 text-destructive" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">High</p>
-                    <p className="text-2xl font-bold text-orange-400">
+                    <p className="text-sm text-muted-foreground">High</p>
+                    <p className="text-2xl font-bold text-orange-600">
                       {summary.severityCounts.HIGH || 0}
                     </p>
                   </div>
-                  <AlertCircle className="h-8 w-8 text-orange-400" />
+                  <AlertCircle className="h-8 w-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Affected Files</p>
+                    <p className="text-sm text-muted-foreground">Affected Files</p>
                     <p className="text-2xl font-bold">
                       {summary.topFiles.length}
                     </p>
                   </div>
-                  <FileText className="h-8 w-8 text-blue-400" />
+                  <FileText className="h-8 w-8 text-chart-2" />
                 </div>
               </CardContent>
             </Card>
@@ -337,7 +331,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         )}
 
         {/* Filters */}
-        <Card className="bg-gray-800 border-gray-700 mb-8">
+        <Card className="bg-card border-border mb-8">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
@@ -347,19 +341,19 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search vulnerabilities..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white"
+                  className="pl-10 bg-input border-input text-foreground"
                 />
               </div>
 
               <select
                 value={selectedSeverity}
                 onChange={(e) => setSelectedSeverity(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                className="px-3 py-2 bg-input border border-input rounded-md text-foreground"
               >
                 <option value="">All Severities</option>
                 <option value="CRITICAL">Critical</option>
@@ -372,7 +366,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                className="px-3 py-2 bg-input border border-input rounded-md text-foreground"
               >
                 <option value="">All Categories</option>
                 {Object.entries(categoryLabels).map(([value, label]) => (
@@ -385,7 +379,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
               <select
                 value={selectedFile}
                 onChange={(e) => setSelectedFile(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+                className="px-3 py-2 bg-input border border-input rounded-md text-foreground"
               >
                 <option value="">All Files</option>
                 {summary?.topFiles.map((file) => (
@@ -401,11 +395,11 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         {/* Vulnerabilities List */}
         <div className="space-y-4">
           {filteredVulnerabilities.map((vuln) => (
-            <Card key={vuln.id} className="bg-gray-800 border-gray-700">
+            <Card key={vuln.id} className="bg-card border-border">
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <CardTitle className="text-lg text-white mb-2 flex items-center gap-2">
+                    <CardTitle className="text-lg text-foreground mb-2 flex items-center gap-2">
                       <AlertCircle className="h-5 w-5" />
                       {vuln.title}
                       <Badge
@@ -421,7 +415,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
                         {categoryLabels[vuln.category] || vuln.category}
                       </Badge>
                     </CardTitle>
-                    <CardDescription className="text-gray-300 text-sm flex items-center gap-4">
+                    <CardDescription className="text-foreground text-sm flex items-center gap-4">
                       <span className="flex items-center gap-1">
                         <FileText className="h-4 w-4" />
                         {truncateFilePath(vuln.filePath)}
@@ -441,28 +435,28 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
                 <div className="space-y-4">
                   {/* Description */}
                   <div>
-                    <h4 className="font-semibold text-white mb-2">
+                    <h4 className="font-semibold text-foreground mb-2">
                       Description
                     </h4>
-                    <p className="text-gray-300 text-sm">{vuln.description}</p>
+                    <p className="text-foreground text-sm">{vuln.description}</p>
                   </div>
 
                   {/* Code Snippet */}
                   <div>
-                    <h4 className="font-semibold text-white mb-2">
+                    <h4 className="font-semibold text-foreground mb-2">
                       Code Snippet
                     </h4>
-                    <pre className="bg-gray-900 p-4 rounded-lg overflow-x-auto text-sm">
-                      <code className="text-gray-300">{vuln.codeSnippet}</code>
+                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm">
+                      <code className="text-foreground">{vuln.codeSnippet}</code>
                     </pre>
                   </div>
 
                   {/* Recommendation */}
                   <div>
-                    <h4 className="font-semibold text-white mb-2">
+                    <h4 className="font-semibold text-foreground mb-2">
                       Recommendation
                     </h4>
-                    <p className="text-gray-300 text-sm">
+                    <p className="text-foreground text-sm">
                       {vuln.recommendation}
                     </p>
                   </div>
@@ -470,7 +464,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
                   {/* Metadata */}
                   {vuln.metadata && Object.keys(vuln.metadata).length > 0 && (
                     <div>
-                      <h4 className="font-semibold text-white mb-2">
+                      <h4 className="font-semibold text-foreground mb-2">
                         Additional Information
                       </h4>
                       <div className="flex flex-wrap gap-2">
@@ -495,7 +489,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
           <div className="flex justify-between items-center mt-8">
-            <div className="text-sm text-gray-400">
+            <div className="text-sm text-muted-foreground">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
               {Math.min(
                 pagination.page * pagination.limit,
@@ -533,7 +527,7 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
             <h2 className="text-xl font-semibold mb-2">
               No Vulnerabilities Found
             </h2>
-            <p className="text-gray-400 text-lg">
+            <p className="text-muted-foreground text-lg">
               {vulnerabilities.length === 0
                 ? "Great! This scan didn't find any security vulnerabilities."
                 : "No vulnerabilities match your current filters."}
