@@ -8,121 +8,117 @@ export async function GET(
 ) {
   try {
     const { jobId } = await params;
-    const scanWorkerUrl =
-      process.env.SCAN_AGENT_URL || "http://localhost:8000";
 
-    const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
+    // Query the job directly from the database
+    const job = await prisma.scanJob.findUnique({
+      where: { id: jobId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+          },
+        },
+        project: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        scanTarget: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        vulnerabilities: {
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            severity: true,
+            category: true,
+            filePath: true,
+            startLine: true,
+            endLine: true,
+            codeSnippet: true,
+            recommendation: true,
+            metadata: true,
+            createdAt: true,
+          },
+          orderBy: [
+            { severity: "asc" }, // CRITICAL first, INFO last
+            { createdAt: "desc" },
+          ],
+        },
       },
     });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return NextResponse.json({ error: "Job not found" }, { status: 404 });
-      }
-
-      const errorText = await response.text();
-      console.error("Scan worker error:", response.status, errorText);
-
-      return NextResponse.json(
-        { error: "Failed to fetch job status" },
-        { status: 500 }
-      );
+    if (!job) {
+      return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
-    const jobData = await response.json();
+    // Calculate vulnerability summary from actual database data
+    const vulnerabilitySummary = {
+      CRITICAL: 0,
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+      INFO: 0,
+    };
 
-    // For completed jobs, enhance the response with database statistics
-    if (jobData.status === "COMPLETED") {
-      try {
-        // Fetch job details from database including vulnerabilities
-        const scanJob = await prisma.scanJob.findUnique({
-          where: { id: jobId },
-          include: {
-            vulnerabilities: {
-              select: {
-                severity: true,
-                category: true,
-                filePath: true,
-                title: true,
-              },
-            },
-          },
-        });
+    const categorySummary: Record<string, number> = {};
 
-        if (scanJob) {
-          // Calculate vulnerability summary by severity
-          const vulnerabilitySummary = {
-            CRITICAL: 0,
-            HIGH: 0,
-            MEDIUM: 0,
-            LOW: 0,
-            INFO: 0,
-          };
+    job.vulnerabilities.forEach((vuln) => {
+      vulnerabilitySummary[vuln.severity]++;
+      categorySummary[vuln.category] =
+        (categorySummary[vuln.category] || 0) + 1;
+    });
 
-          // Get unique files scanned (approximate by counting unique file paths)
-          const uniqueFiles = new Set<string>();
+    // Transform the database job to match the expected API response format
+    // but enhance it with rich database vulnerability data
+    const jobData = {
+      job_id: job.id,
+      status: job.status,
+      type: job.type,
+      created_at: job.createdAt,
+      updated_at: job.updatedAt,
+      started_at: job.startedAt,
+      finished_at: job.finishedAt,
+      result: {
+        // Keep existing result data but enhance with calculated summaries
+        ...(job.result as Record<string, any> || {}),
+        vulnerabilities_found: job.vulnerabilities.length,
+        vulnerability_summary: vulnerabilitySummary,
+        category_summary: categorySummary,
+        // Include first few vulnerabilities for preview (like the current UI expects)
+        vulnerabilities: job.vulnerabilities.slice(0, 10).map((vuln) => ({
+          id: vuln.id,
+          title: vuln.title,
+          description: vuln.description,
+          severity: vuln.severity,
+          category: vuln.category,
+          file_path: vuln.filePath,
+          start_line: vuln.startLine,
+          end_line: vuln.endLine,
+          code_snippet: vuln.codeSnippet,
+          recommendation: vuln.recommendation,
+          metadata: vuln.metadata,
+        })),
+      },
+      error: job.error,
+      data: job.data,
+      vulnerabilities_found: job.vulnerabilities.length, // Use actual count from DB
+      github_check_id: job.githubCheckId,
+      github_check_url: job.githubCheckUrl,
+      user: job.user,
+      project: job.project,
+      scan_target: job.scanTarget,
+      // Full vulnerability details for comprehensive access
+      vulnerabilities: job.vulnerabilities,
+    };
 
-          // Process vulnerabilities
-          scanJob.vulnerabilities.forEach((vuln) => {
-            if (vuln.severity in vulnerabilitySummary) {
-              vulnerabilitySummary[vuln.severity as keyof typeof vulnerabilitySummary]++;
-            }
-            if (vuln.filePath) {
-              uniqueFiles.add(vuln.filePath);
-            }
-          });
-
-          // Calculate scan duration
-          let scanDuration = 0;
-          if (scanJob.startedAt && scanJob.finishedAt) {
-            scanDuration = new Date(scanJob.finishedAt).getTime() - new Date(scanJob.startedAt).getTime();
-          }
-
-          // Extract some sample vulnerabilities for preview
-          const vulnerabilitiesPreview = scanJob.vulnerabilities.slice(0, 10).map((vuln) => ({
-            severity: vuln.severity,
-            title: vuln.title,
-            file_path: vuln.filePath,
-            category: vuln.category,
-          }));
-
-          // Enhance the result object with frontend-expected fields
-          if (!jobData.result) {
-            jobData.result = {};
-          }
-
-          // Add the stats the frontend expects
-          jobData.result.vulnerabilities_found = scanJob.vulnerabilitiesFound || scanJob.vulnerabilities.length;
-          jobData.result.files_scanned = uniqueFiles.size;
-          jobData.result.scan_duration = scanDuration;
-          jobData.result.engine_version = "Claude v2.1";
-          jobData.result.vulnerability_summary = vulnerabilitySummary;
-          jobData.result.vulnerabilities = vulnerabilitiesPreview;
-
-          // Also add the stored job data for consistency
-          if (scanJob.data) {
-            try {
-              // If data is already a parsed object, use it directly
-              if (typeof scanJob.data === 'string') {
-                jobData.data = JSON.parse(scanJob.data);
-              } else {
-                // If it's already parsed (JsonValue), use it as-is
-                jobData.data = scanJob.data;
-              }
-            } catch (parseError) {
-              console.warn("Failed to parse scanJob.data:", parseError);
-              // Keep the original jobData.data if parsing fails
-            }
-          }
-        }
-      } catch (dbError) {
-        console.error("Error fetching job details from database:", dbError);
-        // Continue without enhancement - don't fail the whole request
-      }
-    }
 
     return NextResponse.json(jobData);
   } catch (error) {
@@ -140,7 +136,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -161,7 +157,10 @@ export async function DELETE(
 
     if (job.status !== "IN_PROGRESS" && job.status !== "PENDING") {
       return NextResponse.json(
-        { error: "Job cannot be cancelled. Only PENDING or IN_PROGRESS jobs can be cancelled." },
+        {
+          error:
+            "Job cannot be cancelled. Only PENDING or IN_PROGRESS jobs can be cancelled.",
+        },
         { status: 400 }
       );
     }
@@ -172,14 +171,15 @@ export async function DELETE(
       data: {
         status: "CANCELLED",
         finishedAt: new Date(),
-        error: "Job cancelled by user"
+        error: "Job cancelled by user",
       },
     });
 
     // Try to signal the worker to cancel the job (optional - may fail if worker is not reachable)
     try {
-      const scanWorkerUrl = process.env.SCAN_WORKER_URL || "http://localhost:8000";
-      
+      const scanWorkerUrl =
+        process.env.SCAN_WORKER_URL || "http://localhost:8000";
+
       const response = await fetch(`${scanWorkerUrl}/jobs/${jobId}/cancel`, {
         method: "POST",
         headers: {
@@ -191,18 +191,22 @@ export async function DELETE(
       if (response.ok) {
         console.log(`Successfully signaled worker to cancel job ${jobId}`);
       } else {
-        console.warn(`Failed to signal worker to cancel job ${jobId}: ${response.status}`);
+        console.warn(
+          `Failed to signal worker to cancel job ${jobId}: ${response.status}`
+        );
       }
     } catch (workerError) {
-      console.warn(`Failed to contact worker for job cancellation ${jobId}:`, workerError);
+      console.warn(
+        `Failed to contact worker for job cancellation ${jobId}:`,
+        workerError
+      );
     }
 
     return NextResponse.json({
       message: "Job cancelled successfully",
       jobId: jobId,
-      status: "CANCELLED"
+      status: "CANCELLED",
     });
-
   } catch (error) {
     console.error("Error cancelling job:", error);
     return NextResponse.json(

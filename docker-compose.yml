@@ -45,7 +45,33 @@ services:
       - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
     networks:
       - app-network
-    command: ./start_worker.sh
+    command: ./start_scan_agent.sh
+
+  fix-agent:
+    build:
+      context: ./
+      dockerfile: scan-agent/Dockerfile
+    container_name: fix-agent
+    volumes:
+      - ./scan-agent:/scan-agent
+      - ./db:/db
+    depends_on:
+      - redis
+      - scan-server
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - POSTGRES_PRISMA_URL=${DATABASE_URL}
+      - POSTGRES_URL_NON_POOLING=${DATABASE_URL}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GIT_USER_EMAIL=${GIT_USER_EMAIL:-fix-agent@fortify.dev}
+      - GIT_USER_NAME=${GIT_USER_NAME:-Fortify Fix Agent}
+    networks:
+      - app-network
+    command: ./start_fix_agent.sh
 
   redis:
     image: redis:alpine

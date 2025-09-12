@@ -167,17 +167,21 @@ function RepositoryScansContent({
 
   const formatDuration = (startedAt?: string, finishedAt?: string) => {
     if (!startedAt) return "N/A";
-    
+
     const start = new Date(startedAt);
     const end = finishedAt ? new Date(finishedAt) : new Date();
     const diff = end.getTime() - start.getTime();
-    
+
     // Handle negative time differences (clock sync issues)
     if (diff < 0) {
-      console.warn(`Negative time difference detected: start=${startedAt}, end=${finishedAt || 'now'}, diff=${diff}ms`);
+      console.warn(
+        `Negative time difference detected: start=${startedAt}, end=${
+          finishedAt || "now"
+        }, diff=${diff}ms`
+      );
       return "0s"; // Show 0 seconds for negative differences
     }
-    
+
     const minutes = Math.floor(diff / 60000);
     const seconds = Math.floor((diff % 60000) / 1000);
     return `${minutes}m ${seconds}s`;
@@ -188,7 +192,7 @@ function RepositoryScansContent({
     try {
       const branch = scanData?.branch || "main";
       const repoUrl = scanData?.repo_url || "";
-      
+
       // Extract repository path from URL
       let repoPath = "";
       if (repoUrl) {
@@ -202,37 +206,42 @@ function RepositoryScansContent({
         // Remove .git suffix if present
         repoPath = repoPath.replace(/\.git$/, "");
       }
-      
+
       return { branch, repoPath, repoUrl };
     } catch (error) {
       console.warn("Failed to extract scan info:", error);
       return { branch: "main", repoPath: "", repoUrl: "" };
     }
+  };
 
   const getBranchAndPath = (scan: ScanJobSummary) => {
     // Use scanTarget data if available
     if (scan.scanTarget) {
       return {
         branch: scan.scanTarget.branch,
-        subPath: scan.scanTarget.subPath !== "/" ? scan.scanTarget.subPath : null,
+        subPath:
+          scan.scanTarget.subPath !== "/" ? scan.scanTarget.subPath : null,
       };
     }
-    
+
     // Fallback to extracting from scan.data
     if (scan.data) {
       return {
         branch: scan.data.branch || scan.data.ref || "main",
-        subPath: scan.data.sub_path && scan.data.sub_path !== "/" ? scan.data.sub_path : null,
+        subPath:
+          scan.data.sub_path && scan.data.sub_path !== "/"
+            ? scan.data.sub_path
+            : null,
       };
     }
-    
+
     return { branch: "main", subPath: null };
   };
 
   const cancelScan = async (scanId: string) => {
     try {
-      setCancellingJobs(prev => new Set(prev.add(scanId)));
-      
+      setCancellingJobs((prev) => new Set(prev.add(scanId)));
+
       const response = await fetch(`/api/jobs/${scanId}`, {
         method: "DELETE",
       });
@@ -246,11 +255,9 @@ function RepositoryScansContent({
       await fetchRepositoryScans();
     } catch (err) {
       console.error("Error cancelling scan:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to cancel scan"
-      );
+      setError(err instanceof Error ? err.message : "Failed to cancel scan");
     } finally {
-      setCancellingJobs(prev => {
+      setCancellingJobs((prev) => {
         const next = new Set(prev);
         next.delete(scanId);
         return next;
@@ -481,7 +488,10 @@ function RepositoryScansContent({
                             {scan.finishedAt && (
                               <span>
                                 Duration:{" "}
-                                {formatDuration(scan.startedAt, scan.finishedAt)}
+                                {formatDuration(
+                                  scan.startedAt,
+                                  scan.finishedAt
+                                )}
                               </span>
                             )}
                           </div>
@@ -507,7 +517,8 @@ function RepositoryScansContent({
                           </Link>
                         </Button>
                       )}
-                      {(scan.status === "IN_PROGRESS" || scan.status === "PENDING") && (
+                      {(scan.status === "IN_PROGRESS" ||
+                        scan.status === "PENDING") && (
                         <Button
                           variant="destructive"
                           size="sm"
@@ -571,7 +582,9 @@ function RepositoryScansContent({
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {Object.entries(scan.categoryCounts)
-                              .sort(([, a], [, b]) => (b as number) - (a as number))
+                              .sort(
+                                ([, a], [, b]) => (b as number) - (a as number)
+                              )
                               .slice(0, 3)
                               .map(([category, count]) => (
                                 <Badge

@@ -47,6 +47,7 @@ model User {
         scanJobs            ScanJob[]
         scanTargets         ScanTarget[]
         repoWebhookMappings RepoWebhookMapping[]
+        fixJobs             FixJob[]
 
         @@map("users")
 }
@@ -125,12 +126,52 @@ model CodeVulnerability {
         createdAt DateTime @default(now())
 
         // Relations
-        scanJob ScanJob @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
+        scanJob ScanJob  @relation(fields: [scanJobId], references: [id], onDelete: Cascade)
+        fixJobs FixJob[]
 
         @@index([scanJobId])
         @@index([scanJobId, severity])
         @@index([filePath])
         @@map("code_vulnerabilities")
+}
+
+// ==========================================
+// FIX AGENT MANAGEMENT
+// ==========================================
+
+model FixJob {
+        id     String  @id @default(cuid())
+        userId String? // User who initiated the fix
+
+        // Fix job information
+        status FixJobStatus @default(PENDING)
+        data   Json // FixJobData as JSON
+        result Json? // Fix results (PR URL, commits, etc.)
+        error  String? // Error message if failed
+
+        // Timing
+        createdAt  DateTime  @default(now()) @map("created_at")
+        updatedAt  DateTime  @updatedAt @map("updated_at")
+        startedAt  DateTime?
+        finishedAt DateTime?
+
+        // References
+        vulnerabilityId String // Reference to CodeVulnerability
+
+        // GitHub integration results
+        branchName     String? // Created branch name
+        commitSha      String? // Fix commit SHA
+        pullRequestUrl String? // GitHub PR URL
+        pullRequestId  Int? // GitHub PR number
+
+        // Relations
+        user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+        vulnerability CodeVulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+
+        @@index([status, createdAt])
+        @@index([userId])
+        @@index([vulnerabilityId])
+        @@map("fix_jobs")
 }
 
 // ==========================================
@@ -333,4 +374,12 @@ enum RepositoryProvider {
         GITLAB
         AZURE_DEVOPS
         OTHER
+}
+
+enum FixJobStatus {
+        PENDING
+        IN_PROGRESS
+        COMPLETED
+        FAILED
+        CANCELLED
 }

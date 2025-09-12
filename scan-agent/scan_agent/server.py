@@ -78,7 +78,7 @@ github_webhook_handler = GitHubWebhookHandler()
 
 def normalize_repo_url(repo_url: str) -> str:
     """Normalize repository URL by removing .git suffix if present."""
-    if repo_url.endswith('.git'):
+    if repo_url.endswith(".git"):
         normalized_url = repo_url[:-4]  # Remove .git suffix
         logger.debug(f"Normalized repository URL: {repo_url} -> {normalized_url}")
         return normalized_url
@@ -302,12 +302,16 @@ async def cancel_job_post(job_id: str):
 
     # Mark job as cancelled
     job_queue.cancel_job(job_id, "Job cancelled by user")
-    
+
     # Signal the worker if the job is currently being processed
     if job.status == JobStatus.IN_PROGRESS:
         scan_worker.request_cancellation(job_id)
 
-    return {"message": f"Job {job_id} cancelled", "job_id": job_id, "status": "CANCELLED"}
+    return {
+        "message": f"Job {job_id} cancelled",
+        "job_id": job_id,
+        "status": "CANCELLED",
+    }
 
 
 @app.post("/webhooks/github")
@@ -660,12 +664,12 @@ async def test_url_normalization(request: Request):
     try:
         body = await request.json()
         test_url = body.get("url")
-        
+
         if not test_url:
             raise HTTPException(status_code=400, detail="Missing 'url' parameter")
-        
+
         normalized_url = normalize_repo_url(test_url)
-        
+
         return {
             "status": "success",
             "original_url": test_url,
@@ -673,7 +677,7 @@ async def test_url_normalization(request: Request):
             "was_normalized": test_url != normalized_url,
             "timestamp": datetime.now().isoformat(),
         }
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -703,17 +707,19 @@ async def test_github_webhook():
         test_urls = [
             "https://github.com/strin/fortify.git",
             "https://github.com/strin/fortify",
-            "git@github.com:strin/fortify.git"
+            "git@github.com:strin/fortify.git",
         ]
-        
+
         url_normalization_tests = []
         for url in test_urls:
             normalized = normalize_repo_url(url)
-            url_normalization_tests.append({
-                "original": url,
-                "normalized": normalized,
-                "was_normalized": url != normalized
-            })
+            url_normalization_tests.append(
+                {
+                    "original": url,
+                    "normalized": normalized,
+                    "was_normalized": url != normalized,
+                }
+            )
 
         # Create test response
         response = {
@@ -902,6 +908,81 @@ async def get_repository_webhooks(owner: str, repo: str, request: Request):
     except Exception as e:
         logger.error(f"Error fetching webhooks: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+# Fix job models
+class FixVulnerabilityRequest(BaseModel):
+    fixJobId: str
+    vulnerabilityId: str
+    scanJobId: str
+    repositoryUrl: str
+    branch: str = "main"
+    commitSha: Optional[str] = None
+    vulnerability: dict
+    fixOptions: dict
+
+
+@app.post("/fix/vulnerability")
+async def queue_fix_job(request: FixVulnerabilityRequest):
+    """Queue a vulnerability fix job for processing by the fix-agent worker."""
+    try:
+        logger.info(
+            f"Received fix job request for vulnerability: {request.vulnerabilityId}"
+        )
+
+        # Log the complete fix job data for debugging
+        request_data = request.model_dump()
+        logger.info(
+            f"Fix job request data: {json.dumps(request_data, indent=2, default=str)}"
+        )
+
+        # Create proper FixJob structure expected by fix-agent worker
+        fix_job_structure = {
+            "id": request.fixJobId,
+            "status": "PENDING",
+            "data": {
+                "vulnerabilityId": request.vulnerabilityId,
+                "repositoryUrl": request.repositoryUrl,
+                "branch": request.branch,
+                "commitSha": request.commitSha,
+                "vulnerability": request.vulnerability,
+                "fixOptions": request.fixOptions,
+            },
+            "result": None,
+            "error": None,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat(),
+            "started_at": None,
+            "finished_at": None,
+        }
+
+        logger.info(
+            f"Structured fix job data: {json.dumps(fix_job_structure, indent=2, default=str)}"
+        )
+
+        # Initialize fix job queue (separate from scan jobs)
+        fix_job_queue = JobQueue("fix_jobs")
+
+        # Add fix job to the queue
+        fix_job_queue.add_job(
+            JobType.SCAN_REPO,  # Reuse existing JobType for now
+            fix_job_structure,
+            request.fixJobId,
+        )
+
+        logger.info(f"Queued fix job {request.fixJobId} for processing")
+
+        return {
+            "fixJobId": request.fixJobId,
+            "status": "queued",
+            "message": "Fix job queued successfully",
+        }
+
+    except Exception as e:
+        logger.error(f"Error queuing fix job: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500, detail=f"Failed to queue fix job: {str(e)}"
+        )
 
 
 def main():

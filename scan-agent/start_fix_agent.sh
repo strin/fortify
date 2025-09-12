@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to start the scan-agent worker
+# Script to start the fix-agent worker
 # Supports both production (with env vars) and local development
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
@@ -15,7 +15,7 @@ fi
 
 # DATABASE_URL and ANTHROPIC_API_KEY should be provided externally
 
-echo "Starting scan-agent worker..."
+echo "Starting fix-agent worker..."
 if [ -n "$REDIS_URL" ]; then
     echo "  REDIS_URL: ${REDIS_URL%@*}@***" # Hide credentials in logs
 else
@@ -28,5 +28,12 @@ fi
 echo "Generating Prisma client..."
 cd /db && npx prisma generate && cd /scan-agent
 
-# Start the worker using the same command as the original run-worker-local.sh
-python -m scan_agent.workers.scanner
+# Configure Git for fix-agent operations
+echo "Configuring Git for fix operations..."
+git config --global user.email "${GIT_USER_EMAIL:-fix-agent@fortify.dev}"
+git config --global user.name "${GIT_USER_NAME:-Fortify Fix Agent}"
+git config --global init.defaultBranch main
+
+# Start the fix worker
+python -m fix_agent.workers.fixer
+
