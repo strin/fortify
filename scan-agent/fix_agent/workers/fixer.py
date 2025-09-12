@@ -890,71 +890,353 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         branch_name: str,
         repo_path: str,
     ) -> bool:
-        """Push branch using GitHub API by uploading commit objects and creating branch reference."""
+        """Push branch using GitHub API by uploading git objects and creating branch reference."""
         try:
             import subprocess
+            import base64
+            import hashlib
 
-            # The GitHub Git Data API approach is complex for pushing new commits
-            # because it requires uploading all git objects (blobs, trees, commits)
-            # Let's use a different approach: configure git with the access token and push normally
-
-            # Get the access token
-            access_token = github_client.headers.get("Authorization", "").replace(
-                "Bearer ", ""
-            )
-            if not access_token:
-                logger.error("No access token available for git push")
+            if not HTTPX_AVAILABLE:
+                logger.error("httpx not available, cannot use GitHub API")
                 return False
 
-            # Configure git to use the access token for authentication
-            # Set up the remote URL with the token
-            repo_url = f"https://{access_token}@github.com/{owner}/{repo}.git"
+            logger.info(f"Pushing branch {branch_name} using GitHub API...")
 
-            # Add or update the origin remote with the authenticated URL
-            try:
-                subprocess.run(
-                    ["git", "remote", "set-url", "origin", repo_url],
-                    cwd=repo_path,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-                logger.debug("Updated origin remote with authenticated URL")
-            except subprocess.CalledProcessError:
-                # If remote doesn't exist, add it
-                subprocess.run(
-                    ["git", "remote", "add", "origin", repo_url],
-                    cwd=repo_path,
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-                logger.debug("Added origin remote with authenticated URL")
-
-            # Push the branch using git with the authenticated remote
+            # Step 1: Get the current commit info
             result = subprocess.run(
-                ["git", "push", "origin", branch_name],
+                ["git", "rev-parse", "HEAD"],
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
-                timeout=60,  # 1 minute timeout
+                check=True,
+            )
+            commit_sha = result.stdout.strip()
+
+            # Step 2: Get commit details
+            result = subprocess.run(
+                ["git", "cat-file", "-p", commit_sha],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            commit_content = result.stdout
+
+            # Step 3: Get the tree SHA from the commit
+            tree_sha = None
+            for line in commit_content.split("\n"):
+                if line.startswith("tree "):
+                    tree_sha = line.split(" ")[1]
+                    break
+
+            if not tree_sha:
+                logger.error("Could not extract tree SHA from commit")
+                return False
+
+            # Step 4: Upload all necessary git objects
+            success = await self._upload_git_objects(
+                github_client, owner, repo, repo_path, commit_sha, tree_sha
             )
 
-            if result.returncode == 0:
+            if not success:
+                logger.error("Failed to upload git objects")
+                return False
+
+            # Step 5: Create or update branch reference
+            success = await self._create_or_update_branch_ref(
+                github_client, owner, repo, branch_name, commit_sha
+            )
+
+            if success:
                 logger.info(
-                    f"Successfully pushed branch {branch_name} using authenticated git push"
+                    f"Successfully pushed branch {branch_name} using GitHub API"
                 )
                 return True
             else:
-                logger.error(f"Git push failed: {result.stderr}")
+                logger.error("Failed to create/update branch reference")
                 return False
 
-        except subprocess.TimeoutExpired:
-            logger.error("Git push timed out")
-            return False
         except Exception as e:
             logger.error(f"Error pushing branch via GitHub API: {e}")
             return False
+
+    async def _upload_git_objects(
+        self,
+        github_client: GitHubClient,
+        owner: str,
+        repo: str,
+        repo_path: str,
+        commit_sha: str,
+        tree_sha: str,
+    ) -> bool:
+        """Upload git objects (blobs, trees, commits) to GitHub."""
+        try:
+            import subprocess
+            import base64
+
+            # Get all objects that need to be uploaded
+            objects_to_upload = set()
+
+            # Add the commit and tree
+            objects_to_upload.add(commit_sha)
+            objects_to_upload.add(tree_sha)
+
+            # Get all blobs referenced by the tree
+            result = subprocess.run(
+                ["git", "ls-tree", "-r", tree_sha],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+
+            for line in result.stdout.strip().split("\n"):
+                if line:
+                    parts = line.split("\t")[0].split(" ")
+                    if len(parts) >= 3:
+                        blob_sha = parts[2]
+                        objects_to_upload.add(blob_sha)
+
+            logger.info(f"Uploading {len(objects_to_upload)} git objects...")
+
+            # Upload each object
+            for obj_sha in objects_to_upload:
+                success = await self._upload_git_object(
+                    github_client, owner, repo, repo_path, obj_sha
+                )
+                if not success:
+                    logger.error(f"Failed to upload object {obj_sha}")
+                    return False
+
+            return True
+
+        except Exception as e:
+            logger.error(f"Error uploading git objects: {e}")
+            return False
+
+    async def _upload_git_object(
+        self,
+        github_client: GitHubClient,
+        owner: str,
+        repo: str,
+        repo_path: str,
+        obj_sha: str,
+    ) -> bool:
+        """Upload a single git object to GitHub."""
+        try:
+            import subprocess
+            import base64
+
+            # Get object type and content
+            result = subprocess.run(
+                ["git", "cat-file", "-t", obj_sha],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            obj_type = result.stdout.strip()
+
+            result = subprocess.run(
+                ["git", "cat-file", "-p", obj_sha],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            obj_content = result.stdout
+
+            # Upload based on object type
+            if obj_type == "blob":
+                return await self._upload_blob(
+                    github_client, owner, repo, obj_content, obj_sha
+                )
+            elif obj_type == "tree":
+                return await self._upload_tree(
+                    github_client, owner, repo, obj_content, obj_sha
+                )
+            elif obj_type == "commit":
+                return await self._upload_commit(
+                    github_client, owner, repo, obj_content, obj_sha
+                )
+            else:
+                logger.warning(f"Unknown object type: {obj_type}")
+                return True  # Skip unknown types
+
+        except Exception as e:
+            logger.error(f"Error uploading git object {obj_sha}: {e}")
+            return False
+
+    async def _upload_blob(
+        self, github_client: GitHubClient, owner: str, repo: str, content: str, sha: str
+    ) -> bool:
+        """Upload a blob to GitHub."""
+        try:
+            import base64
+
+            url = f"{github_client.base_url}/repos/{owner}/{repo}/git/blobs"
+            data = {
+                "content": base64.b64encode(content.encode("utf-8")).decode("ascii"),
+                "encoding": "base64",
+            }
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url, json=data, headers=github_client.headers
+                )
+
+                if response.status_code == 201:
+                    return True
+                elif response.status_code == 409:
+                    # Blob already exists
+                    return True
+                else:
+                    logger.error(
+                        f"Failed to upload blob: {response.status_code} - {response.text}"
+                    )
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error uploading blob: {e}")
+            return False
+
+    async def _upload_tree(
+        self, github_client: GitHubClient, owner: str, repo: str, content: str, sha: str
+    ) -> bool:
+        """Upload a tree to GitHub."""
+        try:
+            # Parse tree content and create tree structure
+            tree_entries = []
+            for line in content.strip().split("\n"):
+                if line:
+                    parts = line.split("\t")
+                    if len(parts) >= 2:
+                        mode_type_sha = parts[0].split(" ")
+                        if len(mode_type_sha) >= 3:
+                            mode = mode_type_sha[0]
+                            obj_type = mode_type_sha[1]
+                            obj_sha = mode_type_sha[2]
+                            path = parts[1]
+
+                            tree_entries.append(
+                                {
+                                    "path": path,
+                                    "mode": mode,
+                                    "type": obj_type,
+                                    "sha": obj_sha,
+                                }
+                            )
+
+            url = f"{github_client.base_url}/repos/{owner}/{repo}/git/trees"
+            data = {"tree": tree_entries}
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url, json=data, headers=github_client.headers
+                )
+
+                if response.status_code == 201:
+                    return True
+                elif response.status_code == 409:
+                    # Tree already exists
+                    return True
+                else:
+                    logger.error(
+                        f"Failed to upload tree: {response.status_code} - {response.text}"
+                    )
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error uploading tree: {e}")
+            return False
+
+    async def _upload_commit(
+        self, github_client: GitHubClient, owner: str, repo: str, content: str, sha: str
+    ) -> bool:
+        """Upload a commit to GitHub."""
+        try:
+            # Parse commit content
+            lines = content.split("\n")
+            tree_sha = None
+            parents = []
+            author = None
+            committer = None
+            message_lines = []
+            in_message = False
+
+            for line in lines:
+                if line.startswith("tree "):
+                    tree_sha = line.split(" ")[1]
+                elif line.startswith("parent "):
+                    parents.append(line.split(" ")[1])
+                elif line.startswith("author "):
+                    author = self._parse_git_person(line[7:])
+                elif line.startswith("committer "):
+                    committer = self._parse_git_person(line[10:])
+                elif line == "":
+                    in_message = True
+                elif in_message:
+                    message_lines.append(line)
+
+            message = "\n".join(message_lines)
+
+            url = f"{github_client.base_url}/repos/{owner}/{repo}/git/commits"
+            data = {
+                "message": message,
+                "tree": tree_sha,
+                "parents": parents,
+                "author": author,
+                "committer": committer,
+            }
+
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    url, json=data, headers=github_client.headers
+                )
+
+                if response.status_code == 201:
+                    return True
+                elif response.status_code == 409:
+                    # Commit already exists
+                    return True
+                else:
+                    logger.error(
+                        f"Failed to upload commit: {response.status_code} - {response.text}"
+                    )
+                    return False
+
+        except Exception as e:
+            logger.error(f"Error uploading commit: {e}")
+            return False
+
+    def _parse_git_person(self, person_line: str) -> dict:
+        """Parse git author/committer line into GitHub API format."""
+        try:
+            # Format: "Name <email> timestamp timezone"
+            import re
+
+            match = re.match(r"(.+) <(.+)> (\d+) ([\+\-]\d{4})", person_line)
+            if match:
+                name, email, timestamp, timezone = match.groups()
+                from datetime import datetime
+
+                dt = datetime.fromtimestamp(int(timestamp))
+                return {"name": name, "email": email, "date": dt.isoformat() + "Z"}
+            else:
+                # Fallback
+                return {
+                    "name": "Fortify Fix Agent",
+                    "email": "fix-agent@fortify.rocks",
+                    "date": datetime.now().isoformat() + "Z",
+                }
+        except Exception:
+            from datetime import datetime
+
+            return {
+                "name": "Fortify Fix Agent",
+                "email": "fix-agent@fortify.rocks",
+                "date": datetime.now().isoformat() + "Z",
+            }
 
     async def _create_or_update_branch_ref(
         self,
