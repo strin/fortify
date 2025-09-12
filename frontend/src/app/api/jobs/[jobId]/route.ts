@@ -35,9 +35,22 @@ export async function GET(
         vulnerabilities: {
           select: {
             id: true,
+            title: true,
+            description: true,
             severity: true,
             category: true,
+            filePath: true,
+            startLine: true,
+            endLine: true,
+            codeSnippet: true,
+            recommendation: true,
+            metadata: true,
+            createdAt: true,
           },
+          orderBy: [
+            { severity: "asc" }, // CRITICAL first, INFO last
+            { createdAt: "desc" },
+          ],
         },
       },
     });
@@ -46,7 +59,25 @@ export async function GET(
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
 
+    // Calculate vulnerability summary from actual database data
+    const vulnerabilitySummary = {
+      CRITICAL: 0,
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+      INFO: 0,
+    };
+
+    const categorySummary: Record<string, number> = {};
+
+    job.vulnerabilities.forEach((vuln) => {
+      vulnerabilitySummary[vuln.severity]++;
+      categorySummary[vuln.category] =
+        (categorySummary[vuln.category] || 0) + 1;
+    });
+
     // Transform the database job to match the expected API response format
+    // but enhance it with rich database vulnerability data
     const jobData = {
       job_id: job.id,
       status: job.status,
@@ -55,15 +86,36 @@ export async function GET(
       updated_at: job.updatedAt,
       started_at: job.startedAt,
       finished_at: job.finishedAt,
-      result: job.result,
+      result: {
+        // Keep existing result data but enhance with calculated summaries
+        ...(job.result as Record<string, any> || {}),
+        vulnerabilities_found: job.vulnerabilities.length,
+        vulnerability_summary: vulnerabilitySummary,
+        category_summary: categorySummary,
+        // Include first few vulnerabilities for preview (like the current UI expects)
+        vulnerabilities: job.vulnerabilities.slice(0, 10).map((vuln) => ({
+          id: vuln.id,
+          title: vuln.title,
+          description: vuln.description,
+          severity: vuln.severity,
+          category: vuln.category,
+          file_path: vuln.filePath,
+          start_line: vuln.startLine,
+          end_line: vuln.endLine,
+          code_snippet: vuln.codeSnippet,
+          recommendation: vuln.recommendation,
+          metadata: vuln.metadata,
+        })),
+      },
       error: job.error,
       data: job.data,
-      vulnerabilities_found: job.vulnerabilitiesFound,
+      vulnerabilities_found: job.vulnerabilities.length, // Use actual count from DB
       github_check_id: job.githubCheckId,
       github_check_url: job.githubCheckUrl,
       user: job.user,
       project: job.project,
       scan_target: job.scanTarget,
+      // Full vulnerability details for comprehensive access
       vulnerabilities: job.vulnerabilities,
     };
 
