@@ -13,6 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 import { VulnerabilityCard } from "@/components/vulnerability/VulnerabilityCard";
 import {
@@ -27,6 +36,12 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
+  TrendingUp,
+  Activity,
+  Target,
+  Shield,
+  Clock,
+  X
 } from "lucide-react";
 
 interface CodeVulnerability {
@@ -235,12 +250,104 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
     }
   };
 
+  // Skeleton Components
+  const SummaryCardSkeleton = () => (
+    <Card className="bg-card border-border">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const VulnerabilityCardSkeleton = () => (
+    <Card className="bg-card border-border">
+      <CardHeader>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5 rounded-full" />
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+            <Skeleton className="h-5 w-24 rounded-full" />
+          </div>
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-20" />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div>
+            <Skeleton className="h-4 w-20 mb-2" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+          <div>
+            <Skeleton className="h-4 w-24 mb-2" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+          <div>
+            <Skeleton className="h-4 w-32 mb-2" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   if (status === "loading" || loading) {
     return (
-      <div className="min-h-screen bg-background text-white flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Loading vulnerabilities...</p>
+      <div className="min-h-screen bg-background text-white">
+        <div className="container mx-auto px-4 py-8">
+          {/* Navigation Skeleton */}
+          <div className="flex justify-between items-center mb-8">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-9 w-16" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-9 w-32" />
+            </div>
+          </div>
+
+          {/* Summary Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <SummaryCardSkeleton />
+            <SummaryCardSkeleton />
+            <SummaryCardSkeleton />
+            <SummaryCardSkeleton />
+          </div>
+
+          {/* Filters Skeleton */}
+          <Card className="bg-card border-border mb-8">
+            <CardHeader>
+              <Skeleton className="h-6 w-20" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Vulnerabilities List Skeleton */}
+          <div className="space-y-6">
+            <VulnerabilityCardSkeleton />
+            <VulnerabilityCardSkeleton />
+            <VulnerabilityCardSkeleton />
+          </div>
         </div>
       </div>
     );
@@ -314,126 +421,267 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
           </div>
         </nav>
 
-        {/* Summary Cards */}
+        {/* Enhanced Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="group bg-card border-border hover:shadow-lg hover:shadow-red-500/10 transition-all duration-200 hover:scale-[1.02]">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Total Issues</p>
-                    <p className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground font-medium">Total Issues</p>
+                    <p className="text-3xl font-bold tracking-tight">
                       {summary.totalVulnerabilities}
                     </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <TrendingUp className="h-3 w-3" />
+                      <span>All severities</span>
+                    </div>
                   </div>
-                  <Bug className="h-8 w-8 text-red-400" />
+                  <div className="rounded-full bg-red-500/10 p-3 group-hover:bg-red-500/20 transition-colors">
+                    <Bug className="h-6 w-6 text-red-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
+            <Card className="group bg-card border-border hover:shadow-lg hover:shadow-red-500/10 transition-all duration-200 hover:scale-[1.02]">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Critical</p>
-                    <p className="text-2xl font-bold text-red-400">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground font-medium">Critical Issues</p>
+                    <p className="text-3xl font-bold text-red-400 tracking-tight">
                       {summary.severityCounts.CRITICAL || 0}
                     </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Target className="h-3 w-3" />
+                      <span>Immediate attention</span>
+                    </div>
                   </div>
-                  <AlertCircle className="h-8 w-8 text-red-400" />
+                  <div className="rounded-full bg-red-500/10 p-3 group-hover:bg-red-500/20 transition-colors">
+                    <AlertCircle className="h-6 w-6 text-red-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
+            <Card className="group bg-card border-border hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-200 hover:scale-[1.02]">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">High</p>
-                    <p className="text-2xl font-bold text-orange-400">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground font-medium">High Priority</p>
+                    <p className="text-3xl font-bold text-orange-400 tracking-tight">
                       {summary.severityCounts.HIGH || 0}
                     </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Activity className="h-3 w-3" />
+                      <span>High priority</span>
+                    </div>
                   </div>
-                  <AlertCircle className="h-8 w-8 text-orange-400" />
+                  <div className="rounded-full bg-orange-500/10 p-3 group-hover:bg-orange-500/20 transition-colors">
+                    <AlertCircle className="h-6 w-6 text-orange-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800 border-gray-700">
-              <CardContent className="p-4">
+            <Card className="group bg-card border-border hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-200 hover:scale-[1.02]">
+              <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-400">Affected Files</p>
-                    <p className="text-2xl font-bold">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground font-medium">Affected Files</p>
+                    <p className="text-3xl font-bold tracking-tight">
                       {summary.topFiles.length}
                     </p>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <FileText className="h-3 w-3" />
+                      <span>Files with issues</span>
+                    </div>
                   </div>
-                  <FileText className="h-8 w-8 text-blue-400" />
+                  <div className="rounded-full bg-blue-500/10 p-3 group-hover:bg-blue-500/20 transition-colors">
+                    <FileText className="h-6 w-6 text-blue-400" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Filters */}
-        <Card className="bg-gray-800 border-gray-700 mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
+        {/* Enhanced Filters */}
+        <Card className="bg-card border-border mb-8 hover:shadow-lg transition-shadow duration-200">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <div className="rounded-full bg-primary/10 p-2">
+                  <Filter className="h-5 w-5 text-primary" />
+                </div>
+                Filters & Search
+              </CardTitle>
+              {(selectedSeverity || selectedCategory || selectedFile || searchTerm) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedSeverity("");
+                    setSelectedCategory("");
+                    setSelectedFile("");
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear all
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Filter vulnerabilities to focus on what matters most
+            </p>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search vulnerabilities..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-gray-700 border-gray-600 text-white"
+                  className="pl-10 bg-card border-border h-11 focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
 
-              <select
-                value={selectedSeverity}
-                onChange={(e) => setSelectedSeverity(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-              >
-                <option value="">All Severities</option>
-                <option value="CRITICAL">Critical</option>
-                <option value="HIGH">High</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="LOW">Low</option>
-                <option value="INFO">Info</option>
-              </select>
+              <Select value={selectedSeverity} onValueChange={setSelectedSeverity}>
+                <SelectTrigger className="h-11 bg-card border-border">
+                  <SelectValue placeholder="All Severities" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Severities</SelectItem>
+                  <SelectItem value="CRITICAL">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                      Critical
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="HIGH">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      High
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="MEDIUM">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
+                      Medium
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="LOW">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      Low
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="INFO">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                      Info
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-              >
-                <option value="">All Categories</option>
-                {Object.entries(categoryLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="h-11 bg-card border-border">
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {Object.entries(categoryLabels).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <select
-                value={selectedFile}
-                onChange={(e) => setSelectedFile(e.target.value)}
-                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
-              >
-                <option value="">All Files</option>
-                {summary?.topFiles.map((file) => (
-                  <option key={file.filePath} value={file.filePath}>
-                    {truncateFilePath(file.filePath)} ({file.count})
-                  </option>
-                ))}
-              </select>
+              <Select value={selectedFile} onValueChange={setSelectedFile}>
+                <SelectTrigger className="h-11 bg-card border-border">
+                  <SelectValue placeholder="All Files" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Files</SelectItem>
+                  {summary?.topFiles.map((file) => (
+                    <SelectItem key={file.filePath} value={file.filePath}>
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate">{truncateFilePath(file.filePath, 30)}</span>
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {file.count}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            
+            {/* Active Filters Display */}
+            {(selectedSeverity || selectedCategory || selectedFile || searchTerm) && (
+              <div className="flex items-center gap-2 pt-2 border-t border-border">
+                <span className="text-sm text-muted-foreground">Active filters:</span>
+                <div className="flex flex-wrap gap-2">
+                  {searchTerm && (
+                    <Badge variant="secondary" className="text-xs">
+                      Search: {searchTerm}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+                        onClick={() => setSearchTerm("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                  {selectedSeverity && (
+                    <Badge variant="secondary" className="text-xs">
+                      Severity: {selectedSeverity}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+                        onClick={() => setSelectedSeverity("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                  {selectedCategory && (
+                    <Badge variant="secondary" className="text-xs">
+                      Category: {categoryLabels[selectedCategory]}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+                        onClick={() => setSelectedCategory("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                  {selectedFile && (
+                    <Badge variant="secondary" className="text-xs">
+                      File: {truncateFilePath(selectedFile, 20)}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-1 h-3 w-3 p-0 hover:bg-transparent"
+                        onClick={() => setSelectedFile("")}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -486,16 +734,44 @@ function VulnerabilitiesContent({ scanId }: { scanId: string }) {
         )}
 
         {filteredVulnerabilities.length === 0 && !loading && (
-          <div className="text-center py-16">
-            <CheckCircle className="h-16 w-16 mx-auto mb-4 text-green-400" />
-            <h2 className="text-xl font-semibold mb-2">
-              No Vulnerabilities Found
-            </h2>
-            <p className="text-gray-400 text-lg">
-              {vulnerabilities.length === 0
-                ? "Great! This scan didn't find any security vulnerabilities."
-                : "No vulnerabilities match your current filters."}
-            </p>
+          <div className="mt-8">
+            {vulnerabilities.length === 0 ? (
+              <EmptyState
+                icon={Shield}
+                title="No vulnerabilities found"
+                description="Excellent! This security scan didn't find any vulnerabilities in your code. Your codebase appears to be secure based on our analysis."
+                action={{
+                  label: "Run New Scan",
+                  onClick: () => window.history.back(),
+                  icon: RefreshCw,
+                  variant: "default" as const,
+                }}
+                secondaryAction={{
+                  label: "View Scan Details",
+                  onClick: () => fetchVulnerabilities(currentPage),
+                  icon: Activity,
+                }}
+                size="lg"
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="No matching vulnerabilities"
+                description={`No vulnerabilities match your current search and filter criteria. ${searchTerm ? `Try searching for something different than "${searchTerm}"` : ''} or adjust your filters to see more results.`}
+                action={{
+                  label: "Clear All Filters",
+                  onClick: () => {
+                    setSearchTerm("");
+                    setSelectedSeverity("");
+                    setSelectedCategory("");
+                    setSelectedFile("");
+                  },
+                  icon: X,
+                  variant: "outline" as const,
+                }}
+                size="default"
+              />
+            )}
           </div>
         )}
       </div>

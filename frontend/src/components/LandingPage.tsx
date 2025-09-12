@@ -14,6 +14,11 @@ export default function LandingPage() {
     signIn("github", { callbackUrl: "/new-project" });
   };
 
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    element?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 text-white">
       {/* Ambient gradient orbs */}
@@ -25,10 +30,31 @@ export default function LandingPage() {
       <section className="pt-8 pb-16 px-4">
         <div className="container mx-auto max-w-6xl">
           <nav className="flex justify-between items-center mb-16">
-            <h1 className="text-2xl font-bold">🔒 Fortify AI</h1>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur-md opacity-60 animate-pulse" />
+                <div className="relative bg-gradient-to-r from-blue-600 to-purple-600 rounded-full p-2">
+                  <span className="text-xl">🔒</span>
+                </div>
+              </div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                Fortify AI
+              </h1>
+            </div>
             <div className="flex gap-4">
-              <Button asChild variant="ghost">
+              <Button 
+                asChild 
+                variant="ghost" 
+                className="hover:scale-105 transition-transform duration-200"
+              >
                 <Link href="/login">Sign In</Link>
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => scrollToSection('pricing')}
+                className="hover:scale-105 transition-transform duration-200"
+              >
+                Pricing
               </Button>
             </div>
           </nav>
@@ -46,11 +72,29 @@ export default function LandingPage() {
                   creates—so you can move fast without shipping risk.
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 items-center mb-10">
-                  <Button onClick={handleGitHubScan} size="xl" variant="cta">
-                    🔒 Scan My GitHub Repo for Free
+                <div className="flex flex-col sm:flex-row gap-6 items-center mb-12">
+                  <Button 
+                    onClick={handleGitHubScan} 
+                    size="xl" 
+                    className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105 transform-gpu px-8 py-4 text-lg font-semibold"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300" />
+                        <span className="relative text-2xl">🔒</span>
+                      </div>
+                      <span>Scan My GitHub Repo for Free</span>
+                      <div className="ml-2 transform group-hover:translate-x-1 transition-transform duration-200">
+                        →
+                      </div>
+                    </div>
                   </Button>
-                  <SampleScanReport />
+                  <div className="relative group">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-300" />
+                    <div className="relative">
+                      <SampleScanReport />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Trust row */}
@@ -88,72 +132,83 @@ export default function LandingPage() {
       </section>
 
       {/* Problem Statement Section */}
-      <section className="py-20 px-4 bg-gray-900/40">
-        <div className="container mx-auto max-w-6xl">
-          <div className="mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-6">
+      <section className="py-24 px-4 bg-gradient-to-b from-gray-900/40 to-gray-950/60 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-10 w-72 h-72 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
+        
+        <div className="container mx-auto max-w-6xl relative">
+          <div className="mb-16 text-center">
+            <div className="inline-flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-full px-6 py-3 mb-6">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-400 font-medium text-sm uppercase tracking-wide">Security Alert</span>
+            </div>
+            <h3 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 bg-clip-text text-transparent">
               Vibe Coding: A Big Security Risk
             </h3>
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mb-8">
-              In the AI-generated code era, vibe coding has become a big
-              security risk. Here&apos;s why:
+            <p className="text-xl md:text-2xl text-gray-300 max-w-4xl mx-auto mb-8 leading-relaxed">
+              In the AI-generated code era, vibe coding has become a massive
+              security vulnerability. Here&apos;s what&apos;s putting your codebase at risk:
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-card/70 border-destructive/20 hover:border-destructive/40 transition-colors">
+            {/* Add staggered animation classes to each card */}
+            <Card className="group bg-card/70 border-destructive/20 hover:border-destructive/40 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 hover:scale-105 transform-gpu animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
               <CardHeader className="text-center">
-                <div className="text-4xl mb-4">🚨</div>
-                <CardTitle className="text-red-400">
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 filter drop-shadow-lg">🚨</div>
+                <CardTitle className="text-red-400 group-hover:text-red-300 transition-colors">
                   AI generates insecure code patterns
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300">
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors leading-relaxed">
                   Vibe coding creates vulnerabilities that traditional security
                   tools miss entirely
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-card/70 border-chart-4/20 hover:border-chart-4/40 transition-colors">
+            <Card className="group bg-card/70 border-yellow-500/20 hover:border-yellow-400/40 hover:shadow-lg hover:shadow-yellow-500/10 transition-all duration-300 hover:scale-105 transform-gpu animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
               <CardHeader className="text-center">
-                <div className="text-4xl mb-4">⏰</div>
-                <CardTitle className="text-yellow-400">
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 filter drop-shadow-lg">⏰</div>
+                <CardTitle className="text-yellow-400 group-hover:text-yellow-300 transition-colors">
                   Manual reviews slow you down
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300">
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors leading-relaxed">
                   Traditional tools can&apos;t keep pace with AI-assisted
                   development
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-card/70 border-destructive/20 hover:border-destructive/40 transition-colors">
+            <Card className="group bg-card/70 border-destructive/20 hover:border-destructive/40 hover:shadow-lg hover:shadow-red-500/10 transition-all duration-300 hover:scale-105 transform-gpu animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
               <CardHeader className="text-center">
-                <div className="text-4xl mb-4">💸</div>
-                <CardTitle className="text-red-400">
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 filter drop-shadow-lg">💸</div>
+                <CardTitle className="text-red-400 group-hover:text-red-300 transition-colors">
                   One breach costs more than prevention
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300">
-                  Security incidents average $4.45M in damages
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors leading-relaxed">
+                  Security incidents average <span className="font-bold text-red-400">$4.45M</span> in damages
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/70 border-orange-500/20 hover:border-orange-400/40 transition-colors">
+            <Card className="group bg-card/70 border-orange-500/20 hover:border-orange-400/40 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 hover:scale-105 transform-gpu animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
               <CardHeader className="text-center">
-                <div className="text-4xl mb-4">🔧</div>
-                <CardTitle className="text-orange-400">
+                <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 filter drop-shadow-lg">🔧</div>
+                <CardTitle className="text-orange-400 group-hover:text-orange-300 transition-colors">
                   Vibe coding creates unknown risks
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-300">
+                <p className="text-gray-300 group-hover:text-gray-200 transition-colors leading-relaxed">
                   Software engineers don&apos;t know what security risks AI has
                   introduced into their codebase
                 </p>
@@ -447,12 +502,25 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h3 className="text-4xl md:text-5xl font-bold mb-6">
+      <section id="pricing" className="py-20 px-4 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-10 right-20 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="container mx-auto max-w-6xl relative">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-full px-6 py-3 mb-6">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+              <span className="text-blue-400 font-medium text-sm uppercase tracking-wide">Pricing</span>
+            </div>
+            <h3 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent">
               Simple, Transparent Pricing
             </h3>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              Choose the plan that fits your security needs. Start free and scale as you grow.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -494,13 +562,14 @@ export default function LandingPage() {
                     support
                   </li>
                 </ul>
-                <Button
-                  onClick={handleGitHubScan}
-                  className="w-full mt-6"
-                  variant="secondary"
-                >
-                  Get Started Free
-                </Button>
+              <Button
+                onClick={handleGitHubScan}
+                className="w-full mt-6 hover:scale-105 transition-all duration-200 hover:shadow-lg"
+                variant="secondary"
+              >
+                <span className="mr-2">✨</span>
+                Get Started Free
+              </Button>
               </CardContent>
             </Card>
 
@@ -557,13 +626,13 @@ export default function LandingPage() {
                     reporting
                   </li>
                 </ul>
-                <Button
-                  onClick={handleGitHubScan}
-                  className="w-full mt-6"
-                  variant="cta"
-                >
-                  Start Pro Trial
-                </Button>
+              <Button
+                onClick={handleGitHubScan}
+                className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
+              >
+                <span className="mr-2">🚀</span>
+                Start Pro Trial
+              </Button>
               </CardContent>
             </Card>
           </div>
@@ -663,14 +732,22 @@ export default function LandingPage() {
           <p className="text-xl text-gray-300 mb-8">
             Start with a free scan of your public repository. Upgrade anytime.
           </p>
-          <Button
-            onClick={handleGitHubScan}
-            size="xl"
-            variant="cta"
-            className="mb-4"
-          >
-            🚀 Scan My Code Now - Free
-          </Button>
+                <Button
+                  onClick={handleGitHubScan}
+                  size="xl"
+                  className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105 transform-gpu mb-6 px-12 py-6 text-xl font-bold"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-white/20 rounded-full blur-md group-hover:blur-lg transition-all duration-300" />
+                      <span className="relative text-3xl">🚀</span>
+                    </div>
+                    <span>Scan My Code Now - Free</span>
+                    <div className="ml-2 transform group-hover:translate-x-2 transition-transform duration-200">
+                      →
+                    </div>
+                  </div>
+                </Button>
           <p className="text-sm text-gray-400">
             Read-only GitHub access • Results in 60 seconds • Cancel anytime
           </p>
