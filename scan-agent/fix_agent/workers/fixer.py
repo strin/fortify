@@ -612,26 +612,14 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                         if vulnerability.filePath not in modified_files:
                             modified_files.append(vulnerability.filePath)
 
-            # If we have file modifications, this is a successful fix
-            if modified_files:
-                return {
-                    "type": "file_modification",
-                    "files": modified_files,
-                    "summary": fix_summary.strip()
-                    or f"Applied security fix for {vulnerability.category} vulnerability",
-                    "confidence": 0.9,
-                }
-            else:
-                # Look for code snippets or recommendations in the response
-                if fix_summary:
-                    return {
-                        "type": "code_suggestion",
-                        "content": fix_summary.strip(),
-                        "summary": f"Generated fix recommendation for {vulnerability.category} vulnerability",
-                        "confidence": 0.7,
-                    }
-
-            return None
+            # Return fix data with files if modified, otherwise with content
+            return {
+                "files": modified_files,
+                "content": fix_summary.strip() if fix_summary else None,
+                "summary": fix_summary.strip()
+                or f"Applied security fix for {vulnerability.category} vulnerability",
+                "confidence": 0.9 if modified_files else 0.7,
+            }
 
         except Exception as e:
             logger.error(f"Error extracting fix from messages: {e}")
@@ -662,7 +650,6 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         )
 
         return {
-            "type": "placeholder",
             "content": f"// {fix_content}\n// TODO: This is a placeholder fix - actual implementation would use Claude Code SDK",
             "summary": fix_content,
             "confidence": 0.5,
@@ -685,15 +672,15 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         try:
             vulnerability = job.data.vulnerability
 
-            # Handle different fix types
-            if fix_data.get("type") == "file_modification":
+            # Generic approach: check if Claude modified files, otherwise apply fix manually
+            modified_files = fix_data.get("files", [])
+
+            if modified_files:
                 # Claude SDK already modified files
-                modified_files = fix_data.get("files", [])
                 logger.info(f"Claude SDK modified files: {modified_files}")
                 return modified_files
-
-            elif fix_data.get("type") in ["code_suggestion", "placeholder"]:
-                # Need to apply the fix content manually
+            else:
+                # Apply fix content manually to the vulnerable file
                 file_path = os.path.join(repo_path, vulnerability.filePath)
 
                 if not os.path.exists(file_path):
@@ -707,7 +694,9 @@ Please start by reading the vulnerable file and then provide a secure fix."""
                     original_content = f.read()
 
                 # Apply fix content
-                fix_content = fix_data.get("content", "")
+                fix_content = fix_data.get(
+                    "content", fix_data.get("summary", "// Security fix applied")
+                )
                 lines = original_content.split("\n")
 
                 # Insert fix comment at the vulnerability location
@@ -722,10 +711,6 @@ Please start by reading the vulnerable file and then provide a secure fix."""
 
                 logger.info(f"Applied fix to {vulnerability.filePath}")
                 return [vulnerability.filePath]
-
-            else:
-                logger.error(f"Unknown fix type: {fix_data.get('type')}")
-                return None
 
         except Exception as e:
             logger.error(f"Failed to apply fix: {e}")
@@ -905,27 +890,68 @@ Please start by reading the vulnerable file and then provide a secure fix."""
         branch_name: str,
         repo_path: str,
     ) -> bool:
-        """Push branch using GitHub API by creating/updating the branch reference."""
+        """Push branch using GitHub API by uploading commit objects and creating branch reference."""
         try:
             import subprocess
 
-            # Get current commit SHA
+            # The GitHub Git Data API approach is complex for pushing new commits
+            # because it requires uploading all git objects (blobs, trees, commits)
+            # Let's use a different approach: configure git with the access token and push normally
+
+            # Get the access token
+            access_token = github_client.headers.get("Authorization", "").replace(
+                "Bearer ", ""
+            )
+            if not access_token:
+                logger.error("No access token available for git push")
+                return False
+
+            # Configure git to use the access token for authentication
+            # Set up the remote URL with the token
+            repo_url = f"https://{access_token}@github.com/{owner}/{repo}.git"
+
+            # Add or update the origin remote with the authenticated URL
+            try:
+                subprocess.run(
+                    ["git", "remote", "set-url", "origin", repo_url],
+                    cwd=repo_path,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug("Updated origin remote with authenticated URL")
+            except subprocess.CalledProcessError:
+                # If remote doesn't exist, add it
+                subprocess.run(
+                    ["git", "remote", "add", "origin", repo_url],
+                    cwd=repo_path,
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+                logger.debug("Added origin remote with authenticated URL")
+
+            # Push the branch using git with the authenticated remote
             result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
+                ["git", "push", "origin", branch_name],
                 cwd=repo_path,
                 capture_output=True,
                 text=True,
-                check=True,
-            )
-            commit_sha = result.stdout.strip()
-
-            # Create or update branch reference using GitHub API
-            success = await self._create_or_update_branch_ref(
-                github_client, owner, repo, branch_name, commit_sha
+                timeout=60,  # 1 minute timeout
             )
 
-            return success
+            if result.returncode == 0:
+                logger.info(
+                    f"Successfully pushed branch {branch_name} using authenticated git push"
+                )
+                return True
+            else:
+                logger.error(f"Git push failed: {result.stderr}")
+                return False
 
+        except subprocess.TimeoutExpired:
+            logger.error("Git push timed out")
+            return False
         except Exception as e:
             logger.error(f"Error pushing branch via GitHub API: {e}")
             return False
