@@ -30,12 +30,13 @@ export async function GET(
             filePath: true,
             startLine: true,
             endLine: true,
-          },
-        },
-        scanJob: {
-          select: {
-            id: true,
-            data: true,
+            scanJobId: true,
+            scanJob: {
+              select: {
+                id: true,
+                data: true,
+              },
+            },
           },
         },
       },
@@ -52,13 +53,12 @@ export async function GET(
     const response = {
       id: fixJob.id,
       status: fixJob.status,
-      type: fixJob.type,
       createdAt: fixJob.createdAt,
       updatedAt: fixJob.updatedAt,
       startedAt: fixJob.startedAt,
       finishedAt: fixJob.finishedAt,
       vulnerability: fixJob.vulnerability,
-      scanJobId: fixJob.scanJobId,
+      scanJobId: fixJob.vulnerability.scanJobId,
       branchName: fixJob.branchName,
       commitSha: fixJob.commitSha,
       pullRequestUrl: fixJob.pullRequestUrl,
