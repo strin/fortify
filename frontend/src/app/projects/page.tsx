@@ -333,13 +333,16 @@ export default function ProjectsPage() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          asChild
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                           }}
                         >
-                          <Shield className="h-4 w-4 mr-2" />
-                          View Scans
+                          <Link href={`/projects/${project.id}/scans`}>
+                            <Shield className="h-4 w-4 mr-2" />
+                            View Scans
+                          </Link>
                         </Button>
                         <Button 
                           variant="outline" 
