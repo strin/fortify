@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma, CodeVulnerability } from "@prisma/client";
 import { getServerSession } from "@/app/api/auth/[...nextauth]/utils";
 
 export async function GET(
@@ -71,17 +72,27 @@ export async function GET(
       where: whereClause,
     });
 
-    // Get vulnerabilities with pagination
-    const vulnerabilities = await prisma.codeVulnerability.findMany({
-      where: whereClause,
-      orderBy: [
-        { severity: "desc" }, // Order by severity (CRITICAL first)
-        { filePath: "asc" },
-        { startLine: "asc" },
-      ],
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    // Get vulnerabilities with pagination, sorted by risk priority
+    const vulnerabilities = await prisma.$queryRaw`
+      SELECT * FROM "CodeVulnerability" 
+      WHERE "scanJobId" = ${scanId}
+      ${severity ? Prisma.sql`AND "severity" = ${severity}` : Prisma.empty}
+      ${category ? Prisma.sql`AND "category" = ${category}` : Prisma.empty}
+      ${filePath ? Prisma.sql`AND "filePath" ILIKE ${`%${filePath}%`}` : Prisma.empty}
+      ORDER BY 
+        CASE "severity"
+          WHEN 'CRITICAL' THEN 1
+          WHEN 'HIGH' THEN 2
+          WHEN 'MEDIUM' THEN 3
+          WHEN 'LOW' THEN 4
+          WHEN 'INFO' THEN 5
+          ELSE 6
+        END ASC,
+        "filePath" ASC,
+        "startLine" ASC
+      OFFSET ${(page - 1) * limit}
+      LIMIT ${limit}
+    ` as CodeVulnerability[];
 
     // Get summary statistics
     const severityCounts = await prisma.codeVulnerability.groupBy({

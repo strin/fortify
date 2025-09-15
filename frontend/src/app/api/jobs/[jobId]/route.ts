@@ -48,7 +48,6 @@ export async function GET(
             createdAt: true,
           },
           orderBy: [
-            { severity: "asc" }, // CRITICAL first, INFO last
             { createdAt: "desc" },
           ],
         },
@@ -76,6 +75,25 @@ export async function GET(
         (categorySummary[vuln.category] || 0) + 1;
     });
 
+    // Sort vulnerabilities by risk priority
+    const severityOrder = {
+      'CRITICAL': 1,
+      'HIGH': 2,
+      'MEDIUM': 3,
+      'LOW': 4,
+      'INFO': 5,
+    };
+    
+    const sortedVulnerabilities = [...job.vulnerabilities].sort((a, b) => {
+      const aOrder = severityOrder[a.severity as keyof typeof severityOrder] || 6;
+      const bOrder = severityOrder[b.severity as keyof typeof severityOrder] || 6;
+      if (aOrder !== bOrder) {
+        return aOrder - bOrder;
+      }
+      // Secondary sort by creation date (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
     // Transform the database job to match the expected API response format
     // but enhance it with rich database vulnerability data
     const jobData = {
@@ -89,11 +107,11 @@ export async function GET(
       result: {
         // Keep existing result data but enhance with calculated summaries
         ...(job.result as Record<string, any> || {}),
-        vulnerabilities_found: job.vulnerabilities.length,
+        vulnerabilities_found: sortedVulnerabilities.length,
         vulnerability_summary: vulnerabilitySummary,
         category_summary: categorySummary,
         // Include first few vulnerabilities for preview (like the current UI expects)
-        vulnerabilities: job.vulnerabilities.slice(0, 10).map((vuln) => ({
+        vulnerabilities: sortedVulnerabilities.slice(0, 10).map((vuln) => ({
           id: vuln.id,
           title: vuln.title,
           description: vuln.description,
@@ -109,14 +127,14 @@ export async function GET(
       },
       error: job.error,
       data: job.data,
-      vulnerabilities_found: job.vulnerabilities.length, // Use actual count from DB
+      vulnerabilities_found: sortedVulnerabilities.length, // Use actual count from DB
       github_check_id: job.githubCheckId,
       github_check_url: job.githubCheckUrl,
       user: job.user,
       project: job.project,
       scan_target: job.scanTarget,
       // Full vulnerability details for comprehensive access
-      vulnerabilities: job.vulnerabilities,
+      vulnerabilities: sortedVulnerabilities,
     };
 
 
