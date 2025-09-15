@@ -11,6 +11,8 @@ import json
 import logging
 import asyncio
 import anyio
+import re
+import urllib.parse
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -99,6 +101,100 @@ class ScanWorker:
     def _is_job_cancelled(self, job_id: str) -> bool:
         """Check if a job has been requested for cancellation."""
         return job_id in self.cancelled_jobs
+
+    def _validate_repo_url(self, repo_url: str) -> bool:
+        """
+        Validate that the repository URL is safe and follows expected patterns.
+        
+        Args:
+            repo_url: The repository URL to validate
+            
+        Returns:
+            bool: True if URL is valid and safe, False otherwise
+        """
+        if not repo_url or not isinstance(repo_url, str):
+            return False
+            
+        # Parse the URL to validate its structure
+        try:
+            parsed = urllib.parse.urlparse(repo_url.strip())
+        except Exception:
+            return False
+            
+        # Only allow HTTP/HTTPS schemes
+        if parsed.scheme not in ['http', 'https']:
+            return False
+            
+        # Ensure hostname is present and reasonable
+        if not parsed.hostname or len(parsed.hostname) < 3:
+            return False
+            
+        # Check for common git hosting patterns (GitHub, GitLab, Bitbucket, etc.)
+        # Allow any hostname but ensure path looks reasonable
+        if not parsed.path or len(parsed.path.strip('/')) < 3:
+            return False
+            
+        # Reject URLs with potentially dangerous characters or patterns
+        dangerous_patterns = [
+            r'[;<>|&`$]',  # Shell metacharacters
+            r'\.\.',       # Path traversal
+            r'^\s',        # Leading whitespace
+            r'\s$',        # Trailing whitespace
+            r'\n|\r',      # Newlines
+        ]
+        
+        for pattern in dangerous_patterns:
+            if re.search(pattern, repo_url):
+                return False
+                
+        return True
+
+    def _validate_branch_name(self, branch: str) -> bool:
+        """
+        Validate that the branch name is safe for git operations.
+        
+        Args:
+            branch: The branch name to validate
+            
+        Returns:
+            bool: True if branch name is valid and safe, False otherwise
+        """
+        if not branch or not isinstance(branch, str):
+            return False
+            
+        # Trim whitespace for validation
+        branch = branch.strip()
+        
+        # Check length limits (git has a limit around 255 characters)
+        if len(branch) == 0 or len(branch) > 250:
+            return False
+            
+        # Git branch naming rules and security considerations
+        invalid_patterns = [
+            r'^\.',           # Cannot start with dot
+            r'\.\.',          # Cannot contain double dots
+            r'[~^:\?*\[\]]',  # Cannot contain these characters
+            r'[;<>|&`$]',     # Shell metacharacters  
+            r'\\',            # Backslashes
+            r'\s',            # No whitespace allowed
+            r'\n|\r',         # No newlines
+            r'^-',            # Cannot start with dash
+            r'/$',            # Cannot end with slash
+            r'//',            # Cannot contain double slashes
+            r'^refs/',        # Cannot start with refs/
+            r'\.lock$',       # Cannot end with .lock
+        ]
+        
+        for pattern in invalid_patterns:
+            if re.search(pattern, branch):
+                return False
+                
+        # Must contain only valid git ref characters
+        # Allow alphanumeric, slash, dash, underscore, dot (with restrictions above)
+        if not re.match(r'^[a-zA-Z0-9/_.-]+$', branch):
+            return False
+            
+        return True
 
     def _clone_repository(self, repo_url: str, branch: str, target_dir: str) -> bool:
         """Clone a repository to the target directory."""
